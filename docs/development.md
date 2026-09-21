@@ -23,3 +23,13 @@ npm test
 - 새 문자열은 반드시 ko/en 두 파일에 같이 넣는다.
 - 순수 로직(계산·파서·동기화)은 `__tests__`에 단위 테스트를 둔다.
 - 브랜치 `feat/<이슈번호>-<slug>` → PR → squash merge. 커밋은 한국어 conventional commits (`feat:`, `fix:`, `chore:` …).
+
+## 에뮬레이터 실행
+1. AVD 실행 후 부팅 완료까지 기다린다.
+2. 네이티브 의존성이 바뀌었을 때만 `npx expo run:android --no-bundler` (ANDROID_HOME 지정 필요).
+3. `npx expo start --dev-client` → `adb reverse tcp:8081 tcp:8081` → 앱에서 `localhost:8081`로 연결.
+4. 다크 모드 확인: `adb shell cmd uimode night yes|no`.
+
+## 알아둘 것
+- expo-router headless Tabs: `TabList`는 `Tabs`의 직계 자식이어야 한다. `TabTrigger asChild`는 자식에 `flexDirection: row`를 함수 스타일로 넘기므로 자식 스타일을 뒤에 합친다.
+- 서드파티 컴포넌트(TabList 등)는 Unistyles가 네이티브로 갱신하지 못한다 → `useUnistyles()`로 리렌더.
