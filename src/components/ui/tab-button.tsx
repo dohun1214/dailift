@@ -11,7 +11,7 @@ type Props = Omit<PressableProps, 'children'> & {
   ref?: Ref<View>;
 };
 
-export function TabButton({ icon: Icon, label, isFocused = false, ref, ...props }: Props) {
+export function TabButton({ icon: Icon, label, isFocused = false, ref, style, ...props }: Props) {
   const { theme } = useUnistyles();
   const color = isFocused ? theme.colors.text : theme.colors.text2;
   styles.useVariants({ focused: isFocused });
@@ -21,8 +21,9 @@ export function TabButton({ icon: Icon, label, isFocused = false, ref, ...props 
       ref={ref}
       accessibilityRole="tab"
       accessibilityState={{ selected: isFocused }}
-      style={styles.button}
       {...props}
+      // TabTrigger가 넣는 기본 스타일(flexDirection: row)을 우리 스타일이 덮어쓰도록 뒤에 둔다.
+      style={(state) => [typeof style === 'function' ? style(state) : style, styles.button]}
     >
       <Icon size={22} color={color} strokeWidth={1.8} />
       <Text style={styles.label} numberOfLines={1}>
@@ -35,6 +36,7 @@ export function TabButton({ icon: Icon, label, isFocused = false, ref, ...props 
 const styles = StyleSheet.create((theme) => ({
   button: {
     flex: 1,
+    flexDirection: 'column',
     minHeight: 52,
     borderRadius: 18,
     alignItems: 'center',
