@@ -1,0 +1,12 @@
+{
+  "tabs": {
+    "home": "Home",
+    "routines": "Routines",
+    "log": "Log",
+    "nutrition": "Nutrition",
+    "me": "Me"
+  },
+  "common": {
+    "comingSoon": "Coming soon"
+  }
+}

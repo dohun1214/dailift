@@ -1,0 +1,12 @@
+{
+  "tabs": {
+    "home": "홈",
+    "routines": "루틴",
+    "log": "기록",
+    "nutrition": "영양",
+    "me": "내 정보"
+  },
+  "common": {
+    "comingSoon": "준비 중이에요"
+  }
+}
