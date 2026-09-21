@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useUnistyles } from 'react-native-unistyles';
 
+import { DatabaseProvider } from '@/db/provider';
 import { useApplyTheme } from '@/theme/use-apply-theme';
 
 export default function RootLayout() {
@@ -11,7 +12,7 @@ export default function RootLayout() {
   const { theme } = useUnistyles();
 
   return (
-    <>
+    <DatabaseProvider>
       <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
@@ -19,6 +20,6 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: theme.colors.bg },
         }}
       />
-    </>
+    </DatabaseProvider>
   );
 }

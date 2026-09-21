@@ -1,0 +1,338 @@
+import type { Equipment, ExerciseType } from '@/db/schema';
+
+import type { MuscleId } from './muscles';
+
+export type ExerciseSeed = {
+  key: string;
+  ko: string;
+  en: string;
+  type: ExerciseType;
+  equipment: Equipment;
+  primary: readonly MuscleId[];
+  secondary: readonly MuscleId[];
+};
+
+const W: ExerciseType = 'weight_reps';
+const BW: ExerciseType = 'bodyweight_reps';
+const T: ExerciseType = 'time';
+
+/**
+ * 기본 종목 34개. 순서가 종목 검색 상단 고정 순서다.
+ * 주동근 1세트 · 협응근 0.5세트로 부위 볼륨을 계산하므로 근육 지정은 보수적으로 한다.
+ */
+export const BASE_EXERCISES: readonly ExerciseSeed[] = [
+  // 가슴
+  {
+    key: 'bench_press',
+    ko: '벤치프레스',
+    en: 'Bench Press',
+    type: W,
+    equipment: 'barbell',
+    primary: ['chest'],
+    secondary: ['triceps', 'shoulders'],
+  },
+  {
+    key: 'incline_bench_press',
+    ko: '인클라인 벤치프레스',
+    en: 'Incline Bench Press',
+    type: W,
+    equipment: 'barbell',
+    primary: ['chest'],
+    secondary: ['shoulders', 'triceps'],
+  },
+  {
+    key: 'dumbbell_bench_press',
+    ko: '덤벨 벤치프레스',
+    en: 'Dumbbell Bench Press',
+    type: W,
+    equipment: 'dumbbell',
+    primary: ['chest'],
+    secondary: ['triceps', 'shoulders'],
+  },
+  {
+    key: 'incline_dumbbell_press',
+    ko: '인클라인 덤벨 프레스',
+    en: 'Incline Dumbbell Press',
+    type: W,
+    equipment: 'dumbbell',
+    primary: ['chest'],
+    secondary: ['shoulders', 'triceps'],
+  },
+  {
+    key: 'cable_fly',
+    ko: '케이블 플라이',
+    en: 'Cable Fly',
+    type: W,
+    equipment: 'cable',
+    primary: ['chest'],
+    secondary: ['shoulders'],
+  },
+  {
+    key: 'push_up',
+    ko: '푸시업',
+    en: 'Push-up',
+    type: BW,
+    equipment: 'bodyweight',
+    primary: ['chest'],
+    secondary: ['triceps', 'shoulders'],
+  },
+  {
+    key: 'dips',
+    ko: '딥스',
+    en: 'Dips',
+    type: BW,
+    equipment: 'bodyweight',
+    primary: ['chest', 'triceps'],
+    secondary: ['shoulders'],
+  },
+  // 어깨
+  {
+    key: 'overhead_press',
+    ko: '오버헤드 프레스',
+    en: 'Overhead Press',
+    type: W,
+    equipment: 'barbell',
+    primary: ['shoulders'],
+    secondary: ['triceps', 'traps'],
+  },
+  {
+    key: 'dumbbell_shoulder_press',
+    ko: '덤벨 숄더 프레스',
+    en: 'Dumbbell Shoulder Press',
+    type: W,
+    equipment: 'dumbbell',
+    primary: ['shoulders'],
+    secondary: ['triceps'],
+  },
+  {
+    key: 'lateral_raise',
+    ko: '사이드 레터럴 레이즈',
+    en: 'Lateral Raise',
+    type: W,
+    equipment: 'dumbbell',
+    primary: ['shoulders'],
+    secondary: ['traps'],
+  },
+  {
+    key: 'face_pull',
+    ko: '페이스 풀',
+    en: 'Face Pull',
+    type: W,
+    equipment: 'cable',
+    primary: ['shoulders'],
+    secondary: ['traps'],
+  },
+  // 등
+  {
+    key: 'shrug',
+    ko: '바벨 슈러그',
+    en: 'Barbell Shrug',
+    type: W,
+    equipment: 'barbell',
+    primary: ['traps'],
+    secondary: ['forearms'],
+  },
+  {
+    key: 'deadlift',
+    ko: '데드리프트',
+    en: 'Deadlift',
+    type: W,
+    equipment: 'barbell',
+    primary: ['hamstrings', 'glutes', 'lower_back'],
+    secondary: ['traps', 'forearms', 'quads', 'lats'],
+  },
+  {
+    key: 'barbell_row',
+    ko: '바벨 로우',
+    en: 'Barbell Row',
+    type: W,
+    equipment: 'barbell',
+    primary: ['lats'],
+    secondary: ['traps', 'biceps', 'lower_back'],
+  },
+  {
+    key: 'dumbbell_row',
+    ko: '원암 덤벨 로우',
+    en: 'One-arm Dumbbell Row',
+    type: W,
+    equipment: 'dumbbell',
+    primary: ['lats'],
+    secondary: ['traps', 'biceps'],
+  },
+  {
+    key: 'pull_up',
+    ko: '풀업',
+    en: 'Pull-up',
+    type: BW,
+    equipment: 'bodyweight',
+    primary: ['lats'],
+    secondary: ['biceps', 'traps'],
+  },
+  {
+    key: 'chin_up',
+    ko: '친업',
+    en: 'Chin-up',
+    type: BW,
+    equipment: 'bodyweight',
+    primary: ['lats', 'biceps'],
+    secondary: ['traps'],
+  },
+  {
+    key: 'lat_pulldown',
+    ko: '랫풀다운',
+    en: 'Lat Pulldown',
+    type: W,
+    equipment: 'cable',
+    primary: ['lats'],
+    secondary: ['biceps'],
+  },
+  {
+    key: 'seated_cable_row',
+    ko: '시티드 케이블 로우',
+    en: 'Seated Cable Row',
+    type: W,
+    equipment: 'cable',
+    primary: ['lats'],
+    secondary: ['traps', 'biceps'],
+  },
+  // 하체
+  {
+    key: 'squat',
+    ko: '스쿼트',
+    en: 'Squat',
+    type: W,
+    equipment: 'barbell',
+    primary: ['quads', 'glutes'],
+    secondary: ['hamstrings', 'adductors', 'lower_back'],
+  },
+  {
+    key: 'leg_press',
+    ko: '레그 프레스',
+    en: 'Leg Press',
+    type: W,
+    equipment: 'machine',
+    primary: ['quads', 'glutes'],
+    secondary: ['hamstrings', 'adductors'],
+  },
+  {
+    key: 'romanian_deadlift',
+    ko: '루마니안 데드리프트',
+    en: 'Romanian Deadlift',
+    type: W,
+    equipment: 'barbell',
+    primary: ['hamstrings', 'glutes'],
+    secondary: ['lower_back'],
+  },
+  {
+    key: 'bulgarian_split_squat',
+    ko: '불가리안 스플릿 스쿼트',
+    en: 'Bulgarian Split Squat',
+    type: W,
+    equipment: 'dumbbell',
+    primary: ['quads', 'glutes'],
+    secondary: ['hamstrings', 'adductors'],
+  },
+  {
+    key: 'lunge',
+    ko: '런지',
+    en: 'Lunge',
+    type: W,
+    equipment: 'dumbbell',
+    primary: ['quads', 'glutes'],
+    secondary: ['hamstrings', 'adductors'],
+  },
+  {
+    key: 'leg_extension',
+    ko: '레그 익스텐션',
+    en: 'Leg Extension',
+    type: W,
+    equipment: 'machine',
+    primary: ['quads'],
+    secondary: [],
+  },
+  {
+    key: 'leg_curl',
+    ko: '레그 컬',
+    en: 'Leg Curl',
+    type: W,
+    equipment: 'machine',
+    primary: ['hamstrings'],
+    secondary: ['calves'],
+  },
+  {
+    key: 'hip_thrust',
+    ko: '힙 쓰러스트',
+    en: 'Hip Thrust',
+    type: W,
+    equipment: 'barbell',
+    primary: ['glutes'],
+    secondary: ['hamstrings'],
+  },
+  {
+    key: 'calf_raise',
+    ko: '카프 레이즈',
+    en: 'Calf Raise',
+    type: W,
+    equipment: 'machine',
+    primary: ['calves'],
+    secondary: [],
+  },
+  // 팔
+  {
+    key: 'barbell_curl',
+    ko: '바벨 컬',
+    en: 'Barbell Curl',
+    type: W,
+    equipment: 'barbell',
+    primary: ['biceps'],
+    secondary: ['forearms'],
+  },
+  {
+    key: 'dumbbell_curl',
+    ko: '덤벨 컬',
+    en: 'Dumbbell Curl',
+    type: W,
+    equipment: 'dumbbell',
+    primary: ['biceps'],
+    secondary: ['forearms'],
+  },
+  {
+    key: 'hammer_curl',
+    ko: '해머 컬',
+    en: 'Hammer Curl',
+    type: W,
+    equipment: 'dumbbell',
+    primary: ['biceps', 'forearms'],
+    secondary: [],
+  },
+  {
+    key: 'triceps_pushdown',
+    ko: '트라이셉스 푸시다운',
+    en: 'Triceps Pushdown',
+    type: W,
+    equipment: 'cable',
+    primary: ['triceps'],
+    secondary: [],
+  },
+  {
+    key: 'overhead_triceps_extension',
+    ko: '오버헤드 트라이셉스 익스텐션',
+    en: 'Overhead Triceps Extension',
+    type: W,
+    equipment: 'cable',
+    primary: ['triceps'],
+    secondary: [],
+  },
+  // 코어
+  {
+    key: 'plank',
+    ko: '플랭크',
+    en: 'Plank',
+    type: T,
+    equipment: 'bodyweight',
+    primary: ['abs'],
+    secondary: ['obliques', 'shoulders'],
+  },
+];
+
+export const baseExerciseId = (key: string) => `base:${key}`;
