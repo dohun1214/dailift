@@ -7,6 +7,8 @@
     "me": "내 정보"
   },
   "common": {
-    "comingSoon": "준비 중이에요"
+    "comingSoon": "준비 중이에요",
+    "back": "뒤로",
+    "close": "닫기"
   }
 }

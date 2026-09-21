@@ -7,6 +7,8 @@
     "me": "Me"
   },
   "common": {
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "back": "Back",
+    "close": "Close"
   }
 }
