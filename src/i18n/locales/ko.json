@@ -397,5 +397,43 @@
     "notFound": "종목을 찾을 수 없어요",
     "custom": "직접 만든 종목이라 동작 설명이 없어요.",
     "openHint": "길게 누르면 종목 설명을 봐요"
+  },
+  "home": {
+    "todayRoutine": "오늘은 {{name}} 하는 날",
+    "restDay": "오늘은 쉬는 날이에요",
+    "inProgress": "{{name}} 운동 중이에요",
+    "today": "오늘",
+    "meta_other": "{{count}}종목 · {{sets}}세트 · 약 {{minutes}}분",
+    "more_other": "{{names}} 외 {{count}}",
+    "start": "운동 시작",
+    "resume": "운동 이어하기",
+    "restTitle": "쉬는 날",
+    "restBody": "오늘 잡힌 루틴이 없어요. 하고 싶은 운동이 있다면 바로 시작해요.",
+    "noRoutinesBody": "아직 루틴이 없어요. 루틴을 만들거나 빈 운동으로 바로 시작해요.",
+    "quickStart": "빈 운동 시작",
+    "goRoutines": "루틴 보기",
+    "last7": "지난 7일",
+    "last7Value": "{{count}}",
+    "last7Target": " / {{target}}회",
+    "last7NoTarget": "회",
+    "streak": "연속 기록",
+    "streakValue": "{{count}}",
+    "streakUnit": "주",
+    "prRecent": "{{name}} {{value}}",
+    "prA11y": "최근 개인 기록: {{name}} {{value}}, {{when}}",
+    "dayA11y": "{{date}}, {{state}}",
+    "state": {
+      "today": "오늘",
+      "done": "운동함",
+      "plan": "루틴 예정",
+      "rest": "쉬는 날"
+    },
+    "stripA11y": "이번 주"
+  },
+  "relative": {
+    "today": "오늘",
+    "yesterday": "어제",
+    "twoDays": "이틀 전",
+    "daysAgo_other": "{{count}}일 전"
   }
 }
