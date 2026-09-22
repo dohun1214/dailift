@@ -43,5 +43,9 @@ const styles = StyleSheet.create((theme) => ({
     padding: theme.space.xl,
     backgroundColor: theme.colors.bg,
   },
-  error: { color: theme.colors.danger, fontSize: theme.fontSize.body },
+  error: {
+    color: theme.colors.danger,
+    fontSize: theme.fontSize.body,
+    fontFamily: theme.fonts.regular,
+  },
 }));

@@ -78,7 +78,9 @@ const styles = StyleSheet.create((theme) => ({
   label: {
     flex: 1,
     fontSize: 15,
-    fontWeight: '500',
+    lineHeight: 20,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.medium,
     variants: {
       destructive: {
         true: { color: theme.colors.danger },
@@ -86,13 +88,21 @@ const styles = StyleSheet.create((theme) => ({
       },
     },
   },
-  value: { fontSize: 14, color: theme.colors.text2 },
+  value: {
+    fontSize: 14,
+    lineHeight: 18,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.text2,
+  },
   pressed: { opacity: 0.6 },
   section: { gap: theme.space.sm },
   sectionTitle: {
     paddingHorizontal: 6,
     fontSize: 13,
-    fontWeight: '600',
+    lineHeight: 17,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.semibold,
     color: theme.colors.text2,
   },
 }));

@@ -34,7 +34,9 @@ const styles = StyleSheet.create((theme) => ({
   },
   label: {
     fontSize: 11,
-    fontWeight: '700',
+    lineHeight: 14,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.bold,
     variants: {
       kind: {
         soft: { color: theme.colors.accentText },

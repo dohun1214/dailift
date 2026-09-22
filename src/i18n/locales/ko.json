@@ -10,5 +10,66 @@
     "comingSoon": "준비 중이에요",
     "back": "뒤로",
     "close": "닫기"
+  },
+  "welcome": {
+    "tagline": "운동, 식단, 몸의 변화를\n한곳에 기록해요.",
+    "apple": "Apple로 계속하기",
+    "google": "Google로 계속하기",
+    "email": "이메일로 계속하기",
+    "guest": "로그인 없이 시작",
+    "guestNote": "게스트 기록은 이 기기에만 저장돼요. 나중에 계정을 연결할 수 있어요.",
+    "agreeTerms": "이용약관과 개인정보 처리방침에 동의해요",
+    "agreeAge": "만 14세 이상이에요",
+    "authSoonTitle": "준비 중이에요",
+    "authSoonBody": "계정 로그인은 곧 지원할게요. 지금은 로그인 없이 시작해 주세요."
+  },
+  "onboarding": {
+    "progress": "{{step}} / {{total}}",
+    "skip": "건너뛰기",
+    "next": "다음",
+    "done": "완료",
+    "experience": {
+      "title": "운동 경험이 어느 정도예요?",
+      "subtitle": "추천 루틴 순서와 권장 세트 범위를 맞추는 데만 써요.",
+      "new": "처음이에요",
+      "newSub": "헬스장이 아직 낯설어요",
+      "under6m": "6개월 미만",
+      "under6mSub": "기본 동작은 해봤어요",
+      "over1y": "1년 이상",
+      "over1ySub": "꾸준히 해오고 있어요"
+    },
+    "days": {
+      "title": "일주일에 몇 번 운동할 계획이에요?",
+      "subtitle": "추천 루틴을 고르는 데만 써요.",
+      "option": "주 {{count}}회",
+      "optionPlus": "주 {{count}}회 이상",
+      "d2Sub": "가볍게 시작해요",
+      "d3Sub": "전신을 고르게",
+      "d4Sub": "상체와 하체를 나눠서",
+      "d5Sub": "부위별로 나눠서"
+    },
+    "goal": {
+      "title": "가장 큰 목표는 뭐예요?",
+      "subtitle": "단백질 목표를 계산하는 데만 써요.",
+      "muscle": "근육 키우기",
+      "muscleSub": "몸을 더 크고 탄탄하게",
+      "strength": "힘 기르기",
+      "strengthSub": "더 무겁게 들기",
+      "fat_loss": "체지방 줄이기",
+      "fat_lossSub": "근육은 지키면서 가볍게",
+      "consistency": "꾸준히 하기",
+      "consistencySub": "운동을 습관으로"
+    },
+    "body": {
+      "title": "키와 체중을 알려주세요",
+      "subtitle": "선택 사항이에요. 단백질 목표를 계산하는 데만 써요.",
+      "height": "키",
+      "weight": "체중",
+      "heightError": "{{min}}~{{max}} 사이로 입력해 주세요",
+      "weightError": "{{min}}~{{max}} 사이로 입력해 주세요",
+      "bodyTypeLabel": "근육맵에 표시할 바디",
+      "male": "남성형",
+      "female": "여성형"
+    }
   }
 }

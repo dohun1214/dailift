@@ -121,6 +121,22 @@ const accents: Record<Accent, Record<Mode, AccentColors>> = {
 export const radius = { sm: 10, md: 14, lg: 20, xl: 24, pill: 999 } as const;
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28 } as const;
 export const fontSize = { caption: 12, body: 15, title: 17, h2: 22, h1: 26 } as const;
+/**
+ * 서체. 시안은 Onest(라틴) + IBM Plex Sans KR(한글)인데 RN은 두 사용자 서체를 섞어 쓰지 못한다.
+ * 그래서 글은 IBM Plex Sans KR(라틴 글리프 포함), 숫자와 워드마크는 Onest를 쓴다.
+ * 사용자 서체는 fontWeight 대신 굵기별 fontFamily로 지정해야 한다(안드로이드 가짜 볼드 방지).
+ */
+export const fonts = {
+  regular: 'IBMPlexSansKR_400Regular',
+  medium: 'IBMPlexSansKR_500Medium',
+  semibold: 'IBMPlexSansKR_600SemiBold',
+  bold: 'IBMPlexSansKR_700Bold',
+  numRegular: 'Onest_400Regular',
+  numMedium: 'Onest_500Medium',
+  numSemibold: 'Onest_600SemiBold',
+  numBold: 'Onest_700Bold',
+} as const;
+
 /** 터치 영역 최소 크기 */
 export const hitSize = 44;
 
@@ -132,6 +148,7 @@ function makeTheme(accent: Accent, mode: Mode) {
     radius,
     space,
     fontSize,
+    fonts,
     hitSize,
   };
 }

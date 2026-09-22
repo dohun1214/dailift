@@ -39,7 +39,9 @@ const styles = StyleSheet.create((theme) => ({
   },
   label: {
     fontSize: 13,
-    fontWeight: '600',
+    lineHeight: 17,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.semibold,
     variants: {
       selected: {
         true: { color: theme.colors.onAccent },

@@ -76,10 +76,12 @@ const styles = StyleSheet.create((theme) => ({
   },
   label: {
     fontSize: 14,
+    lineHeight: 18,
+    includeFontPadding: false,
     variants: {
       selected: {
-        true: { color: theme.colors.text, fontWeight: '700' },
-        false: { color: theme.colors.text2, fontWeight: '600' },
+        true: { color: theme.colors.text, fontFamily: theme.fonts.bold },
+        false: { color: theme.colors.text2, fontFamily: theme.fonts.semibold },
       },
     },
   },
