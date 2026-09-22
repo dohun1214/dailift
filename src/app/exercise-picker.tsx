@@ -69,6 +69,8 @@ export default function ExercisePickerScreen() {
               accessibilityState={{ checked: on }}
               accessibilityLabel={`${e.name}, ${meta(e)}`}
               onPress={() => toggle(e.id)}
+              onLongPress={() => router.push({ pathname: '/exercise/[id]', params: { id: e.id } })}
+              accessibilityHint={t('exerciseDetail.openHint')}
               style={[styles.row, i < list.length - 1 && styles.rowLine]}
             >
               <View style={styles.body}>

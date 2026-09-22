@@ -380,5 +380,22 @@
     "chartA11y": "{{name}} 추정 1RM 8주 추이, 지금 {{value}}{{unit}}",
     "e1rmEmpty": "무게를 기록한 종목이 생기면 추이가 보여요.",
     "stagnant": "<b>{{name}}</b>{{particle}} 최근 {{count}}회 기록이 제자리예요. 렙 범위를 바꿔보는 건 어때요?"
+  },
+  "exerciseDetail": {
+    "primary": "주동근",
+    "secondary": "협응근",
+    "equipment": "기구",
+    "steps": "동작",
+    "stepA11y": "{{n}}단계, {{text}}",
+    "record": "내 기록",
+    "e1rm": "추정 1RM",
+    "bestSet": "{{unit}} · 최고 중량 {{weight}} × {{reps}}",
+    "noRecord": "아직 기록이 없어요. 이 종목으로 운동하면 추이가 보여요.",
+    "chartA11y": "{{name}} 추정 1RM 최근 {{count}}회 추이, 최고 {{value}}{{unit}}",
+    "musclesA11y": "주동근 {{primary}}, 협응근 {{secondary}}",
+    "none": "없음",
+    "notFound": "종목을 찾을 수 없어요",
+    "custom": "직접 만든 종목이라 동작 설명이 없어요.",
+    "openHint": "길게 누르면 종목 설명을 봐요"
   }
 }

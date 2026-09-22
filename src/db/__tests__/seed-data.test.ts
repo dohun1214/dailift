@@ -1,3 +1,4 @@
+import { EXERCISE_GUIDES } from '@/data/exercise-guides';
 import { BASE_EXERCISES } from '@/data/exercises';
 import { MUSCLES } from '@/data/muscles';
 
@@ -27,5 +28,16 @@ describe('기본 종목 데이터', () => {
     const missing = MUSCLES.map((m) => m.id).filter((id) => !covered.has(id));
     // 옆구리·내전근은 협응근으로만 쓰인다.
     expect(missing.sort()).toEqual(['adductors', 'obliques']);
+  });
+});
+
+describe('exercise guides', () => {
+  it('기본 종목마다 한·영 5단계 설명이 있다', () => {
+    for (const e of BASE_EXERCISES) {
+      const g = EXERCISE_GUIDES[e.key];
+      expect(g?.ko).toHaveLength(5);
+      expect(g?.en).toHaveLength(5);
+    }
+    expect(Object.keys(EXERCISE_GUIDES).sort()).toEqual(BASE_EXERCISES.map((e) => e.key).sort());
   });
 });

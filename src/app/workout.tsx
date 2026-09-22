@@ -296,6 +296,9 @@ export default function WorkoutScreen() {
                   <SuggestionLine data={suggestions.get(we.id)} type={type} unit={unit} we={we} />
                 }
                 onAddSet={() => addSet(db, we.id, unit)}
+                onNamePress={() =>
+                  router.push({ pathname: '/exercise/[id]', params: { id: we.exerciseId } })
+                }
               >
                 {we.sets.map((s) => {
                   const label =

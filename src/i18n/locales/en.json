@@ -389,5 +389,22 @@
     "chartA11y": "{{name}} estimated 1RM over 8 weeks, now {{value}}{{unit}}",
     "e1rmEmpty": "Your trend appears once you log weighted exercises.",
     "stagnant": "<b>{{name}}</b> has stayed flat for the last {{count}} sessions. Try a different rep range?"
+  },
+  "exerciseDetail": {
+    "primary": "Primary",
+    "secondary": "Secondary",
+    "equipment": "Equipment",
+    "steps": "How to",
+    "stepA11y": "Step {{n}}, {{text}}",
+    "record": "My records",
+    "e1rm": "Est. 1RM",
+    "bestSet": "{{unit}} · Best weight {{weight}} × {{reps}}",
+    "noRecord": "No records yet. Your trend appears after you train this exercise.",
+    "chartA11y": "{{name}} estimated 1RM over the last {{count}} sessions, best {{value}}{{unit}}",
+    "musclesA11y": "Primary: {{primary}}. Secondary: {{secondary}}",
+    "none": "none",
+    "notFound": "Exercise not found",
+    "custom": "Custom exercises don't have instructions.",
+    "openHint": "Long press to see how to do it"
   }
 }
