@@ -16,6 +16,7 @@ import {
   SetRow,
 } from '@/components/workout';
 import { db } from '@/db/client';
+import type { SetKind } from '@/db/schema';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
 import {
   useActiveWorkout,
@@ -47,7 +48,11 @@ import { useAppLanguage } from '@/i18n/use-app-language';
 import { useNow } from '@/lib/use-now';
 import { openExercisePicker } from '@/stores/exercise-picker';
 import { useRestTimer } from '@/stores/rest-timer';
-import { useSettings } from '@/stores/settings';
+import { useSettings, workoutDefaults } from '@/stores/settings';
+
+const SET_KINDS: readonly SetKind[] = ['working', 'warmup', 'drop', 'failure'];
+/** RPE 선택지: 6–10, 0.5 단위 */
+const RPE_VALUES = [10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6];
 
 /** 워밍업 세트 뒤 휴식은 짧게 */
 const WARMUP_REST_SEC = 60;
@@ -69,6 +74,12 @@ export default function WorkoutScreen() {
   const catalog = useExerciseCatalog(lang);
   const unit = useSettings((s) => s.weightUnit);
   const keepAwake = useSettings((s) => s.keepAwake);
+  const dumbbellMode = useSettings((s) => s.dumbbellMode);
+  const advanced = useSettings((s) => s.advancedLogging);
+  const [setMenu, setSetMenu] = useState<{ id: string; kind: SetKind; rpe: number | null } | null>(
+    null,
+  );
+  const [rpeFor, setRpeFor] = useState<{ id: string; rpe: number | null } | null>(null);
   const startRest = useRestTimer((s) => s.start);
   const stopRest = useRestTimer((s) => s.stop);
   const now = useNow(1000, !!workout);
@@ -157,7 +168,7 @@ export default function WorkoutScreen() {
 
   const addExercises = () =>
     openExercisePicker((ids) => {
-      addExercisesToWorkout(db, currentWorkout.id, ids, unit);
+      addExercisesToWorkout(db, currentWorkout.id, ids, unit, undefined, workoutDefaults());
     });
 
   const replaceActive = () => {
@@ -278,6 +289,9 @@ export default function WorkoutScreen() {
             const group = info?.primaryGroups[0];
             const prs = prSetIds(we, bests.get(we.exerciseId) ?? null);
             let workingNo = 0;
+            const plateSet =
+              working.find((s) => s.completedAt === null && s.weight !== null) ??
+              [...working].reverse().find((s) => s.weight !== null);
             return (
               <ActiveExerciseCard
                 key={we.id}
@@ -299,10 +313,33 @@ export default function WorkoutScreen() {
                 onNamePress={() =>
                   router.push({ pathname: '/exercise/[id]', params: { id: we.exerciseId } })
                 }
+                onPlatesPress={
+                  info?.equipment === 'barbell' && type === 'weight_reps'
+                    ? () =>
+                        router.push({
+                          pathname: '/plate-calculator',
+                          params: {
+                            weight: plateSet?.weight != null ? String(plateSet.weight) : '',
+                            unit: plateSet?.weightUnit ?? unit,
+                          },
+                        })
+                    : undefined
+                }
+                weightColumn={
+                  info?.equipment === 'dumbbell'
+                    ? t(dumbbellMode === 'single' ? 'workout.colPerHand' : 'workout.colPair')
+                    : undefined
+                }
               >
                 {we.sets.map((s) => {
                   const label =
-                    s.kind === 'warmup' ? t('workout.warmupLabel') : String(++workingNo);
+                    s.kind === 'warmup'
+                      ? t('workout.warmupLabel')
+                      : s.kind === 'drop'
+                        ? t('workout.dropLabel')
+                        : s.kind === 'failure'
+                          ? t('workout.failureLabel')
+                          : String(++workingNo);
                   return (
                     <SetRow
                       key={s.id}
@@ -316,6 +353,12 @@ export default function WorkoutScreen() {
                       onChange={(patch) => updateSet(db, s.id, patch)}
                       onToggle={() => toggleSet(we, s.id)}
                       onDelete={() => deleteSet(db, s.id)}
+                      rpe={advanced ? s.rpe : null}
+                      onLabelPress={
+                        advanced
+                          ? () => setSetMenu({ id: s.id, kind: s.kind, rpe: s.rpe })
+                          : undefined
+                      }
                     />
                   );
                 })}
@@ -341,6 +384,52 @@ export default function WorkoutScreen() {
             ? [{ label: t('workout.menu.replace', { name: activeName }), onPress: replaceActive }]
             : []),
           { label: t('workout.menu.discard'), onPress: discard, destructive: true },
+        ]}
+      />
+
+      <ActionSheet
+        visible={setMenu !== null}
+        title={t('workout.setMenu.title')}
+        cancelLabel={t('workout.menu.cancel')}
+        onClose={() => setSetMenu(null)}
+        actions={[
+          ...SET_KINDS.map((kind) => ({
+            label: t(`workout.setMenu.kind.${kind}`),
+            selected: setMenu?.kind === kind,
+            onPress: () => {
+              if (setMenu) updateSet(db, setMenu.id, { kind });
+            },
+          })),
+          {
+            label: t('workout.setMenu.rpe'),
+            onPress: () => {
+              const target = setMenu ? { id: setMenu.id, rpe: setMenu.rpe } : null;
+              // 앞 시트가 닫힌 뒤에 연다(모달 두 개가 겹치면 안드로이드에서 안 뜬다)
+              setTimeout(() => setRpeFor(target), 250);
+            },
+          },
+        ]}
+      />
+
+      <ActionSheet
+        visible={rpeFor !== null}
+        title={t('workout.setMenu.rpeTitle')}
+        cancelLabel={t('workout.menu.cancel')}
+        onClose={() => setRpeFor(null)}
+        actions={[
+          ...RPE_VALUES.map((v) => ({
+            label: String(v),
+            selected: rpeFor?.rpe === v,
+            onPress: () => {
+              if (rpeFor) updateSet(db, rpeFor.id, { rpe: v });
+            },
+          })),
+          {
+            label: t('workout.setMenu.rpeClear'),
+            onPress: () => {
+              if (rpeFor) updateSet(db, rpeFor.id, { rpe: null });
+            },
+          },
         ]}
       />
     </View>

@@ -1,9 +1,10 @@
-import { ChevronDown, Plus } from 'lucide-react-native';
+import { ChevronDown, Disc, Plus } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
+import { IconButton } from '@/components/ui/icon-button';
 import type { ExerciseType } from '@/db/schema';
 
 type CardProps = {
@@ -15,6 +16,10 @@ type CardProps = {
   onAddSet: () => void;
   /** 종목 이름을 누르면 종목 상세로 */
   onNamePress?: () => void;
+  /** 바벨 종목이면 원판 계산기 버튼 */
+  onPlatesPress?: () => void;
+  /** 무게 컬럼 제목을 바꿀 때 (덤벨 한 손/합계) */
+  weightColumn?: string;
 };
 
 /** 지금 하는 종목 카드: 위치·부위 / 이름 / 증량 제안 / 컬럼 헤더 / 세트 행들 / 세트 추가 */
@@ -26,6 +31,8 @@ export function ActiveExerciseCard({
   children,
   onAddSet,
   onNamePress,
+  onPlatesPress,
+  weightColumn,
 }: CardProps) {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
@@ -42,6 +49,14 @@ export function ActiveExerciseCard({
           <Text style={styles.position}>{position}</Text>
           <Text style={styles.name}>{name}</Text>
         </Pressable>
+        {onPlatesPress ? (
+          <IconButton
+            icon={Disc}
+            tone="raised"
+            label={t('workout.plates')}
+            onPress={onPlatesPress}
+          />
+        ) : null}
       </View>
       {suggestion}
       <View style={styles.columns} importantForAccessibility="no-hide-descendants">
@@ -51,7 +66,9 @@ export function ActiveExerciseCard({
         ) : (
           <>
             <Text style={[styles.col, styles.colFlex]}>
-              {type === 'bodyweight_reps' ? t('workout.colAdded') : t('workout.colWeight')}
+              {type === 'bodyweight_reps'
+                ? t('workout.colAdded')
+                : (weightColumn ?? t('workout.colWeight'))}
             </Text>
             <Text style={[styles.col, styles.colFlex]}>{t('workout.colReps')}</Text>
           </>

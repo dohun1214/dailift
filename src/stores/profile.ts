@@ -21,22 +21,31 @@ type ProfileState = OnboardingResult & {
   onboardingCompleted: boolean;
   acceptConsent: () => void;
   completeOnboarding: (result: OnboardingResult) => void;
+  setBodyType: (value: BodyType) => void;
+  /** 모든 데이터 삭제 때 처음 상태로 */
+  reset: () => void;
 };
+
+const INITIAL = {
+  consentAcceptedAt: null,
+  onboardingCompleted: false,
+  experience: null,
+  daysPerWeek: null,
+  goal: null,
+  heightCm: null,
+  weight: null,
+  weightUnit: 'kg',
+  bodyType: 'male',
+} as const satisfies Partial<ProfileState>;
 
 export const useProfile = create<ProfileState>()(
   persist(
     (set) => ({
-      consentAcceptedAt: null,
-      onboardingCompleted: false,
-      experience: null,
-      daysPerWeek: null,
-      goal: null,
-      heightCm: null,
-      weight: null,
-      weightUnit: 'kg',
-      bodyType: 'male',
+      ...INITIAL,
       acceptConsent: () => set({ consentAcceptedAt: Date.now() }),
       completeOnboarding: (result) => set({ ...result, onboardingCompleted: true }),
+      setBodyType: (bodyType) => set({ bodyType }),
+      reset: () => set({ ...INITIAL }),
     }),
     { name: 'profile', version: 1, storage: createJSONStorage(() => kvStorage) },
   ),

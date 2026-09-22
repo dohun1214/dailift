@@ -93,7 +93,7 @@ export default function RoutineEditScreen() {
 
   const addExercises = () => {
     openExercisePicker((ids) => {
-      const rests = defaultRestFor(db, ids);
+      const rests = defaultRestFor(db, ids, useSettings.getState().defaultRestSec);
       const added = ids.map((exerciseId) =>
         newDraftItem(newId(), exerciseId, weightUnit, rests.get(exerciseId)),
       );

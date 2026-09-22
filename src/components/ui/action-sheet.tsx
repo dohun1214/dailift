@@ -1,11 +1,14 @@
+import { Check } from 'lucide-react-native';
 import { Modal, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 export type SheetAction = {
   label: string;
   onPress: () => void;
   destructive?: boolean;
+  /** 지금 고른 값이면 오른쪽에 체크 */
+  selected?: boolean;
 };
 
 type Props = {
@@ -19,6 +22,7 @@ type Props = {
 /** 아래에서 올라오는 선택지 목록. 항목을 누르면 닫힌 뒤 실행된다. */
 export function ActionSheet({ visible, title, actions, cancelLabel, onClose }: Props) {
   const insets = useSafeAreaInsets();
+  const { theme } = useUnistyles();
   return (
     <Modal
       visible={visible}
@@ -39,6 +43,7 @@ export function ActionSheet({ visible, title, actions, cancelLabel, onClose }: P
             <Pressable
               key={a.label}
               accessibilityRole="button"
+              accessibilityState={a.selected === undefined ? undefined : { selected: a.selected }}
               onPress={() => {
                 onClose();
                 a.onPress();
@@ -50,6 +55,7 @@ export function ActionSheet({ visible, title, actions, cancelLabel, onClose }: P
               ]}
             >
               <Text style={[styles.itemText, a.destructive && styles.danger]}>{a.label}</Text>
+              {a.selected ? <Check size={18} color={theme.colors.text} strokeWidth={2.2} /> : null}
             </Pressable>
           ))}
         </View>
@@ -84,9 +90,10 @@ const styles = StyleSheet.create((theme) => ({
     fontFamily: theme.fonts.semibold,
     color: theme.colors.text2,
   },
-  item: { minHeight: 52, justifyContent: 'center' },
+  item: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 8 },
   line: { borderTopWidth: 1, borderTopColor: theme.colors.line },
   itemText: {
+    flex: 1,
     fontSize: 16,
     lineHeight: 21,
     includeFontPadding: false,

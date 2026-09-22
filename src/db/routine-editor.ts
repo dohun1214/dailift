@@ -185,13 +185,17 @@ export function createCustomExercise(
   return id;
 }
 
-/** 종목 id 목록 → 휴식 기본값(맨몸·시간 종목은 60초, 나머지 90초) */
-export function defaultRestFor(db: AppDatabase, ids: readonly string[]): Map<string, number> {
+/** 종목 id 목록 → 휴식 기본값(설정값, 없으면 맨몸·시간 종목 60초·나머지 90초) */
+export function defaultRestFor(
+  db: AppDatabase,
+  ids: readonly string[],
+  restSec?: number,
+): Map<string, number> {
   if (ids.length === 0) return new Map();
   const rows = db
     .select({ id: schema.exercises.id, type: schema.exercises.type })
     .from(schema.exercises)
     .where(inArray(schema.exercises.id, [...ids]))
     .all();
-  return new Map(rows.map((r) => [r.id, r.type === 'weight_reps' ? 90 : 60]));
+  return new Map(rows.map((r) => [r.id, restSec ?? (r.type === 'weight_reps' ? 90 : 60)]));
 }

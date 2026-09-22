@@ -11,7 +11,7 @@ import {
   warmupSets,
 } from '@/domain/strength';
 import { newId } from '@/lib/id';
-import type { WeightUnit } from './schema';
+import type { SetKind, WeightUnit } from './schema';
 import * as schema from './schema';
 import type { AppDatabase } from './seed';
 
@@ -204,6 +204,7 @@ export function planSets(
   info: ExerciseInfo | undefined,
   unit: WeightUnit,
   withWarmup: boolean,
+  bar = defaultBarWeight(unit),
 ): PlannedSet[] {
   const history = lastSessions(db, item.exerciseId, 2);
   const inUnit = history.map((s) =>
@@ -231,7 +232,7 @@ export function planSets(
   const top = working[0]?.weight ?? null;
   const warm =
     withWarmup && top !== null && info?.type === 'weight_reps' && info.equipment === 'barbell'
-      ? warmupSets(top, unit, defaultBarWeight(unit)).map(
+      ? warmupSets(top, unit, bar).map(
           (w): PlannedSet => ({
             kind: 'warmup',
             weight: w.weight,
@@ -251,6 +252,7 @@ function insertExercises(
   unit: WeightUnit,
   makeId: IdFn,
   warmupGroups: Set<string>,
+  bar = defaultBarWeight(unit),
 ) {
   const infos = exerciseInfo(
     tx,
@@ -263,7 +265,7 @@ function insertExercises(
     const eligible = info?.equipment === 'barbell' && info.type === 'weight_reps' && !!group;
     const withWarmup = eligible && !warmupGroups.has(group);
     if (eligible) warmupGroups.add(group);
-    const planned = planSets(tx, item, info, unit, withWarmup);
+    const planned = planSets(tx, item, info, unit, withWarmup, bar);
     const weId = makeId();
     tx.insert(schema.workoutExercises)
       .values({
@@ -298,7 +300,14 @@ function insertExercises(
 /** 운동 시작. routineId가 없으면 빈 운동. 진행 중인 운동이 있으면 그 id를 돌려준다. */
 export function startWorkout(
   db: AppDatabase,
-  opts: { routineId: string | null; name: string; weightUnit: WeightUnit; now?: number },
+  opts: {
+    routineId: string | null;
+    name: string;
+    weightUnit: WeightUnit;
+    /** 워밍업 첫 단계(빈 바) 무게. 없으면 단위 기본값 */
+    barWeight?: number;
+    now?: number;
+  },
   makeId: IdFn = newId,
 ): string {
   const active = getActiveWorkout(db);
@@ -326,18 +335,28 @@ export function startWorkout(
       )
       .orderBy(asc(schema.routineExercises.position))
       .all();
-    insertExercises(tx, workoutId, items, 0, opts.weightUnit, makeId, new Set());
+    insertExercises(
+      tx,
+      workoutId,
+      items,
+      0,
+      opts.weightUnit,
+      makeId,
+      new Set(),
+      opts.barWeight ?? defaultBarWeight(opts.weightUnit),
+    );
   });
   return workoutId;
 }
 
-/** 운동 중 종목 추가 (맨 뒤). 기본 3세트 · 8–12회, 휴식은 무게 종목 90초·나머지 60초 */
+/** 운동 중 종목 추가 (맨 뒤). 기본 3세트 · 8–12회, 휴식은 설정의 기본 휴식(없으면 무게 종목 90초·나머지 60초) */
 export function addExercisesToWorkout(
   db: AppDatabase,
   workoutId: string,
   exerciseIds: readonly string[],
   unit: WeightUnit,
   makeId: IdFn = newId,
+  opts: { restSec?: number; barWeight?: number } = {},
 ) {
   if (exerciseIds.length === 0) return;
   db.transaction((tx) => {
@@ -358,7 +377,7 @@ export function addExercisesToWorkout(
         targetSets: 3,
         repMin: 8,
         repMax: 12,
-        restSec: infos.get(exerciseId)?.type === 'weight_reps' ? 90 : 60,
+        restSec: opts.restSec ?? (infos.get(exerciseId)?.type === 'weight_reps' ? 90 : 60),
         increment: unit === 'lb' ? 5 : 2.5,
         incrementUnit: unit,
       }),
@@ -378,7 +397,16 @@ export function addExercisesToWorkout(
     const warmed = new Set(
       [...exerciseInfo(tx, existing).values()].flatMap((i) => i.primaryGroups.slice(0, 1)),
     );
-    insertExercises(tx, workoutId, items, (last?.value ?? -1) + 1, unit, makeId, warmed);
+    insertExercises(
+      tx,
+      workoutId,
+      items,
+      (last?.value ?? -1) + 1,
+      unit,
+      makeId,
+      warmed,
+      opts.barWeight ?? defaultBarWeight(unit),
+    );
   });
 }
 
@@ -507,7 +535,13 @@ export function addSet(
 export function updateSet(
   db: AppDatabase,
   setId: string,
-  patch: Partial<{ weight: number | null; reps: number | null; durationSec: number | null }>,
+  patch: Partial<{
+    weight: number | null;
+    reps: number | null;
+    durationSec: number | null;
+    rpe: number | null;
+    kind: SetKind;
+  }>,
 ) {
   db.update(schema.sets)
     .set({ ...patch, dirty: 1 })
