@@ -53,13 +53,15 @@ export function ActionSheet({ visible, title, actions, cancelLabel, onClose }: P
             </Pressable>
           ))}
         </View>
-        <Pressable
-          accessibilityRole="button"
-          onPress={onClose}
-          style={({ pressed }) => [styles.card, styles.cancel, pressed && styles.pressed]}
-        >
-          <Text style={styles.cancelText}>{cancelLabel}</Text>
-        </Pressable>
+        <View style={styles.card}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onClose}
+            style={({ pressed }) => [styles.cancel, pressed && styles.pressed]}
+          >
+            <Text style={styles.cancelText}>{cancelLabel}</Text>
+          </Pressable>
+        </View>
       </View>
     </Modal>
   );
