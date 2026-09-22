@@ -331,5 +331,34 @@
     "photoDeleteHint": "길게 눌러 지우기",
     "done": "완료",
     "notFound": "운동 기록을 찾을 수 없어요"
+  },
+  "history": {
+    "segHistory": "히스토리",
+    "segStats": "통계",
+    "segA11y": "기록 보기 방식",
+    "count_other": "운동 {{count}}회",
+    "meta": "{{minutes}}분 · {{sets}}세트 · {{volume}}",
+    "prBadge": "PR {{count}}",
+    "rowA11y": "{{date}}, {{name}}, {{meta}}",
+    "rowHint": "요약을 봐요. 길게 누르면 수정하거나 지울 수 있어요.",
+    "empty": "아직 운동 기록이 없어요.\n루틴에서 운동을 시작해 보세요.",
+    "actions": {
+      "edit": "기록 수정",
+      "delete": "기록 삭제",
+      "cancel": "취소"
+    },
+    "deleteTitle": "이 운동 기록을 지울까요?",
+    "deleteBody": "세트와 사진이 모두 사라지고 되돌릴 수 없어요.",
+    "deleteConfirm": "지우기",
+    "edit": {
+      "title": "기록 수정",
+      "done": "완료",
+      "addExercise": "종목 추가",
+      "emptyTitle": "세트가 모두 빠졌어요",
+      "emptyBody": "이 운동 기록을 지울까요?",
+      "keep": "계속 수정",
+      "delete": "지우기"
+    },
+    "statsSoon": "통계는 곧 추가돼요."
   }
 }

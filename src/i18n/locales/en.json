@@ -339,5 +339,35 @@
     "photoDeleteHint": "Long press to delete",
     "done": "Done",
     "notFound": "Workout not found"
+  },
+  "history": {
+    "segHistory": "History",
+    "segStats": "Stats",
+    "segA11y": "Log view",
+    "count_one": "{{count}} workout",
+    "count_other": "{{count}} workouts",
+    "meta": "{{minutes}} min · {{sets}} sets · {{volume}}",
+    "prBadge": "PR {{count}}",
+    "rowA11y": "{{date}}, {{name}}, {{meta}}",
+    "rowHint": "Opens the summary. Long press to edit or delete.",
+    "empty": "No workouts yet.\nStart one from your routines.",
+    "actions": {
+      "edit": "Edit workout",
+      "delete": "Delete workout",
+      "cancel": "Cancel"
+    },
+    "deleteTitle": "Delete this workout?",
+    "deleteBody": "All sets and photos will be deleted. This can't be undone.",
+    "deleteConfirm": "Delete",
+    "edit": {
+      "title": "Edit workout",
+      "done": "Done",
+      "addExercise": "Add exercise",
+      "emptyTitle": "No sets left",
+      "emptyBody": "Delete this workout?",
+      "keep": "Keep editing",
+      "delete": "Delete"
+    },
+    "statsSoon": "Stats are coming soon."
   }
 }
