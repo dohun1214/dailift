@@ -1,3 +1,4 @@
+export { ActionSheet, type SheetAction } from './action-sheet';
 export { Badge } from './badge';
 export { BodyFigure } from './body-figure';
 export { Button } from './button';

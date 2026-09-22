@@ -10,11 +10,13 @@ import { ROUTINE_TEMPLATES } from '@/data/templates';
 import { db } from '@/db/client';
 import { duplicateRoutine } from '@/db/routines';
 import { useRoutineSections } from '@/db/use-routine-sections';
+import { getActiveWorkout, startWorkout } from '@/db/workout';
 import { recommendTemplate } from '@/domain/profile';
 import type { RoutineSummary } from '@/domain/routine';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { isScheduledOn } from '@/lib/weekdays';
 import { useProfile } from '@/stores/profile';
+import { useSettings } from '@/stores/settings';
 
 export default function RoutinesScreen() {
   const { t } = useTranslation();
@@ -33,6 +35,19 @@ export default function RoutinesScreen() {
 
   const openActions = (r: RoutineSummary) => {
     Alert.alert(t('routines.actionsTitle', { name: r.name }), undefined, [
+      {
+        text: t('routines.start'),
+        onPress: () => {
+          if (!getActiveWorkout(db)) {
+            startWorkout(db, {
+              routineId: r.id,
+              name: r.name,
+              weightUnit: useSettings.getState().weightUnit,
+            });
+          }
+          router.push('/workout');
+        },
+      },
       {
         text: t('routines.duplicate'),
         onPress: () => {

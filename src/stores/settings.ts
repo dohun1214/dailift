@@ -18,10 +18,13 @@ type SettingsState = {
   accent: Accent;
   language: LanguagePreference;
   weightUnit: WeightUnit;
+  /** 운동 중 화면 꺼짐 방지 */
+  keepAwake: boolean;
   setThemePreference: (value: ThemePreference) => void;
   setAccent: (value: Accent) => void;
   setLanguage: (value: LanguagePreference) => void;
   setWeightUnit: (value: WeightUnit) => void;
+  setKeepAwake: (value: boolean) => void;
 };
 
 export const useSettings = create<SettingsState>()(
@@ -31,18 +34,21 @@ export const useSettings = create<SettingsState>()(
       accent: 'mono',
       language: 'system',
       weightUnit: defaultWeightUnit(),
+      keepAwake: true,
       setThemePreference: (themePreference) => set({ themePreference }),
       setAccent: (accent) => set({ accent }),
       setLanguage: (language) => set({ language }),
       setWeightUnit: (weightUnit) => set({ weightUnit }),
+      setKeepAwake: (keepAwake) => set({ keepAwake }),
     }),
     {
       name: 'settings',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => kvStorage),
       migrate: (persisted) =>
         ({
           weightUnit: defaultWeightUnit(),
+          keepAwake: true,
           ...(persisted as object),
         }) as SettingsState,
     },
