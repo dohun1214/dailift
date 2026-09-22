@@ -1,4 +1,4 @@
-/** 계정 삭제 — 시안 27 ('먼저 내 데이터 내보내기'는 #16에서) */
+/** 계정 삭제 — 시안 27 */
 import { router } from 'expo-router';
 import { X } from 'lucide-react-native';
 import { useState } from 'react';
@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
+import { useExportSheet } from '@/components/export-sheet';
 import { Button, Card, Screen, TopBar } from '@/components/ui';
 import { deleteAccount } from '@/lib/auth';
 import { wipeDevice } from '@/lib/wipe-device';
@@ -14,6 +15,7 @@ export default function AccountDeleteScreen() {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
   const [busy, setBusy] = useState(false);
+  const exportSheet = useExportSheet();
 
   const remove = async () => {
     setBusy(true);
@@ -62,7 +64,15 @@ export default function AccountDeleteScreen() {
             ))}
           </View>
         </Card>
+        <Button
+          size="md"
+          variant="secondary"
+          label={t('auth.delete.exportFirst')}
+          disabled={busy}
+          onPress={exportSheet.open}
+        />
       </View>
+      {exportSheet.sheet}
     </Screen>
   );
 }

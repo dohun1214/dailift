@@ -126,3 +126,8 @@ npm test
 - 운동 사진: `workout_photos` 행은 일반 동기화, 파일은 `src/sync/photos.ts`가 Storage 비공개 버킷 `workout-photos`(`<user>/<photoId>.jpg`, RLS로 본인 폴더만, 2MB·jpeg 제한)와 맞춘다. 올릴 때 긴 쪽 1280px·JPEG 80%로 줄인 사본(expo-image-manipulator), 기기 원본은 그대로. 기기에 파일이 없으면 내려받고, 서버에 아직 없으면 다음 동기화에 다시 시도. 지운 사진은 기기·서버 파일 삭제 후 `uploaded_at = -1`. `uploaded_at`은 기기 전용 컬럼(엔진 LOCAL_ONLY). 계정이 바뀌면 다시 올린다. 계정 삭제 Edge Function이 사진 폴더도 지운다.
 - 눈바디(체성분) 사진은 M2에서 건강 데이터 동의와 함께.
 - 한계: 동시에 커밋되는 트랜잭션이 rev 순서와 다르게 보일 수 있어(여러 기기가 같은 순간에 쓸 때) 드물게 한 번 놓칠 수 있다. 필요하면 커서를 조금 겹쳐 받는 방식으로 보완.
+
+## 데이터 내보내기
+- 내 정보 '데이터 › 데이터 내보내기' 또는 계정 삭제 화면 '먼저 내 데이터 내보내기' → 시트(`components/export-sheet.tsx`)에서 형식 선택 → 캐시 폴더에 파일을 만들고 공유 시트(expo-sharing).
+- CSV(`dailift-workouts-YYYYMMDD.csv`): 완료한 운동의 완료한 세트 한 줄씩(date, workout, exercise, set, kind, weight, unit, reps, duration_sec, rpe). 엑셀 한글용 BOM, CRLF, 수식 주입 방지. 내용은 `domain/export.ts`, 조회는 `db/export.ts`.
+- JSON(`dailift-backup-YYYYMMDD.json`): 설정·프로필 + 지우지 않은 사용자 행 전부(기본 종목·버린 운동·기기 전용 컬럼 제외). 사진 파일은 포함하지 않는다(경로만).
