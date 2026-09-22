@@ -188,8 +188,8 @@ export const sets = sqliteTable(
 );
 
 /**
- * 운동 사진. 파일은 기기 앱 폴더에만 두므로(로컬 저장) 서버로 동기화하지 않는다.
- * uri는 documentDirectory 기준 상대 경로.
+ * 운동 사진. 파일은 기기 앱 폴더(documentDirectory 기준 상대 경로 `path`)에 두고,
+ * 로그인하면 Supabase Storage `workout-photos/<user>/<id>.jpg`에 줄인 사본을 올린다(src/sync/photos.ts).
  */
 export const workoutPhotos = sqliteTable(
   'workout_photos',
@@ -197,6 +197,8 @@ export const workoutPhotos = sqliteTable(
     ...syncColumns,
     workoutId: text('workout_id').notNull(),
     path: text('path').notNull(),
+    /** 기기 전용: 서버 저장소에 파일이 있음을 확인한 시각(올렸거나 내려받음). 동기화 안 함 */
+    uploadedAt: integer('uploaded_at'),
   },
   (t) => [index('workout_photos_workout_idx').on(t.workoutId)],
 );
@@ -233,5 +235,6 @@ export const SYNCED_TABLES = [
   'workouts',
   'workout_exercises',
   'sets',
+  'workout_photos',
   'body_metrics',
 ] as const;

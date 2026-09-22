@@ -1,0 +1,1 @@
+ALTER TABLE `workout_photos` ADD `uploaded_at` integer;

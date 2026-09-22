@@ -123,5 +123,6 @@ npm test
 - 기기: 모든 수정은 drizzle `$onUpdateFn`으로 `dirty = 1`. 엔진 `src/sync/engine.ts`: 부모→자식 순서로 dirty 행 upsert → 보낸 그대로면 `dirty = 0`(raw SQL로 updated_at 유지) → 테이블별 `rev > 커서` 행을 받아 반영(아직 안 보낸 기기 변경이 같거나 새로우면 기기 것 유지). 커서는 `sync_state.cursor_updated_at`에 rev를 담는다. 기본 종목·그 근육 매핑은 보내지 않는다.
 - 언제: 로그인 직후, 앱이 앞으로 올 때, 동기화 테이블이 바뀌고 8초 뒤, 설정 '데이터 › 동기화'를 누를 때(`src/sync/manager.ts`). 한 번에 하나만 돈다.
 - 다른 계정으로 로그인하면(kv `sync-account`가 다름) 기기의 모든 행을 dirty로 만들고 커서를 지워 새 계정에 전부 올리고 처음부터 받는다(게스트 기록이 계정으로 들어가는 것과 같은 규칙). 로그아웃 전에는 한 번 동기화하고, 기기 기록은 남긴다.
-- 사진(`workout_photos`)은 기기 전용이라 동기화하지 않는다(사진 백업은 M2 건강 데이터 동의와 함께).
+- 운동 사진: `workout_photos` 행은 일반 동기화, 파일은 `src/sync/photos.ts`가 Storage 비공개 버킷 `workout-photos`(`<user>/<photoId>.jpg`, RLS로 본인 폴더만, 2MB·jpeg 제한)와 맞춘다. 올릴 때 긴 쪽 1280px·JPEG 80%로 줄인 사본(expo-image-manipulator), 기기 원본은 그대로. 기기에 파일이 없으면 내려받고, 서버에 아직 없으면 다음 동기화에 다시 시도. 지운 사진은 기기·서버 파일 삭제 후 `uploaded_at = -1`. `uploaded_at`은 기기 전용 컬럼(엔진 LOCAL_ONLY). 계정이 바뀌면 다시 올린다. 계정 삭제 Edge Function이 사진 폴더도 지운다.
+- 눈바디(체성분) 사진은 M2에서 건강 데이터 동의와 함께.
 - 한계: 동시에 커밋되는 트랜잭션이 rev 순서와 다르게 보일 수 있어(여러 기기가 같은 순간에 쓸 때) 드물게 한 번 놓칠 수 있다. 필요하면 커서를 조금 겹쳐 받는 방식으로 보완.

@@ -15,6 +15,8 @@ import { kvStorage } from '@/lib/kv-storage';
 import { useAuth } from '@/stores/auth';
 
 import { pendingCount, resetForAccount, syncOnce } from './engine';
+import { syncPhotoFiles } from './photos';
+import { devicePhotoFiles, supabasePhotoStore } from './supabase-photos';
 import { supabaseRemote } from './supabase-remote';
 
 type SyncStatus = 'idle' | 'syncing' | 'error';
@@ -60,7 +62,10 @@ async function run(userId: string) {
   }
   useSync.getState().setStatus('syncing');
   try {
+    // 새 사진 파일을 먼저 올리고 → 행 동기화 → 받은 사진 내려받기·지운 사진 정리
+    await syncPhotoFiles(db, userId, supabasePhotoStore, devicePhotoFiles);
     await syncOnce(db, supabaseRemote);
+    await syncPhotoFiles(db, userId, supabasePhotoStore, devicePhotoFiles);
     useSync.getState().done(Date.now());
   } catch (e) {
     console.warn('[sync] failed', e);
