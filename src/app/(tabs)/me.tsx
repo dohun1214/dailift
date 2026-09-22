@@ -16,13 +16,12 @@ import {
   type SheetAction,
   Toggle,
 } from '@/components/ui';
-import { db } from '@/db/client';
 import type { WeightUnit } from '@/db/schema';
-import { wipeUserData } from '@/db/wipe';
 import { BAR_OPTIONS } from '@/domain/plates';
-import { removePhotoFile } from '@/lib/photos';
+import { signOut } from '@/lib/auth';
+import { wipeDevice } from '@/lib/wipe-device';
+import { accountInfo, useAuth } from '@/stores/auth';
 import { useProfile } from '@/stores/profile';
-import { useRestTimer } from '@/stores/rest-timer';
 import { useSettings } from '@/stores/settings';
 import { ACCENTS, type Accent, themes } from '@/theme/tokens';
 
@@ -39,6 +38,9 @@ export default function MeScreen() {
   const bodyType = useProfile((p) => p.bodyType);
   const setBodyType = useProfile((p) => p.setBodyType);
   const [sheet, setSheet] = useState<Sheet | null>(null);
+  const account = accountInfo(useAuth((a) => a.session));
+  const providerName =
+    account?.provider === 'apple' ? 'Apple' : account?.provider === 'google' ? 'Google' : '';
   const unit = s.weightUnit;
   const bar = s.barWeights[unit];
 
@@ -83,6 +85,17 @@ export default function MeScreen() {
     ? BAR_OPTIONS[unit]
     : [bar, ...BAR_OPTIONS[unit]];
 
+  const confirmSignOut = () =>
+    Alert.alert(t('auth.account.signOutTitle'), t('auth.account.signOutBody'), [
+      { text: t('settings.cancel'), style: 'cancel' },
+      {
+        text: t('auth.account.signOut'),
+        onPress: () => {
+          signOut().catch((e) => console.warn('[auth] sign-out failed', e));
+        },
+      },
+    ]);
+
   const confirmWipe = () =>
     Alert.alert(t('settings.wipeTitle'), t('settings.wipeBody'), [
       { text: t('settings.cancel'), style: 'cancel' },
@@ -90,10 +103,8 @@ export default function MeScreen() {
         text: t('settings.wipeConfirm'),
         style: 'destructive',
         onPress: () => {
-          useRestTimer.getState().stop();
-          for (const path of wipeUserData(db)) removePhotoFile(path);
-          useSettings.getState().reset();
-          useProfile.getState().reset();
+          wipeDevice();
+          if (account) signOut().catch((e) => console.warn('[auth] sign-out failed', e));
           router.replace('/welcome');
         },
       },
@@ -112,15 +123,25 @@ export default function MeScreen() {
               <UserRound size={24} color={theme.colors.text2} strokeWidth={1.8} />
             </View>
             <View style={styles.accountText}>
-              <Text style={styles.accountName}>{t('settings.guest')}</Text>
-              <Text style={styles.accountSub}>{t('settings.guestSub')}</Text>
+              <Text style={styles.accountName} numberOfLines={1}>
+                {account ? (account.name ?? account.email ?? providerName) : t('settings.guest')}
+              </Text>
+              <Text style={styles.accountSub} numberOfLines={1}>
+                {account
+                  ? account.name && account.email
+                    ? `${account.email} · ${providerName}`
+                    : t('auth.account.linked', { provider: providerName })
+                  : t('settings.guestSub')}
+              </Text>
             </View>
           </View>
-          <Button
-            size="sm"
-            label={t('settings.linkAccount')}
-            onPress={() => Alert.alert(t('settings.linkSoonTitle'), t('settings.linkSoon'))}
-          />
+          {account ? null : (
+            <Button
+              size="sm"
+              label={t('settings.linkAccount')}
+              onPress={() => router.push('/account-link')}
+            />
+          )}
         </Card>
 
         <ListSection title={t('settings.groupWorkout')}>
@@ -260,6 +281,17 @@ export default function MeScreen() {
             }
           />
         </ListSection>
+
+        {account ? (
+          <ListSection title={t('auth.account.group')}>
+            <ListRow label={t('auth.account.signOut')} onPress={confirmSignOut} />
+            <ListRow
+              label={t('auth.account.delete')}
+              destructive
+              onPress={() => router.push('/account-delete')}
+            />
+          </ListSection>
+        ) : null}
 
         <ListSection title={t('settings.groupInfo')}>
           <ListRow label={t('settings.version')} value={Constants.expoConfig?.version ?? ''} />

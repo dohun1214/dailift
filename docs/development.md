@@ -107,3 +107,12 @@ npm test
 - 원판 계산기 `src/app/plate-calculator.tsx`(`?weight=&unit=`), 운동 중 바벨 종목 카드의 원판 버튼에서 연다. 계산은 `src/domain/plates.ts`: 1/100 단위 정수 DP로 원판 개수가 가장 적은 조합, 못 맞추면 가장 가까운 무게(같으면 가벼운 쪽).
 - 보유 원판 `src/app/settings/plates.tsx`. 모든 데이터 삭제는 `db/wipe.ts`(참조 데이터는 남김) + 사진 파일 + 스토어 초기화 → 시작 화면.
 - 시안의 기록(체성분·눈바디)·알림·데이터(동기화·건강 데이터·내보내기)·약관 등 행은 해당 이슈(M2, #14–#17)에서 추가.
+
+## 인증 · 계정
+- Supabase 프로젝트 `dailift`(ref `kszdqhhvozdumfjhrovl`, 서울). 공개 설정값은 `src/config.ts`(URL, publishable key, Google 클라이언트 ID). 비밀 값은 앱에 넣지 않는다.
+- `src/lib/supabase.ts`: 세션은 expo-sqlite kv-store에 저장, 앱이 앞에 있을 때만 토큰 자동 갱신. `src/lib/auth.ts`: `startAuth()`(루트에서 한 번) → `stores/auth.ts`(session). Google은 `@react-native-google-signin/google-signin`, Apple은 `expo-apple-authentication`(iOS만) → `signInWithIdToken`.
+- 게스트가 기본. 로그인해도 기록은 기기에 먼저 쌓이고 서버 동기화는 #15. 로그아웃해도 기기 기록은 남는다.
+- 시작 화면·계정 연결(`/account-link`)은 Apple(iOS)·Google만. 이메일 로그인은 도메인 확보 후 추가(Supabase 기본 메일은 팀원에게만 발송).
+- 계정 삭제(`/account-delete`) → Edge Function `delete-account`(`supabase/functions/delete-account`, JWT 검증, 서비스 롤로 본인 계정 삭제) → 기기 데이터 삭제(`lib/wipe-device.ts`) → 시작 화면.
+- Supabase 대시보드 Google 제공자: Client IDs 칸에 `웹ID,iOS ID`(쉼표), Skip nonce check 켬. Apple: Client IDs `com.dohun1214.dailift`.
+- Google 로그인이 동작하려면 Google Cloud OAuth 클라이언트(웹·Android·iOS)와 Supabase Google 제공자 설정이 필요하다. 웹·iOS 클라이언트 ID를 `src/config.ts`에, iOS URL 스킴(`com.googleusercontent.apps.…`)을 app.json 플러그인 옵션 `iosUrlScheme`에 넣는다. Android 개발용 SHA-1은 Expo 기본 debug.keystore(5E:8F:16:…:F6:25), 스토어용은 #17에서 추가.

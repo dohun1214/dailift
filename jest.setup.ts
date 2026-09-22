@@ -27,3 +27,13 @@ jest.mock('@/lib/kv-storage', () => {
 });
 
 jest.mock('expo-symbols', () => ({ SymbolView: () => null }));
+
+// 로그인: 네이티브 모듈(Google·Apple)과 네트워크를 쓰므로 테스트에서는 가짜로
+jest.mock('@/lib/auth', () => ({
+  startAuth: jest.fn(),
+  googleConfigured: () => false,
+  signInWithGoogle: jest.fn(async () => 'cancelled'),
+  signInWithApple: jest.fn(async () => 'cancelled'),
+  signOut: jest.fn(async () => undefined),
+  deleteAccount: jest.fn(async () => undefined),
+}));
