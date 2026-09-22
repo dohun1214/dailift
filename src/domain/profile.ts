@@ -17,7 +17,10 @@ export type ProfileAnswers = {
 };
 
 /** 추천 루틴 A(전신 주3회)·B(상하체 2분할)·C(푸시풀레그) 중 하나를 고른다. */
-export function recommendTemplate({ experience, daysPerWeek }: ProfileAnswers): TemplateKey {
+export function recommendTemplate({
+  experience,
+  daysPerWeek,
+}: Pick<ProfileAnswers, 'experience' | 'daysPerWeek'>): TemplateKey {
   if (daysPerWeek !== null && daysPerWeek >= 5) return 'push_pull_legs';
   if (daysPerWeek === 4) return experience === 'new' ? 'full_body' : 'upper_lower';
   if (experience === 'over1y' && daysPerWeek === 3) return 'push_pull_legs';

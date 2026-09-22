@@ -71,5 +71,68 @@
       "male": "남성형",
       "female": "여성형"
     }
+  },
+  "weekday": {
+    "short": {
+      "mon": "월",
+      "tue": "화",
+      "wed": "수",
+      "thu": "목",
+      "fri": "금",
+      "sat": "토",
+      "sun": "일"
+    },
+    "long": {
+      "mon": "월요일",
+      "tue": "화요일",
+      "wed": "수요일",
+      "thu": "목요일",
+      "fri": "금요일",
+      "sat": "토요일",
+      "sun": "일요일"
+    }
+  },
+  "routines": {
+    "title": "루틴",
+    "create": "루틴 만들기",
+    "standalone": "단독 루틴",
+    "recommended": "추천 루틴",
+    "recommendedBadge": "추천",
+    "today": "오늘",
+    "fixedDays": "요일 고정",
+    "rotation": "순환",
+    "meta_other": "{{count}}종목 · 약 {{minutes}}분",
+    "metaEmpty": "종목 없음",
+    "noDays": "요일 없음",
+    "empty": "아직 내 루틴이 없어요.\n추천 루틴을 복사하거나 새로 만들어 보세요.",
+    "cardA11y": "{{name}}, {{days}}, {{meta}}",
+    "actionsTitle": "{{name}}",
+    "duplicate": "복제",
+    "cancel": "취소",
+    "copyName": "{{name}} 복사본",
+    "openHint": "루틴 편집 화면으로 이동해요. 길게 누르면 복제할 수 있어요.",
+    "template": {
+      "full_body": {
+        "freq": "주 3회",
+        "level": "처음 시작할 때"
+      },
+      "upper_lower": {
+        "freq": "주 4회",
+        "level": "6개월 미만"
+      },
+      "push_pull_legs": {
+        "freq": "주 3–6회",
+        "level": "1년 이상"
+      }
+    },
+    "preview": {
+      "readOnly": "{{freq}} · 읽기 전용 미리보기",
+      "copy": "내 루틴으로 복사",
+      "sets_other": "{{count}}세트 · {{min}}–{{max}}회",
+      "notFound": "루틴을 찾을 수 없어요"
+    },
+    "edit": {
+      "title": "루틴 편집"
+    }
   }
 }

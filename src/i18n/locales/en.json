@@ -71,5 +71,70 @@
       "male": "Male",
       "female": "Female"
     }
+  },
+  "weekday": {
+    "short": {
+      "mon": "M",
+      "tue": "T",
+      "wed": "W",
+      "thu": "T",
+      "fri": "F",
+      "sat": "S",
+      "sun": "S"
+    },
+    "long": {
+      "mon": "Monday",
+      "tue": "Tuesday",
+      "wed": "Wednesday",
+      "thu": "Thursday",
+      "fri": "Friday",
+      "sat": "Saturday",
+      "sun": "Sunday"
+    }
+  },
+  "routines": {
+    "title": "Routines",
+    "create": "Create routine",
+    "standalone": "Single routines",
+    "recommended": "Suggested routines",
+    "recommendedBadge": "For you",
+    "today": "Today",
+    "fixedDays": "Fixed days",
+    "rotation": "Rotation",
+    "meta_one": "{{count}} exercise · ~{{minutes}} min",
+    "meta_other": "{{count}} exercises · ~{{minutes}} min",
+    "metaEmpty": "No exercises",
+    "noDays": "No days",
+    "empty": "You don't have any routines yet. Copy a suggested routine or create your own.",
+    "cardA11y": "{{name}}, {{days}}, {{meta}}",
+    "actionsTitle": "{{name}}",
+    "duplicate": "Duplicate",
+    "cancel": "Cancel",
+    "copyName": "{{name}} copy",
+    "openHint": "Opens the routine editor. Long press to duplicate.",
+    "template": {
+      "full_body": {
+        "freq": "3×/week",
+        "level": "Just starting out"
+      },
+      "upper_lower": {
+        "freq": "4×/week",
+        "level": "Under 6 months"
+      },
+      "push_pull_legs": {
+        "freq": "3–6×/week",
+        "level": "1+ year"
+      }
+    },
+    "preview": {
+      "readOnly": "{{freq}} · Read-only preview",
+      "copy": "Copy to my routines",
+      "sets_one": "{{count}} set · {{min}}–{{max}} reps",
+      "sets_other": "{{count}} sets · {{min}}–{{max}} reps",
+      "notFound": "Routine not found"
+    },
+    "edit": {
+      "title": "Edit routine"
+    }
   }
 }
