@@ -43,7 +43,13 @@ export function TextField({ label, unit, muted = false, error, ...props }: Props
 
 const styles = StyleSheet.create((theme) => ({
   wrap: { flex: 1, gap: 6 },
-  label: { fontSize: 12, fontWeight: '500', color: theme.colors.text2 },
+  label: {
+    fontSize: 12,
+    lineHeight: 16,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.medium,
+    color: theme.colors.text2,
+  },
   box: {
     height: 48,
     flexDirection: 'row',
@@ -64,7 +70,8 @@ const styles = StyleSheet.create((theme) => ({
     flex: 1,
     padding: 0,
     fontSize: 16,
-    fontWeight: '600',
+    includeFontPadding: false,
+    fontFamily: theme.fonts.semibold,
     variants: {
       muted: {
         true: { color: theme.colors.prefill },
@@ -72,6 +79,18 @@ const styles = StyleSheet.create((theme) => ({
       },
     },
   },
-  unit: { fontSize: 13, color: theme.colors.text2 },
-  error: { fontSize: 12, color: theme.colors.danger },
+  unit: {
+    fontSize: 13,
+    lineHeight: 17,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.text2,
+  },
+  error: {
+    fontSize: 12,
+    lineHeight: 16,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.danger,
+  },
 }));

@@ -1,6 +1,8 @@
 import { Text, type TextProps } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
+import { fonts } from '@/theme/tokens';
+
 export type TextVariant =
   | 'h1'
   | 'h2'
@@ -19,6 +21,17 @@ type Props = TextProps & {
   numeric?: boolean;
 };
 
+const NUMERIC_FAMILY: Record<TextVariant, keyof typeof fonts> = {
+  h1: 'numBold',
+  h2: 'numBold',
+  title: 'numBold',
+  subtitle: 'numSemibold',
+  body: 'numRegular',
+  bodySm: 'numRegular',
+  caption: 'numMedium',
+  label: 'numSemibold',
+};
+
 export function AppText({
   variant = 'body',
   tone = 'primary',
@@ -27,21 +40,71 @@ export function AppText({
   ...props
 }: Props) {
   styles.useVariants({ variant, tone });
-  return <Text {...props} style={[styles.text, numeric && styles.numeric, style]} />;
+  return (
+    <Text
+      {...props}
+      style={[
+        styles.text,
+        numeric && { fontFamily: fonts[NUMERIC_FAMILY[variant]], fontVariant: ['tabular-nums'] },
+        style,
+      ]}
+    />
+  );
 }
 
 const styles = StyleSheet.create((theme) => ({
   text: {
     variants: {
       variant: {
-        h1: { fontSize: 26, fontWeight: '700', letterSpacing: -0.3, lineHeight: 34 },
-        h2: { fontSize: 22, fontWeight: '700', lineHeight: 29 },
-        title: { fontSize: 17, fontWeight: '700', lineHeight: 23 },
-        subtitle: { fontSize: 15, fontWeight: '600', lineHeight: 21 },
-        body: { fontSize: 15, fontWeight: '400', lineHeight: 22 },
-        bodySm: { fontSize: 13, fontWeight: '400', lineHeight: 19 },
-        caption: { fontSize: 12, fontWeight: '500', lineHeight: 16 },
-        label: { fontSize: 13, fontWeight: '600', lineHeight: 18 },
+        h1: {
+          fontSize: 26,
+          includeFontPadding: false,
+          fontFamily: theme.fonts.bold,
+          letterSpacing: -0.26,
+          lineHeight: 34,
+        },
+        h2: {
+          fontSize: 22,
+          includeFontPadding: false,
+          fontFamily: theme.fonts.bold,
+          lineHeight: 29,
+        },
+        title: {
+          fontSize: 17,
+          includeFontPadding: false,
+          fontFamily: theme.fonts.bold,
+          lineHeight: 23,
+        },
+        subtitle: {
+          fontSize: 15,
+          includeFontPadding: false,
+          fontFamily: theme.fonts.semibold,
+          lineHeight: 21,
+        },
+        body: {
+          fontSize: 15,
+          includeFontPadding: false,
+          fontFamily: theme.fonts.regular,
+          lineHeight: 22,
+        },
+        bodySm: {
+          fontSize: 13,
+          includeFontPadding: false,
+          fontFamily: theme.fonts.regular,
+          lineHeight: 19,
+        },
+        caption: {
+          fontSize: 12,
+          includeFontPadding: false,
+          fontFamily: theme.fonts.medium,
+          lineHeight: 16,
+        },
+        label: {
+          fontSize: 13,
+          includeFontPadding: false,
+          fontFamily: theme.fonts.semibold,
+          lineHeight: 18,
+        },
       },
       tone: {
         primary: { color: theme.colors.text },
@@ -53,5 +116,4 @@ const styles = StyleSheet.create((theme) => ({
       },
     },
   },
-  numeric: { fontVariant: ['tabular-nums'] },
 }));

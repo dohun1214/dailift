@@ -51,10 +51,12 @@ const styles = StyleSheet.create((theme) => ({
   },
   label: {
     fontSize: 11,
+    lineHeight: 14,
+    includeFontPadding: false,
     variants: {
       focused: {
-        true: { color: theme.colors.text, fontWeight: '700' },
-        false: { color: theme.colors.text2, fontWeight: '500' },
+        true: { color: theme.colors.text, fontFamily: theme.fonts.bold },
+        false: { color: theme.colors.text2, fontFamily: theme.fonts.medium },
       },
     },
   },

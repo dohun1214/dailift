@@ -1,10 +1,13 @@
 export { Badge } from './badge';
+export { BodyFigure } from './body-figure';
 export { Button } from './button';
 export { Card } from './card';
 export { Checkbox } from './checkbox';
 export { Chip } from './chip';
+export { ConsentCheck } from './consent-check';
 export { IconButton } from './icon-button';
 export { ListRow, ListSection } from './list-row';
+export { OptionCard } from './option-card';
 export { Screen } from './screen';
 export { Segmented, type SegmentOption } from './segmented';
 export { TabButton } from './tab-button';

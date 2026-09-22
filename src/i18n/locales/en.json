@@ -10,5 +10,66 @@
     "comingSoon": "Coming soon",
     "back": "Back",
     "close": "Close"
+  },
+  "welcome": {
+    "tagline": "Log your workouts, meals,\nand body changes in one place.",
+    "apple": "Continue with Apple",
+    "google": "Continue with Google",
+    "email": "Continue with email",
+    "guest": "Start without an account",
+    "guestNote": "Guest data stays on this device. You can link an account later.",
+    "agreeTerms": "I agree to the Terms of Service and Privacy Policy",
+    "agreeAge": "I'm 14 or older",
+    "authSoonTitle": "Coming soon",
+    "authSoonBody": "Account sign-in is coming soon. For now, start without an account."
+  },
+  "onboarding": {
+    "progress": "{{step}} / {{total}}",
+    "skip": "Skip",
+    "next": "Next",
+    "done": "Done",
+    "experience": {
+      "title": "How much training experience do you have?",
+      "subtitle": "Only used to order suggested routines and set targets.",
+      "new": "Just starting",
+      "newSub": "The gym still feels new",
+      "under6m": "Under 6 months",
+      "under6mSub": "I know the basic lifts",
+      "over1y": "1 year or more",
+      "over1ySub": "I train consistently"
+    },
+    "days": {
+      "title": "How many days a week do you plan to train?",
+      "subtitle": "Only used to pick a suggested routine.",
+      "option": "{{count}} days a week",
+      "optionPlus": "{{count}}+ days a week",
+      "d2Sub": "Start easy",
+      "d3Sub": "Full body, evenly",
+      "d4Sub": "Split upper and lower",
+      "d5Sub": "Split by muscle group"
+    },
+    "goal": {
+      "title": "What's your main goal?",
+      "subtitle": "Only used to set a protein target.",
+      "muscle": "Build muscle",
+      "muscleSub": "Bigger and more defined",
+      "strength": "Get stronger",
+      "strengthSub": "Lift heavier",
+      "fat_loss": "Lose fat",
+      "fat_lossSub": "Lighter while keeping muscle",
+      "consistency": "Stay consistent",
+      "consistencySub": "Make training a habit"
+    },
+    "body": {
+      "title": "What's your height and weight?",
+      "subtitle": "Optional. Only used to set a protein target.",
+      "height": "Height",
+      "weight": "Weight",
+      "heightError": "Enter a value between {{min}} and {{max}}",
+      "weightError": "Enter a value between {{min}} and {{max}}",
+      "bodyTypeLabel": "Body shown on the muscle map",
+      "male": "Male",
+      "female": "Female"
+    }
   }
 }

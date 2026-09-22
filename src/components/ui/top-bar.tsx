@@ -53,7 +53,9 @@ const styles = StyleSheet.create((theme) => ({
     flex: 1,
     textAlign: 'center',
     fontSize: 16,
-    fontWeight: '700',
+    lineHeight: 21,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.bold,
     color: theme.colors.text,
   },
 }));
