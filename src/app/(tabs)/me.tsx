@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
+import { useExportSheet } from '@/components/export-sheet';
 import {
   ActionSheet,
   Button,
@@ -39,6 +40,7 @@ export default function MeScreen() {
   const bodyType = useProfile((p) => p.bodyType);
   const setBodyType = useProfile((p) => p.setBodyType);
   const [sheet, setSheet] = useState<Sheet | null>(null);
+  const exportSheet = useExportSheet();
   const account = accountInfo(useAuth((a) => a.session));
   const syncedAgo = (at: number) => {
     const min = Math.floor((Date.now() - at) / 60_000);
@@ -310,6 +312,7 @@ export default function MeScreen() {
             value={syncLabel}
             onPress={() => (account ? void syncNow() : router.push('/account-link'))}
           />
+          <ListRow label={t('exportData.row')} onPress={exportSheet.open} />
         </ListSection>
 
         {account ? (
@@ -343,6 +346,7 @@ export default function MeScreen() {
         cancelLabel={t('settings.cancel')}
         onClose={() => setSheet(null)}
       />
+      {exportSheet.sheet}
     </Screen>
   );
 }

@@ -559,7 +559,8 @@
       "b3": "Your Apple or Google link will be removed",
       "confirm": "Delete account and all data",
       "failedTitle": "Couldn't delete",
-      "failed": "Check your connection and try again."
+      "failed": "Check your connection and try again.",
+      "exportFirst": "Export my data first"
     }
   },
   "sync": {
@@ -574,5 +575,14 @@
     "hoursAgo_other": "{{count}} hr ago",
     "daysAgo_one": "{{count}} day ago",
     "daysAgo_other": "{{count}} days ago"
+  },
+  "exportData": {
+    "row": "Export data",
+    "title": "Export data",
+    "csv": "Workout history (CSV · Excel)",
+    "json": "Full backup (JSON)",
+    "failedTitle": "Couldn't export",
+    "failed": "Please try again in a moment.",
+    "unavailable": "File sharing isn't available on this device."
   }
 }

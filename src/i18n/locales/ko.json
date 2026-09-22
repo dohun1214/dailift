@@ -546,7 +546,8 @@
       "b3": "Apple · Google 연결이 해제돼요",
       "confirm": "계정과 모든 데이터 삭제",
       "failedTitle": "삭제하지 못했어요",
-      "failed": "인터넷 연결을 확인하고 다시 시도해 주세요."
+      "failed": "인터넷 연결을 확인하고 다시 시도해 주세요.",
+      "exportFirst": "먼저 내 데이터 내보내기"
     }
   },
   "sync": {
@@ -558,5 +559,14 @@
     "minutesAgo_other": "{{count}}분 전",
     "hoursAgo_other": "{{count}}시간 전",
     "daysAgo_other": "{{count}}일 전"
+  },
+  "exportData": {
+    "row": "데이터 내보내기",
+    "title": "데이터 내보내기",
+    "csv": "운동 기록 (CSV · 엑셀)",
+    "json": "전체 백업 (JSON)",
+    "failedTitle": "내보내지 못했어요",
+    "failed": "잠시 후 다시 시도해 주세요.",
+    "unavailable": "이 기기에서는 파일 공유를 쓸 수 없어요."
   }
 }
