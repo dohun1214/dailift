@@ -183,6 +183,20 @@ export const sets = sqliteTable(
   ],
 );
 
+/**
+ * 운동 사진. 파일은 기기 앱 폴더에만 두므로(로컬 저장) 서버로 동기화하지 않는다.
+ * uri는 documentDirectory 기준 상대 경로.
+ */
+export const workoutPhotos = sqliteTable(
+  'workout_photos',
+  {
+    ...syncColumns,
+    workoutId: text('workout_id').notNull(),
+    path: text('path').notNull(),
+  },
+  (t) => [index('workout_photos_workout_idx').on(t.workoutId)],
+);
+
 export const bodyMetrics = sqliteTable(
   'body_metrics',
   {
