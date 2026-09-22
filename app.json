@@ -35,7 +35,13 @@
       ],
       "react-native-edge-to-edge",
       "expo-localization",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-notifications",
+        {
+          "color": "#15171A"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

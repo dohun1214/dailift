@@ -148,6 +148,11 @@ export const workoutExercises = sqliteTable(
     exerciseId: text('exercise_id').notNull(),
     position: integer('position').notNull(),
     restSec: integer('rest_sec').notNull().default(90),
+    /** 시작 당시 목표 렙 범위·증량 단위 스냅샷 (증량 제안과 접힌 카드 요약에 쓴다) */
+    repMin: integer('rep_min').notNull().default(8),
+    repMax: integer('rep_max').notNull().default(12),
+    increment: real('increment').notNull().default(2.5),
+    incrementUnit: text('increment_unit').$type<WeightUnit>().notNull().default('kg'),
     note: text('note'),
   },
   (t) => [

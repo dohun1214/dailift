@@ -8,13 +8,17 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useUnistyles } from 'react-native-unistyles';
 
 import { DatabaseProvider } from '@/db/provider';
+import { configureNotifications } from '@/lib/notifications';
+import { useRestTimerAlarm } from '@/stores/use-rest-timer-alarm';
 import { useAppFonts } from '@/theme/use-app-fonts';
 import { useApplyTheme } from '@/theme/use-apply-theme';
 
 void SplashScreen.preventAutoHideAsync();
+configureNotifications();
 
 export default function RootLayout() {
   useApplyTheme();
+  useRestTimerAlarm();
   const { theme } = useUnistyles();
   const fontsReady = useAppFonts();
 
@@ -41,6 +45,11 @@ export default function RootLayout() {
           <Stack.Screen name="routine/[id]" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="exercise-picker" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="exercise-new" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen
+            name="workout"
+            options={{ animation: 'slide_from_bottom', gestureEnabled: false }}
+          />
+          <Stack.Screen name="workout-summary/[id]" options={{ animation: 'fade' }} />
         </Stack>
       </DatabaseProvider>
     </GestureHandlerRootView>
