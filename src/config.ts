@@ -6,7 +6,7 @@ export const SUPABASE_URL = 'https://kszdqhhvozdumfjhrovl.supabase.co';
 export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_JUZHDdEhOYEifRIrmqyfkw_pUFXE9Oi';
 
 /** Google Cloud OAuth 클라이언트 ID. 비어 있으면 Google 로그인 버튼은 안내만 띄운다. */
-export const GOOGLE_WEB_CLIENT_ID =
+export const GOOGLE_WEB_CLIENT_ID: string =
   '85791918223-vsrbi4duhqj1u96m339mj7rcn2iu9mq4.apps.googleusercontent.com';
-export const GOOGLE_IOS_CLIENT_ID =
+export const GOOGLE_IOS_CLIENT_ID: string =
   '85791918223-tccvuepnbqg684npigc9m67hu8nteknq.apps.googleusercontent.com';
