@@ -18,7 +18,11 @@ const syncColumns = {
   createdAt: integer('created_at').notNull().$defaultFn(now),
   updatedAt: integer('updated_at').notNull().$defaultFn(now).$onUpdateFn(now),
   deletedAt: integer('deleted_at'),
-  dirty: integer('dirty').notNull().default(1),
+  /** 수정하면 자동으로 1(서버로 보낼 변경). 동기화가 받은 값·보낸 뒤 정리할 때만 0으로 쓴다. */
+  dirty: integer('dirty')
+    .notNull()
+    .default(1)
+    .$onUpdateFn(() => 1),
 };
 
 export type WeightUnit = 'kg' | 'lb';
@@ -211,7 +215,7 @@ export const bodyMetrics = sqliteTable(
   (t) => [index('body_metrics_measured_idx').on(t.measuredAt)],
 );
 
-/** 동기화 커서 (로컬 전용) */
+/** 동기화 커서 (로컬 전용). cursorUpdatedAt에는 서버 rev(당겨온 마지막 번호)를 담는다. */
 export const syncState = sqliteTable('sync_state', {
   tableName: text('table_name').primaryKey(),
   cursorUpdatedAt: integer('cursor_updated_at').notNull().default(0),

@@ -497,7 +497,9 @@
     "weightValue": "{{value}}{{unit}}",
     "platesTitle": "보유 원판",
     "platesHint": "가지고 있는 원판을 켜 두세요. 원판 계산기가 이 원판으로 조합을 찾아요. (한 종류당 한 쌍 이상 있다고 봐요)",
-    "plateA11y": "{{value}}{{unit}} 원판"
+    "plateA11y": "{{value}}{{unit}} 원판",
+    "groupData": "데이터",
+    "sync": "동기화"
   },
   "plates": {
     "title": "원판 계산기",
@@ -546,5 +548,15 @@
       "failedTitle": "삭제하지 못했어요",
       "failed": "인터넷 연결을 확인하고 다시 시도해 주세요."
     }
+  },
+  "sync": {
+    "off": "꺼짐",
+    "running": "동기화 중…",
+    "failed": "실패 · 눌러서 다시 시도",
+    "never": "아직 안 함",
+    "justNow": "방금 전",
+    "minutesAgo_other": "{{count}}분 전",
+    "hoursAgo_other": "{{count}}시간 전",
+    "daysAgo_other": "{{count}}일 전"
   }
 }

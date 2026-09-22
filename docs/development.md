@@ -116,3 +116,12 @@ npm test
 - 계정 삭제(`/account-delete`) → Edge Function `delete-account`(`supabase/functions/delete-account`, JWT 검증, 서비스 롤로 본인 계정 삭제) → 기기 데이터 삭제(`lib/wipe-device.ts`) → 시작 화면.
 - Supabase 대시보드 Google 제공자: Client IDs 칸에 `웹ID,iOS ID`(쉼표), Skip nonce check 켬. Apple: Client IDs `com.dohun1214.dailift`.
 - Google 로그인이 동작하려면 Google Cloud OAuth 클라이언트(웹·Android·iOS)와 Supabase Google 제공자 설정이 필요하다. 웹·iOS 클라이언트 ID를 `src/config.ts`에, iOS URL 스킴(`com.googleusercontent.apps.…`)을 app.json 플러그인 옵션 `iosUrlScheme`에 넣는다. Android 개발용 SHA-1은 Expo 기본 debug.keystore(5E:8F:16:…:F6:25), 스토어용은 #17에서 추가.
+
+## 서버 동기화
+- 서버 테이블은 기기 SYNCED_TABLES와 같은 컬럼 + `user_id`(기본값 auth.uid(), auth.users on delete cascade) + `rev`. RLS로 본인 행만 select/insert/update(삭제는 툼스톤, 계정 삭제 시 cascade). SQL은 `supabase/migrations/`.
+- 서버 트리거 `sync_before_write`: 쓰기마다 전역 시퀀스로 `rev`를 매기고, `updated_at`이 기존보다 오래된 수정은 무시(LWW).
+- 기기: 모든 수정은 drizzle `$onUpdateFn`으로 `dirty = 1`. 엔진 `src/sync/engine.ts`: 부모→자식 순서로 dirty 행 upsert → 보낸 그대로면 `dirty = 0`(raw SQL로 updated_at 유지) → 테이블별 `rev > 커서` 행을 받아 반영(아직 안 보낸 기기 변경이 같거나 새로우면 기기 것 유지). 커서는 `sync_state.cursor_updated_at`에 rev를 담는다. 기본 종목·그 근육 매핑은 보내지 않는다.
+- 언제: 로그인 직후, 앱이 앞으로 올 때, 동기화 테이블이 바뀌고 8초 뒤, 설정 '데이터 › 동기화'를 누를 때(`src/sync/manager.ts`). 한 번에 하나만 돈다.
+- 다른 계정으로 로그인하면(kv `sync-account`가 다름) 기기의 모든 행을 dirty로 만들고 커서를 지워 새 계정에 전부 올리고 처음부터 받는다(게스트 기록이 계정으로 들어가는 것과 같은 규칙). 로그아웃 전에는 한 번 동기화하고, 기기 기록은 남긴다.
+- 사진(`workout_photos`)은 기기 전용이라 동기화하지 않는다(사진 백업은 M2 건강 데이터 동의와 함께).
+- 한계: 동시에 커밋되는 트랜잭션이 rev 순서와 다르게 보일 수 있어(여러 기기가 같은 순간에 쓸 때) 드물게 한 번 놓칠 수 있다. 필요하면 커서를 조금 겹쳐 받는 방식으로 보완.
