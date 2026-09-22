@@ -114,4 +114,5 @@ npm test
 - 게스트가 기본. 로그인해도 기록은 기기에 먼저 쌓이고 서버 동기화는 #15. 로그아웃해도 기기 기록은 남는다.
 - 시작 화면·계정 연결(`/account-link`)은 Apple(iOS)·Google만. 이메일 로그인은 도메인 확보 후 추가(Supabase 기본 메일은 팀원에게만 발송).
 - 계정 삭제(`/account-delete`) → Edge Function `delete-account`(`supabase/functions/delete-account`, JWT 검증, 서비스 롤로 본인 계정 삭제) → 기기 데이터 삭제(`lib/wipe-device.ts`) → 시작 화면.
+- Supabase 대시보드 Google 제공자: Client IDs 칸에 `웹ID,iOS ID`(쉼표), Skip nonce check 켬. Apple: Client IDs `com.dohun1214.dailift`.
 - Google 로그인이 동작하려면 Google Cloud OAuth 클라이언트(웹·Android·iOS)와 Supabase Google 제공자 설정이 필요하다. 웹·iOS 클라이언트 ID를 `src/config.ts`에, iOS URL 스킴(`com.googleusercontent.apps.…`)을 app.json 플러그인 옵션 `iosUrlScheme`에 넣는다. Android 개발용 SHA-1은 Expo 기본 debug.keystore(5E:8F:16:…:F6:25), 스토어용은 #17에서 추가.

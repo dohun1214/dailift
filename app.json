@@ -52,7 +52,13 @@
           "microphonePermission": false
         }
       ],
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.85791918223-tccvuepnbqg684npigc9m67hu8nteknq"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
