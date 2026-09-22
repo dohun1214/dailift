@@ -29,8 +29,12 @@ const TABLES: Record<SyncedTableName, SQLiteTable> = {
   workouts: schema.workouts,
   workout_exercises: schema.workoutExercises,
   sets: schema.sets,
+  workout_photos: schema.workoutPhotos,
   body_metrics: schema.bodyMetrics,
 };
+
+/** 기기에만 있는 컬럼(서버로 보내지 않고, 받을 때 덮지 않음) */
+const LOCAL_ONLY = new Set(['dirty', 'uploaded_at']);
 
 /** 기본 종목과 그 근육 매핑은 앱이 시드하는 참조 데이터라 보내지 않는다. */
 const PUSH_FILTER: Partial<Record<SyncedTableName, string>> = {
@@ -38,14 +42,14 @@ const PUSH_FILTER: Partial<Record<SyncedTableName, string>> = {
   exercise_muscles: "exercise_id NOT LIKE 'base:%'",
 };
 
-/** 서버와 주고받는 컬럼(SQL 이름). dirty는 기기 전용 */
+/** 서버와 주고받는 컬럼(SQL 이름) */
 const columnsCache = new Map<SyncedTableName, string[]>();
 export function syncColumns(table: SyncedTableName): string[] {
   let cols = columnsCache.get(table);
   if (!cols) {
     cols = Object.values(getTableColumns(TABLES[table]))
       .map((c) => c.name)
-      .filter((n) => n !== 'dirty');
+      .filter((n) => !LOCAL_ONLY.has(n));
     columnsCache.set(table, cols);
   }
   return cols;
@@ -132,6 +136,8 @@ export function resetForAccount(db: AppDatabase) {
     for (const table of schema.SYNCED_TABLES) {
       tx.run(sql`UPDATE ${ident(table)} SET dirty = 1 WHERE ${where(table, '1 = 1')}`);
     }
+    // 사진 파일도 새 계정 저장소에 다시 올린다.
+    tx.run(sql`UPDATE workout_photos SET uploaded_at = NULL`);
     tx.run(sql`DELETE FROM sync_state`);
   });
 }
