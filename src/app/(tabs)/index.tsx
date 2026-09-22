@@ -28,7 +28,7 @@ import {
 import type { SummarySet } from '@/domain/session-summary';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { useProfile } from '@/stores/profile';
-import { useSettings } from '@/stores/settings';
+import { useSettings, workoutDefaults } from '@/stores/settings';
 
 const fmt = (n: number) => String(Math.round(n * 100) / 100);
 const NAMES_SHOWN = 3;
@@ -111,7 +111,13 @@ export default function HomeScreen() {
       : t('home.restDay');
 
   const start = (routineId: string | null, name: string) => {
-    if (!active) startWorkout(db, { routineId, name, weightUnit: unit });
+    if (!active)
+      startWorkout(db, {
+        routineId,
+        name,
+        weightUnit: unit,
+        barWeight: workoutDefaults().barWeight,
+      });
     router.push('/workout');
   };
 

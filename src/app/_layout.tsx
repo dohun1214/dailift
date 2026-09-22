@@ -51,6 +51,7 @@ export default function RootLayout() {
           />
           <Stack.Screen name="workout-summary/[id]" options={{ animation: 'fade' }} />
           <Stack.Screen name="workout-edit/[id]" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="plate-calculator" options={{ animation: 'slide_from_bottom' }} />
         </Stack>
       </DatabaseProvider>
     </GestureHandlerRootView>

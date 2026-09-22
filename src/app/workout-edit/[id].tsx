@@ -19,7 +19,7 @@ import { addExercisesToWorkout, deleteSet, setCompleted, updateSet } from '@/db/
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { removePhotoFile } from '@/lib/photos';
 import { openExercisePicker } from '@/stores/exercise-picker';
-import { useSettings } from '@/stores/settings';
+import { useSettings, workoutDefaults } from '@/stores/settings';
 
 /**
  * 지난 운동 기록 수정. 바꾸는 즉시 저장되고, 나갈 때 완료 해제된 세트·빈 종목을 정리한다.
@@ -73,7 +73,7 @@ export default function WorkoutEditScreen() {
 
   const addExercises = () =>
     openExercisePicker((ids) => {
-      addExercisesToWorkout(db, workoutId, ids, unit);
+      addExercisesToWorkout(db, workoutId, ids, unit, undefined, workoutDefaults());
       // 지난 기록이라 새 세트도 바로 완료 상태로 둔다(프리필 값 그대로).
       for (const we of db
         .select()

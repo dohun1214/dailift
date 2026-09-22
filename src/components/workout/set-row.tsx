@@ -25,6 +25,9 @@ type Props = {
   onChange: (patch: Partial<SetRowValue>) => void;
   onToggle: () => void;
   onDelete: () => void;
+  /** 고급 기록이 켜져 있으면 번호를 눌러 세트 종류·RPE를 바꾼다 */
+  onLabelPress?: () => void;
+  rpe?: number | null;
 };
 
 /** 세트 한 줄: 번호(워밍업은 주황 W) · 무게 · 횟수(또는 시간) · 완료 체크. 왼쪽으로 밀면 삭제 */
@@ -39,6 +42,8 @@ export function SetRow({
   onChange,
   onToggle,
   onDelete,
+  onLabelPress,
+  rpe,
 }: Props) {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
@@ -70,9 +75,23 @@ export function SetRow({
         accessibilityActions={[{ name: 'delete', label: t('workout.removeSet') }]}
         onAccessibilityAction={(e) => e.nativeEvent.actionName === 'delete' && onDelete()}
       >
-        <View style={[styles.label, warm && styles.labelWarm]}>
+        <Pressable
+          disabled={!onLabelPress}
+          onPress={onLabelPress}
+          accessibilityRole={onLabelPress ? 'button' : undefined}
+          accessibilityLabel={
+            onLabelPress
+              ? rpe != null
+                ? t('workout.setOptionsRpeA11y', { set: setName, rpe })
+                : t('workout.setOptionsA11y', { set: setName })
+              : undefined
+          }
+          hitSlop={7}
+          style={[styles.label, warm && styles.labelWarm]}
+        >
           <Text style={[styles.labelText, warm && styles.labelTextWarm]}>{label}</Text>
-        </View>
+          {rpe != null ? <Text style={styles.rpe}>@{rpe}</Text> : null}
+        </Pressable>
         {type === 'time' ? (
           <SetField
             label={t('workout.timeA11y', { set: setName })}
@@ -151,6 +170,13 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.text2,
   },
   labelTextWarm: { color: theme.colors.warm },
+  rpe: {
+    fontSize: 9,
+    lineHeight: 10,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.numBold,
+    color: theme.colors.text2,
+  },
   check: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   circleOff: {
     width: 30,

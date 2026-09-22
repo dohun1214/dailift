@@ -16,7 +16,7 @@ import type { RoutineSummary } from '@/domain/routine';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { isScheduledOn } from '@/lib/weekdays';
 import { useProfile } from '@/stores/profile';
-import { useSettings } from '@/stores/settings';
+import { useSettings, workoutDefaults } from '@/stores/settings';
 
 export default function RoutinesScreen() {
   const { t } = useTranslation();
@@ -43,6 +43,7 @@ export default function RoutinesScreen() {
               routineId: r.id,
               name: r.name,
               weightUnit: useSettings.getState().weightUnit,
+              barWeight: workoutDefaults().barWeight,
             });
           }
           router.push('/workout');
