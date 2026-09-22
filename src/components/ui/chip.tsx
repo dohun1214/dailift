@@ -4,9 +4,11 @@ import { StyleSheet } from 'react-native-unistyles';
 type Props = Omit<PressableProps, 'children' | 'style'> & {
   label: string;
   selected?: boolean;
+  /** surface: 화면 바탕 위(높이 36), raised: 카드 안(높이 40, 한 단계 밝은 배경) */
+  tone?: 'surface' | 'raised';
 };
 
-export function Chip({ label, selected = false, ...props }: Props) {
+export function Chip({ label, selected = false, tone = 'surface', ...props }: Props) {
   styles.useVariants({ selected });
   return (
     <Pressable
@@ -14,7 +16,12 @@ export function Chip({ label, selected = false, ...props }: Props) {
       accessibilityState={{ selected }}
       hitSlop={{ top: 4, bottom: 4 }}
       {...props}
-      style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.chip,
+        tone === 'raised' && styles.raised,
+        tone === 'raised' && !selected && styles.raisedIdle,
+        pressed && styles.pressed,
+      ]}
     >
       <Text style={styles.label} numberOfLines={1}>
         {label}
@@ -49,5 +56,7 @@ const styles = StyleSheet.create((theme) => ({
       },
     },
   },
+  raised: { height: 40 },
+  raisedIdle: { backgroundColor: theme.colors.surface2 },
   pressed: { opacity: 0.7 },
 }));

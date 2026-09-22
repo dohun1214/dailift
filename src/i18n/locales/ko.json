@@ -9,7 +9,8 @@
   "common": {
     "comingSoon": "준비 중이에요",
     "back": "뒤로",
-    "close": "닫기"
+    "close": "닫기",
+    "save": "저장"
   },
   "welcome": {
     "tagline": "운동, 식단, 몸의 변화를\n한곳에 기록해요.",
@@ -132,7 +133,97 @@
       "notFound": "루틴을 찾을 수 없어요"
     },
     "edit": {
-      "title": "루틴 편집"
+      "title": "루틴 편집",
+      "newTitle": "새 루틴",
+      "save": "저장",
+      "name": "루틴 이름",
+      "namePlaceholder": "예: 상체 A",
+      "days": "요일",
+      "sets": "목표 세트",
+      "setsUnit": "세트",
+      "reps": "렙 범위",
+      "repsUnit": "회",
+      "time": "목표 시간",
+      "timeUnit": "초",
+      "rest": "휴식",
+      "restUnit": "초",
+      "increment": "증량 단위",
+      "rowMeta_other": "{{count}}세트 · {{min}}–{{max}}회 · 휴식 {{rest}}초",
+      "rowMetaTime_other": "{{count}}세트 · {{min}}–{{max}}초 · 휴식 {{rest}}초",
+      "addExercise": "종목 추가",
+      "delete": "루틴 삭제",
+      "deleteConfirmTitle": "루틴을 삭제할까요?",
+      "deleteConfirmBody": "지난 운동 기록은 그대로 남아요.",
+      "deleteConfirm": "삭제",
+      "cancel": "취소",
+      "removeExercise": "종목 빼기",
+      "drag": "순서 바꾸기",
+      "moveUp": "위로 옮기기",
+      "moveDown": "아래로 옮기기",
+      "expandHint": "눌러서 세트·렙·휴식을 바꿔요",
+      "collapseHint": "눌러서 접어요",
+      "discardTitle": "저장하지 않고 나갈까요?",
+      "discardBody": "바꾼 내용이 사라져요.",
+      "discard": "나가기",
+      "keepEditing": "계속 편집",
+      "errors": {
+        "nameRequired": "루틴 이름을 입력하세요.",
+        "noExercises": "종목을 하나 이상 추가하세요.",
+        "itemInvalid": "값을 확인해 주세요.",
+        "sets": "세트는 1–20",
+        "reps": "최소 ≤ 최대, 1–100",
+        "rest": "휴식은 0–900초",
+        "increment": "0.25–50"
+      },
+      "notFound": "루틴을 찾을 수 없어요",
+      "min": "최소",
+      "max": "최대"
+    }
+  },
+  "exercises": {
+    "pickerTitle": "종목 추가",
+    "search": "종목 검색",
+    "searchPlaceholder": "종목 이름, 초성 검색",
+    "filterAll": "전체",
+    "base": "기본 종목",
+    "custom": "내 종목",
+    "empty": "맞는 종목이 없어요",
+    "create": "직접 종목 만들기",
+    "add_other": "{{count}}개 추가",
+    "addNone": "종목을 고르세요",
+    "group": {
+      "chest": "가슴",
+      "back": "등",
+      "shoulders": "어깨",
+      "legs": "하체",
+      "arms": "팔",
+      "core": "코어"
+    },
+    "equipment": {
+      "barbell": "바벨",
+      "dumbbell": "덤벨",
+      "machine": "머신",
+      "cable": "케이블",
+      "bodyweight": "맨몸",
+      "band": "밴드",
+      "kettlebell": "케틀벨",
+      "other": "기타"
+    },
+    "type": {
+      "weight_reps": "무게 × 횟수",
+      "bodyweight_reps": "맨몸 × 횟수",
+      "time": "시간"
+    },
+    "new": {
+      "title": "종목 만들기",
+      "name": "종목 이름",
+      "namePlaceholder": "예: 케이블 크로스오버",
+      "type": "기록 방식",
+      "primary": "주동근 (필수)",
+      "secondary": "협응근",
+      "equipment": "기구",
+      "nameRequired": "종목 이름을 입력하세요.",
+      "primaryRequired": "주동근을 하나 이상 고르세요."
     }
   }
 }
