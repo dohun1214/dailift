@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useUnistyles } from 'react-native-unistyles';
 
 import { DatabaseProvider } from '@/db/provider';
@@ -24,18 +25,24 @@ export default function RootLayout() {
   if (!fontsReady) return null;
 
   return (
-    <DatabaseProvider>
-      <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: theme.colors.bg },
-        }}
-      >
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
-        <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
-      </Stack>
-    </DatabaseProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <DatabaseProvider>
+        <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: theme.colors.bg },
+          }}
+        >
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
+          <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
+          {/* 닫기(X)로 나가는 편집 화면은 아래에서 올라온다 */}
+          <Stack.Screen name="routine/[id]" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="exercise-picker" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="exercise-new" options={{ animation: 'slide_from_bottom' }} />
+        </Stack>
+      </DatabaseProvider>
+    </GestureHandlerRootView>
   );
 }

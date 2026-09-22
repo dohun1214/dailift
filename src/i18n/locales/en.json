@@ -9,7 +9,8 @@
   "common": {
     "comingSoon": "Coming soon",
     "back": "Back",
-    "close": "Close"
+    "close": "Close",
+    "save": "Save"
   },
   "welcome": {
     "tagline": "Log your workouts, meals,\nand body changes in one place.",
@@ -134,7 +135,100 @@
       "notFound": "Routine not found"
     },
     "edit": {
-      "title": "Edit routine"
+      "title": "Edit routine",
+      "newTitle": "New routine",
+      "save": "Save",
+      "name": "Routine name",
+      "namePlaceholder": "e.g. Upper A",
+      "days": "Days",
+      "sets": "Target sets",
+      "setsUnit": "sets",
+      "reps": "Rep range",
+      "repsUnit": "reps",
+      "time": "Target time",
+      "timeUnit": "sec",
+      "rest": "Rest",
+      "restUnit": "sec",
+      "increment": "Increment",
+      "rowMeta_one": "{{count}} set · {{min}}–{{max}} reps · {{rest}}s rest",
+      "rowMeta_other": "{{count}} sets · {{min}}–{{max}} reps · {{rest}}s rest",
+      "rowMetaTime_one": "{{count}} set · {{min}}–{{max}}s · {{rest}}s rest",
+      "rowMetaTime_other": "{{count}} sets · {{min}}–{{max}}s · {{rest}}s rest",
+      "addExercise": "Add exercise",
+      "delete": "Delete routine",
+      "deleteConfirmTitle": "Delete this routine?",
+      "deleteConfirmBody": "Your past workouts stay in your history.",
+      "deleteConfirm": "Delete",
+      "cancel": "Cancel",
+      "removeExercise": "Remove exercise",
+      "drag": "Reorder",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "expandHint": "Tap to change sets, reps and rest",
+      "collapseHint": "Tap to collapse",
+      "discardTitle": "Leave without saving?",
+      "discardBody": "Your changes will be lost.",
+      "discard": "Leave",
+      "keepEditing": "Keep editing",
+      "errors": {
+        "nameRequired": "Enter a routine name.",
+        "noExercises": "Add at least one exercise.",
+        "itemInvalid": "Check the highlighted values.",
+        "sets": "Sets: 1–20",
+        "reps": "Min ≤ max, 1–100",
+        "rest": "Rest: 0–900 s",
+        "increment": "0.25–50"
+      },
+      "notFound": "Routine not found",
+      "min": "minimum",
+      "max": "maximum"
+    }
+  },
+  "exercises": {
+    "pickerTitle": "Add exercises",
+    "search": "Search exercises",
+    "searchPlaceholder": "Search by name",
+    "filterAll": "All",
+    "base": "Exercises",
+    "custom": "My exercises",
+    "empty": "No matching exercises",
+    "create": "Create exercise",
+    "add_one": "Add {{count}}",
+    "add_other": "Add {{count}}",
+    "addNone": "Select exercises",
+    "group": {
+      "chest": "Chest",
+      "back": "Back",
+      "shoulders": "Shoulders",
+      "legs": "Legs",
+      "arms": "Arms",
+      "core": "Core"
+    },
+    "equipment": {
+      "barbell": "Barbell",
+      "dumbbell": "Dumbbell",
+      "machine": "Machine",
+      "cable": "Cable",
+      "bodyweight": "Bodyweight",
+      "band": "Band",
+      "kettlebell": "Kettlebell",
+      "other": "Other"
+    },
+    "type": {
+      "weight_reps": "Weight × reps",
+      "bodyweight_reps": "Bodyweight × reps",
+      "time": "Time"
+    },
+    "new": {
+      "title": "Create exercise",
+      "name": "Exercise name",
+      "namePlaceholder": "e.g. Cable crossover",
+      "type": "Tracking",
+      "primary": "Primary muscles (required)",
+      "secondary": "Secondary muscles",
+      "equipment": "Equipment",
+      "nameRequired": "Enter an exercise name.",
+      "primaryRequired": "Pick at least one primary muscle."
     }
   }
 }

@@ -9,12 +9,14 @@ type Props = Omit<TextInputProps, 'style'> & {
   /** 자동으로 채운 값처럼 회색으로 보이게 한다 */
   muted?: boolean;
   error?: string;
+  /** 문구 없이 테두리만 빨갛게 (묶음 필드의 오류는 한 곳에 문구를 보여줄 때) */
+  invalid?: boolean;
 };
 
-export function TextField({ label, unit, muted = false, error, ...props }: Props) {
+export function TextField({ label, unit, muted = false, error, invalid = false, ...props }: Props) {
   const { theme } = useUnistyles();
   const id = useId();
-  styles.useVariants({ muted, invalid: !!error });
+  styles.useVariants({ muted, invalid: invalid || !!error });
 
   return (
     <View style={styles.wrap}>
