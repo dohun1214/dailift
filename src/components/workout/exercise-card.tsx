@@ -13,6 +13,8 @@ type CardProps = {
   suggestion: ReactNode;
   children: ReactNode;
   onAddSet: () => void;
+  /** 종목 이름을 누르면 종목 상세로 */
+  onNamePress?: () => void;
 };
 
 /** 지금 하는 종목 카드: 위치·부위 / 이름 / 증량 제안 / 컬럼 헤더 / 세트 행들 / 세트 추가 */
@@ -23,18 +25,23 @@ export function ActiveExerciseCard({
   suggestion,
   children,
   onAddSet,
+  onNamePress,
 }: CardProps) {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
   return (
     <View style={styles.card}>
       <View style={styles.head}>
-        <View style={styles.headText}>
+        <Pressable
+          style={styles.headText}
+          disabled={!onNamePress}
+          onPress={onNamePress}
+          accessibilityRole={onNamePress ? 'link' : 'header'}
+          accessibilityLabel={`${position}, ${name}`}
+        >
           <Text style={styles.position}>{position}</Text>
-          <Text style={styles.name} accessibilityRole="header">
-            {name}
-          </Text>
-        </View>
+          <Text style={styles.name}>{name}</Text>
+        </Pressable>
       </View>
       {suggestion}
       <View style={styles.columns} importantForAccessibility="no-hide-descendants">
