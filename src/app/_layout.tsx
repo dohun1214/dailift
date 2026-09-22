@@ -8,10 +8,13 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useUnistyles } from 'react-native-unistyles';
 
 import { DatabaseProvider } from '@/db/provider';
+import { startAuth } from '@/lib/auth';
 import { configureNotifications } from '@/lib/notifications';
 import { useRestTimerAlarm } from '@/stores/use-rest-timer-alarm';
 import { useAppFonts } from '@/theme/use-app-fonts';
 import { useApplyTheme } from '@/theme/use-apply-theme';
+
+startAuth();
 
 void SplashScreen.preventAutoHideAsync();
 configureNotifications();
@@ -52,6 +55,8 @@ export default function RootLayout() {
           <Stack.Screen name="workout-summary/[id]" options={{ animation: 'fade' }} />
           <Stack.Screen name="workout-edit/[id]" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="plate-calculator" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="account-link" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="account-delete" />
         </Stack>
       </DatabaseProvider>
     </GestureHandlerRootView>

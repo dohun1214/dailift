@@ -16,13 +16,10 @@
     "tagline": "Log your workouts, meals,\nand body changes in one place.",
     "apple": "Continue with Apple",
     "google": "Continue with Google",
-    "email": "Continue with email",
     "guest": "Start without an account",
     "guestNote": "Guest data stays on this device. You can link an account later.",
     "agreeTerms": "I agree to the Terms of Service and Privacy Policy",
-    "agreeAge": "I'm 14 or older",
-    "authSoonTitle": "Coming soon",
-    "authSoonBody": "Account sign-in is coming soon. For now, start without an account."
+    "agreeAge": "I'm 14 or older"
   },
   "onboarding": {
     "progress": "{{step}} / {{total}}",
@@ -472,8 +469,6 @@
     "guest": "Guest",
     "guestSub": "Your data is stored only on this device",
     "linkAccount": "Link an account to back up",
-    "linkSoonTitle": "Link account",
-    "linkSoon": "Account linking and backup are coming in a future update.",
     "groupWorkout": "Workout",
     "unit": "Units",
     "barWeight": "Bar weight",
@@ -529,5 +524,40 @@
     "enter": "Enter a target weight.",
     "count": "× {{count}}",
     "hint": "You can change your available plates in settings. If the weight can't be matched exactly, you'll see the closest one."
+  },
+  "auth": {
+    "googleSoonTitle": "Google sign-in",
+    "googleSoon": "Google sign-in is coming soon.",
+    "failedTitle": "Couldn't sign in",
+    "failed": "Check your connection and try again in a moment.",
+    "link": {
+      "title": "Link account",
+      "heading": "Back up your data safely",
+      "sub": "Everything you've logged so far stays as it is.",
+      "b1": "Keep your history when you change phones",
+      "b2": "See the same data on multiple devices",
+      "b3": "Delete your account and data in the app at any time",
+      "apple": "Link with Apple",
+      "google": "Link with Google"
+    },
+    "account": {
+      "group": "Account",
+      "linked": "Linked with {{provider}}",
+      "signOut": "Sign out",
+      "signOutTitle": "Sign out?",
+      "signOutBody": "Your data on this device will stay.",
+      "delete": "Delete account"
+    },
+    "delete": {
+      "title": "Delete account",
+      "heading": "Delete your account?",
+      "sub": "This can't be undone.",
+      "b1": "Your workouts, body data, meals, and photos on the server will be deleted",
+      "b2": "Data on this device will be deleted too",
+      "b3": "Your Apple or Google link will be removed",
+      "confirm": "Delete account and all data",
+      "failedTitle": "Couldn't delete",
+      "failed": "Check your connection and try again."
+    }
   }
 }
