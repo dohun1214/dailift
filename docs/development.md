@@ -81,3 +81,9 @@ npm test
 ## 히스토리
 - 기록 탭 `src/app/(tabs)/log.tsx`: 히스토리 | 통계 세그먼트. 목록은 `useHistory`(완료 운동 + 완료 세트 live) → `buildHistory`(오래된 순으로 최고 기록을 쌓아 세션별 PR 개수 계산, 요약 화면과 같은 기준) → `groupByMonth`.
 - 행을 누르면 요약(`/workout-summary/[id]`), 길게 누르면 수정·삭제 시트. 수정(`/workout-edit/[id]`)은 바꾸는 즉시 저장, 새 세트는 바로 완료 상태, 나갈 때 `cleanupRecordedWorkout`로 완료 해제 세트·빈 종목 정리. 삭제는 툼스톤 + 사진 파일 삭제.
+
+## 통계
+- 기록 탭 '통계' = `src/components/stats/stats-view.tsx`, 데이터는 `useStatsData`(완료 본세트 전체 + 종목→부위). 계산은 `src/domain/stats.ts`.
+- 진행도: 지난 7일 vs 그 전 7일 총 볼륨·세트(증감 색·화살표 없음). 밸런스: 세트가 부위의 주동근을 쓰면 1, 협응근만 쓰면 0.5(세트당 부위별 한 번), 권장 범위는 `weeklySetRange(경험)`, 벗어나면 주황.
+- 추정 1RM: 세션별 최고 Epley → 8주 주별 최고, 기본 종목은 8주간 가장 자주 한 종목. 정체: 최근 4–6회·3주 이상 최소제곱 기울기 ≤ 0.
+- 한국어 조사는 `src/lib/josa.ts`(은/는).

@@ -5,6 +5,7 @@ import { Alert, Text, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { HistoryRow } from '@/components/history/history-row';
+import { StatsView } from '@/components/stats/stats-view';
 import { ActionSheet, Screen, Segmented } from '@/components/ui';
 import { db } from '@/db/client';
 import { deleteWorkout } from '@/db/history';
@@ -64,7 +65,7 @@ export default function LogScreen() {
         onChange={setView}
       />
 
-      {view === 'stats' ? <Text style={styles.empty}>{t('history.statsSoon')}</Text> : null}
+      {view === 'stats' ? <StatsView /> : null}
 
       {view === 'history' && ready && months.length === 0 ? (
         <Text style={styles.empty}>{t('history.empty')}</Text>

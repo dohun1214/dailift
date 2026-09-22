@@ -358,7 +358,27 @@
       "emptyBody": "이 운동 기록을 지울까요?",
       "keep": "계속 수정",
       "delete": "지우기"
+    }
+  },
+  "stats": {
+    "volume": "총 볼륨 ({{unit}})",
+    "sets": "총 세트",
+    "compare": "지난 7일 · 그 전 7일",
+    "pairA11y": "{{label}}: 지난 7일 {{current}}, 그 전 7일 {{previous}}",
+    "balance": "부위 밸런스",
+    "recommended": "권장 {{min}}–{{max}}세트",
+    "gaugeA11y": "{{name}} {{value}}세트, {{state}}",
+    "state": {
+      "low": "권장보다 적어요",
+      "ok": "권장 범위",
+      "high": "권장보다 많아요"
     },
-    "statsSoon": "통계는 곧 추가돼요."
+    "e1rm": "추정 1RM",
+    "pickExercise": "종목 고르기",
+    "e1rmAgo": "{{unit}} · {{weeks}}주 전 {{value}}",
+    "e1rmUnit": "{{unit}}",
+    "chartA11y": "{{name}} 추정 1RM 8주 추이, 지금 {{value}}{{unit}}",
+    "e1rmEmpty": "무게를 기록한 종목이 생기면 추이가 보여요.",
+    "stagnant": "<b>{{name}}</b>{{particle}} 최근 {{count}}회 기록이 제자리예요. 렙 범위를 바꿔보는 건 어때요?"
   }
 }

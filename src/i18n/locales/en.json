@@ -367,7 +367,27 @@
       "emptyBody": "Delete this workout?",
       "keep": "Keep editing",
       "delete": "Delete"
+    }
+  },
+  "stats": {
+    "volume": "Total volume ({{unit}})",
+    "sets": "Total sets",
+    "compare": "Last 7 days · 7 days before",
+    "pairA11y": "{{label}}: last 7 days {{current}}, 7 days before {{previous}}",
+    "balance": "Muscle balance",
+    "recommended": "Target {{min}}–{{max}} sets",
+    "gaugeA11y": "{{name}} {{value}} sets, {{state}}",
+    "state": {
+      "low": "below target",
+      "ok": "on target",
+      "high": "above target"
     },
-    "statsSoon": "Stats are coming soon."
+    "e1rm": "Estimated 1RM",
+    "pickExercise": "Choose exercise",
+    "e1rmAgo": "{{unit}} · {{value}} {{weeks}} weeks ago",
+    "e1rmUnit": "{{unit}}",
+    "chartA11y": "{{name}} estimated 1RM over 8 weeks, now {{value}}{{unit}}",
+    "e1rmEmpty": "Your trend appears once you log weighted exercises.",
+    "stagnant": "<b>{{name}}</b> has stayed flat for the last {{count}} sessions. Try a different rep range?"
   }
 }
