@@ -41,6 +41,14 @@
         {
           "color": "#15171A"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Dailift uses your photos so you can attach workout photos. Photos stay on your device.",
+          "cameraPermission": "Dailift uses the camera so you can take workout photos. Photos stay on your device.",
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {

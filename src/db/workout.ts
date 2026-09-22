@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, max, ne, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lt, max, ne, sql } from 'drizzle-orm';
 
 import { MUSCLES } from '@/data/muscles';
 import {
@@ -88,6 +88,8 @@ export function exerciseBests(
   db: AppDatabase,
   exerciseIds: readonly string[],
   excludeWorkoutId: string,
+  /** 이 시각 전에 시작한 운동만 (지난 세션 요약을 다시 볼 때 이후 기록을 빼기 위해) */
+  startedBefore?: number,
 ): Map<string, Best> {
   if (exerciseIds.length === 0) return new Map();
   const rows = db
@@ -108,6 +110,7 @@ export function exerciseBests(
         inArray(schema.workoutExercises.exerciseId, [...exerciseIds]),
         eq(schema.workouts.status, 'completed'),
         ne(schema.workouts.id, excludeWorkoutId),
+        startedBefore !== undefined ? lt(schema.workouts.startedAt, startedBefore) : undefined,
         isNull(schema.workouts.deletedAt),
         isNull(schema.workoutExercises.deletedAt),
         isNull(schema.sets.deletedAt),

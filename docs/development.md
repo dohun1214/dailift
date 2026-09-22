@@ -72,3 +72,8 @@ npm test
 - 휴식 타이머는 끝나는 시각 기준(`src/stores/rest-timer.ts`, kv-store에 저장). 앱이 켜져 있으면 `useRestTimerAlarm`(루트)이 진동, 백그라운드면 예약한 로컬 알림(`src/lib/notifications.ts`, 채널 `rest-timer`)이 울린다. 알림 권한은 첫 휴식 때 요청.
 - 화면 꺼짐 방지는 설정 `keepAwake`(기본 켬). 네이티브 모듈: expo-notifications, expo-keep-awake, expo-haptics.
 - 안드로이드에서 둥근 모서리 뷰는 자식을 잘라낸다 → 칸 밖으로 나가는 배지는 감싸는 뷰에 둔다.
+
+## 세션 요약
+- 화면 `src/app/workout-summary/[id].tsx`(운동 완료 직후·히스토리 공용, "완료"는 뒤로 갈 곳이 있으면 back). 데이터는 `src/db/summary.ts`의 `loadSummary`(완료 세트·근육·이 운동 전까지의 최고 기록).
+- 계산은 `src/domain/session-summary.ts`: 볼륨은 본세트 무게×횟수(표시 단위로 환산), 근육 점수는 주동 1 · 협응 0.5, 단계는 최대 대비 ⅔ 이상 집중 · ⅓ 이상 주요 · 나머지 보조(근육맵 투명도 1 / 0.6 / 0.3).
+- 메모는 입력을 멈추고 0.5초 뒤·화면을 떠날 때 저장. 사진은 expo-image-picker로 고르거나 찍어 앱 폴더(documentDirectory/photos)에 복사하고 `workout_photos`에 상대 경로를 저장한다(서버 동기화 안 함). 길게 눌러 삭제.
