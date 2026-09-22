@@ -23,6 +23,7 @@ import { wipeDevice } from '@/lib/wipe-device';
 import { accountInfo, useAuth } from '@/stores/auth';
 import { useProfile } from '@/stores/profile';
 import { useSettings } from '@/stores/settings';
+import { syncNow, useSync } from '@/sync/manager';
 import { ACCENTS, type Accent, themes } from '@/theme/tokens';
 
 const REST_OPTIONS = [30, 45, 60, 90, 120, 150, 180, 240];
@@ -39,6 +40,24 @@ export default function MeScreen() {
   const setBodyType = useProfile((p) => p.setBodyType);
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const account = accountInfo(useAuth((a) => a.session));
+  const syncedAgo = (at: number) => {
+    const min = Math.floor((Date.now() - at) / 60_000);
+    if (min < 1) return t('sync.justNow');
+    if (min < 60) return t('sync.minutesAgo', { count: min });
+    const hours = Math.floor(min / 60);
+    if (hours < 24) return t('sync.hoursAgo', { count: hours });
+    return t('sync.daysAgo', { count: Math.floor(hours / 24) });
+  };
+  const sync = useSync();
+  const syncLabel = !account
+    ? t('sync.off')
+    : sync.status === 'syncing'
+      ? t('sync.running')
+      : sync.status === 'error'
+        ? t('sync.failed')
+        : sync.lastSyncedAt === null
+          ? t('sync.never')
+          : syncedAgo(sync.lastSyncedAt);
   const providerName =
     account?.provider === 'apple' ? 'Apple' : account?.provider === 'google' ? 'Google' : '';
   const unit = s.weightUnit;
@@ -91,7 +110,10 @@ export default function MeScreen() {
       {
         text: t('auth.account.signOut'),
         onPress: () => {
-          signOut().catch((e) => console.warn('[auth] sign-out failed', e));
+          // 안 보낸 기록을 먼저 올려 두고 로그아웃한다(실패해도 기기 기록은 남는다).
+          syncNow()
+            .then(() => signOut())
+            .catch((e) => console.warn('[auth] sign-out failed', e));
         },
       },
     ]);
@@ -279,6 +301,14 @@ export default function MeScreen() {
                 setBodyType,
               )
             }
+          />
+        </ListSection>
+
+        <ListSection title={t('settings.groupData')}>
+          <ListRow
+            label={t('settings.sync')}
+            value={syncLabel}
+            onPress={() => (account ? void syncNow() : router.push('/account-link'))}
           />
         </ListSection>
 

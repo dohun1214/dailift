@@ -11,10 +11,12 @@ import { DatabaseProvider } from '@/db/provider';
 import { startAuth } from '@/lib/auth';
 import { configureNotifications } from '@/lib/notifications';
 import { useRestTimerAlarm } from '@/stores/use-rest-timer-alarm';
+import { startSync } from '@/sync/manager';
 import { useAppFonts } from '@/theme/use-app-fonts';
 import { useApplyTheme } from '@/theme/use-apply-theme';
 
 startAuth();
+startSync();
 
 void SplashScreen.preventAutoHideAsync();
 configureNotifications();

@@ -58,6 +58,7 @@ export function seedReferenceData(db: AppDatabase) {
           equipment: sql`excluded.equipment`,
           sortOrder: sql`excluded.sort_order`,
           deletedAt: null,
+          dirty: 0,
         },
       })
       .run();

@@ -3,6 +3,7 @@ import { wipeUserData } from '@/db/wipe';
 import { useProfile } from '@/stores/profile';
 import { useRestTimer } from '@/stores/rest-timer';
 import { useSettings } from '@/stores/settings';
+import { forgetSyncAccount } from '@/sync/manager';
 
 import { removePhotoFile } from './photos';
 
@@ -12,4 +13,5 @@ export function wipeDevice() {
   for (const path of wipeUserData(db)) removePhotoFile(path);
   useSettings.getState().reset();
   useProfile.getState().reset();
+  forgetSyncAccount();
 }

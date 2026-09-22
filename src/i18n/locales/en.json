@@ -510,7 +510,9 @@
     "weightValue": "{{value}} {{unit}}",
     "platesTitle": "Available plates",
     "platesHint": "Turn on the plates you have. The plate calculator builds combinations from these (assumes at least one pair of each).",
-    "plateA11y": "{{value}} {{unit}} plate"
+    "plateA11y": "{{value}} {{unit}} plate",
+    "groupData": "Data",
+    "sync": "Sync"
   },
   "plates": {
     "title": "Plate calculator",
@@ -559,5 +561,18 @@
       "failedTitle": "Couldn't delete",
       "failed": "Check your connection and try again."
     }
+  },
+  "sync": {
+    "off": "Off",
+    "running": "Syncing…",
+    "failed": "Failed · tap to retry",
+    "never": "Not yet",
+    "justNow": "Just now",
+    "minutesAgo_one": "{{count}} min ago",
+    "minutesAgo_other": "{{count}} min ago",
+    "hoursAgo_one": "{{count}} hr ago",
+    "hoursAgo_other": "{{count}} hr ago",
+    "daysAgo_one": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago"
   }
 }
