@@ -19,7 +19,9 @@
     "guest": "Start without an account",
     "guestNote": "Guest data stays on this device. You can link an account later.",
     "agreeTerms": "I agree to the Terms of Service and Privacy Policy",
-    "agreeAge": "I'm 14 or older"
+    "agreeAge": "I'm 14 or older",
+    "termsLink": "Terms of Service",
+    "privacyLink": "Privacy Policy"
   },
   "onboarding": {
     "progress": "{{step}} / {{total}}",
@@ -499,6 +501,11 @@
     "bodyMale": "Male",
     "bodyFemale": "Female",
     "groupInfo": "About",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "licenses": "Data sources & open source",
+    "contact": "Contact us",
+    "contactSubject": "Inquiry",
     "version": "Version",
     "wipe": "Delete all data",
     "wipeTitle": "Delete all data?",
@@ -584,5 +591,17 @@
     "failedTitle": "Couldn't export",
     "failed": "Please try again in a moment.",
     "unavailable": "File sharing isn't available on this device."
+  },
+  "licenses": {
+    "title": "Data sources & open source",
+    "groupData": "Data sources",
+    "exercises": "Exercise information",
+    "exercisesValue": "Written by Dailift",
+    "muscleMap": "Muscle map artwork",
+    "fonts": "Fonts",
+    "fontsValue": "Onest · IBM Plex Sans KR (OFL)",
+    "groupOss": "Open source licenses",
+    "hint": "Dailift uses the open source software below. Tap an item to read its full license.",
+    "homepage": "Open homepage"
   }
 }

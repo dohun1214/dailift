@@ -131,3 +131,11 @@ npm test
 - 내 정보 '데이터 › 데이터 내보내기' 또는 계정 삭제 화면 '먼저 내 데이터 내보내기' → 시트(`components/export-sheet.tsx`)에서 형식 선택 → 캐시 폴더에 파일을 만들고 공유 시트(expo-sharing).
 - CSV(`dailift-workouts-YYYYMMDD.csv`): 완료한 운동의 완료한 세트 한 줄씩(date, workout, exercise, set, kind, weight, unit, reps, duration_sec, rpe). 엑셀 한글용 BOM, CRLF, 수식 주입 방지. 내용은 `domain/export.ts`, 조회는 `db/export.ts`.
 - JSON(`dailift-backup-YYYYMMDD.json`): 설정·프로필 + 지우지 않은 사용자 행 전부(기본 종목·버린 운동·기기 전용 컬럼 제외). 사진 파일은 포함하지 않는다(경로만).
+
+## 스토어 준비
+- 앱 아이콘·스플래시: `assets/images/` (icon 1024px 배경 #0F1012, 안드로이드 적응형 전경·모노크롬·배경, 스플래시 라이트/다크). 바꾼 뒤에는 `npx expo prebuild`로 네이티브 리소스를 다시 만든다.
+- 법적 페이지: GitHub Pages(`gh-pages` 브랜치) — https://dohun1214.github.io/dailift/ 의 `privacy.html`, `terms.html`, `delete-account.html`. 한국어 본문 뒤에 영어(`#en`)가 이어진다. 앱에서는 `src/lib/links.ts`(`openLegal`, `openSupportMail`)로 연다. 주소·문의 메일은 `src/config.ts`.
+- 시작 화면 동의 문장의 '이용약관'·'개인정보 처리방침'은 누르면 해당 페이지가 열린다(`ConsentCheck`의 `links`).
+- 내 정보 › 정보: 이용약관, 개인정보 처리방침, 데이터 출처 · 오픈소스(`settings/licenses`, `settings/license`), 문의하기(메일 작성), 버전.
+- 오픈소스 목록은 `node scripts/gen-licenses.mjs`가 `src/data/licenses.json`으로 만든다(직접 의존성, 라이선스 전문 포함). 의존성을 추가·삭제하면 다시 실행한다.
+- EAS: `eas.json`의 `preview`(내부 배포 APK), `production`(스토어용, 빌드 번호 자동 증가, 버전 원본은 EAS 서버). Play 제출용 서비스 계정 키는 `secrets/play-service-account.json`(커밋 금지, .gitignore 처리).

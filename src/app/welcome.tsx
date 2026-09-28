@@ -8,6 +8,7 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { AppleLogo, GoogleLogo } from '@/components/auth/brand-logos';
 import { Button, ConsentCheck } from '@/components/ui';
+import { openLegal } from '@/lib/links';
 import { type Provider, useSignIn } from '@/lib/use-sign-in';
 import { useProfile } from '@/stores/profile';
 
@@ -63,7 +64,15 @@ export default function Welcome() {
         />
         <Text style={styles.note}>{t('welcome.guestNote')}</Text>
         <View>
-          <ConsentCheck label={t('welcome.agreeTerms')} checked={terms} onChange={setTerms} />
+          <ConsentCheck
+            label={t('welcome.agreeTerms')}
+            checked={terms}
+            onChange={setTerms}
+            links={[
+              { text: t('welcome.termsLink'), onPress: () => void openLegal('terms') },
+              { text: t('welcome.privacyLink'), onPress: () => void openLegal('privacy') },
+            ]}
+          />
           <ConsentCheck label={t('welcome.agreeAge')} checked={age} onChange={setAge} />
         </View>
       </View>

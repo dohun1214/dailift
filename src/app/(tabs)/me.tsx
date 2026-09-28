@@ -20,6 +20,7 @@ import {
 import type { WeightUnit } from '@/db/schema';
 import { BAR_OPTIONS } from '@/domain/plates';
 import { signOut } from '@/lib/auth';
+import { openLegal, openSupportMail } from '@/lib/links';
 import { wipeDevice } from '@/lib/wipe-device';
 import { accountInfo, useAuth } from '@/stores/auth';
 import { useProfile } from '@/stores/profile';
@@ -327,6 +328,13 @@ export default function MeScreen() {
         ) : null}
 
         <ListSection title={t('settings.groupInfo')}>
+          <ListRow label={t('settings.terms')} onPress={() => void openLegal('terms')} />
+          <ListRow label={t('settings.privacy')} onPress={() => void openLegal('privacy')} />
+          <ListRow
+            label={t('settings.licenses')}
+            onPress={() => router.push('/settings/licenses')}
+          />
+          <ListRow label={t('settings.contact')} onPress={() => void openSupportMail()} />
           <ListRow label={t('settings.version')} value={Constants.expoConfig?.version ?? ''} />
         </ListSection>
 
