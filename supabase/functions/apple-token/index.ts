@@ -33,13 +33,11 @@ Deno.serve(async (req) => {
   const refreshToken = await exchangeCode(cfg, code);
   if (!refreshToken) return json({ error: 'exchange_failed' }, 502);
 
-  const { error: saveError } = await admin
-    .from('apple_tokens')
-    .upsert({
-      user_id: data.user.id,
-      refresh_token: refreshToken,
-      updated_at: new Date().toISOString(),
-    });
+  const { error: saveError } = await admin.from('apple_tokens').upsert({
+    user_id: data.user.id,
+    refresh_token: refreshToken,
+    updated_at: new Date().toISOString(),
+  });
   if (saveError) {
     console.error('save failed', saveError.message);
     return json({ error: 'save_failed' }, 500);
