@@ -19,7 +19,9 @@
     "guest": "로그인 없이 시작",
     "guestNote": "게스트 기록은 이 기기에만 저장돼요. 나중에 계정을 연결할 수 있어요.",
     "agreeTerms": "이용약관과 개인정보 처리방침에 동의해요",
-    "agreeAge": "만 14세 이상이에요"
+    "agreeAge": "만 14세 이상이에요",
+    "termsLink": "이용약관",
+    "privacyLink": "개인정보 처리방침"
   },
   "onboarding": {
     "progress": "{{step}} / {{total}}",
@@ -487,6 +489,11 @@
     "bodyMale": "남성형",
     "bodyFemale": "여성형",
     "groupInfo": "정보",
+    "terms": "이용약관",
+    "privacy": "개인정보 처리방침",
+    "licenses": "데이터 출처 · 오픈소스",
+    "contact": "문의하기",
+    "contactSubject": "문의",
     "version": "버전",
     "wipe": "모든 데이터 삭제",
     "wipeTitle": "모든 데이터를 삭제할까요?",
@@ -568,5 +575,17 @@
     "failedTitle": "내보내지 못했어요",
     "failed": "잠시 후 다시 시도해 주세요.",
     "unavailable": "이 기기에서는 파일 공유를 쓸 수 없어요."
+  },
+  "licenses": {
+    "title": "데이터 출처 · 오픈소스",
+    "groupData": "데이터 출처",
+    "exercises": "운동 종목 정보",
+    "exercisesValue": "Dailift 자체 작성",
+    "muscleMap": "근육맵 그림",
+    "fonts": "서체",
+    "fontsValue": "Onest · IBM Plex Sans KR (OFL)",
+    "groupOss": "오픈소스 라이선스",
+    "hint": "Dailift는 아래 오픈소스 소프트웨어를 사용해요. 항목을 누르면 라이선스 전문을 볼 수 있어요.",
+    "homepage": "홈페이지 열기"
   }
 }

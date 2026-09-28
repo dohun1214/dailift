@@ -10,3 +10,8 @@ export const GOOGLE_WEB_CLIENT_ID: string =
   '85791918223-vsrbi4duhqj1u96m339mj7rcn2iu9mq4.apps.googleusercontent.com';
 export const GOOGLE_IOS_CLIENT_ID: string =
   '85791918223-tccvuepnbqg684npigc9m67hu8nteknq.apps.googleusercontent.com';
+
+/** 이용약관·개인정보 처리방침·계정 삭제 안내 페이지 (GitHub Pages, gh-pages 브랜치) */
+export const LEGAL_BASE_URL = 'https://dohun1214.github.io/dailift';
+/** 문의 메일 */
+export const SUPPORT_EMAIL = 'dhp137qkr@gmail.com';
