@@ -70,6 +70,8 @@ export async function signInWithApple(): Promise<SignInResult> {
       nonce: rawNonce,
     });
     if (error) throw error;
+    // 계정 삭제 때 Apple 연결을 끊을 수 있도록 서버가 refresh token을 받아 둔다(5분 안에 교환해야 함).
+    if (credential.authorizationCode) void saveAppleToken(credential.authorizationCode);
     // Apple은 이름을 첫 로그인 때만 준다 → 사용자 정보에 남겨 둔다.
     const { givenName, familyName } = credential.fullName ?? {};
     const fullName = [givenName, familyName].filter(Boolean).join(' ');
@@ -79,6 +81,11 @@ export async function signInWithApple(): Promise<SignInResult> {
     if ((e as { code?: string }).code === 'ERR_REQUEST_CANCELED') return 'cancelled';
     throw e;
   }
+}
+
+async function saveAppleToken(code: string) {
+  const { error } = await supabase.functions.invoke('apple-token', { body: { code } });
+  if (error) console.warn('[auth] apple token not saved', error.message);
 }
 
 export async function signOut() {

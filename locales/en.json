@@ -1,0 +1,7 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "Dailift",
+    "NSCameraUsageDescription": "Dailift uses the camera so you can take photos and attach them to your workouts.",
+    "NSPhotoLibraryUsageDescription": "Dailift uses your photo library so you can attach photos to your workouts."
+  }
+}
