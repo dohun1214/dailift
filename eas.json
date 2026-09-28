@@ -6,10 +6,15 @@
   "build": {
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" }
+      "android": {
+        "buildType": "apk"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "ios": {
+        "credentialsSource": "local"
+      }
     }
   },
   "submit": {
@@ -17,6 +22,10 @@
       "android": {
         "serviceAccountKeyPath": "./secrets/play-service-account.json",
         "track": "internal"
+      },
+      "ios": {
+        "ascAppId": "6816855441",
+        "appleTeamId": "65J6R92P2U"
       }
     }
   }

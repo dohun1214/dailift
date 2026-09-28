@@ -10,7 +10,11 @@
     "ios": {
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.dohun1214.dailift",
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "supportsTablet": false,
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -48,8 +52,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Dailift uses your photos so you can attach workout photos. Photos stay on your device.",
-          "cameraPermission": "Dailift uses the camera so you can take workout photos. Photos stay on your device.",
+          "photosPermission": "Dailift uses your photo library so you can attach photos to your workouts.",
+          "cameraPermission": "Dailift uses the camera so you can take photos and attach them to your workouts.",
           "microphonePermission": false
         }
       ],
@@ -64,6 +68,17 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "locales": {
+      "ko": "./locales/ko.json",
+      "en": "./locales/en.json"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a69775b9-53c1-4c04-806a-01fdd415c479"
+      }
+    },
+    "owner": "dohun1214"
   }
 }

@@ -139,3 +139,10 @@ npm test
 - 내 정보 › 정보: 이용약관, 개인정보 처리방침, 데이터 출처 · 오픈소스(`settings/licenses`, `settings/license`), 문의하기(메일 작성), 버전.
 - 오픈소스 목록은 `node scripts/gen-licenses.mjs`가 `src/data/licenses.json`으로 만든다(직접 의존성, 라이선스 전문 포함). 의존성을 추가·삭제하면 다시 실행한다.
 - EAS: `eas.json`의 `preview`(내부 배포 APK), `production`(스토어용, 빌드 번호 자동 증가, 버전 원본은 EAS 서버). Play 제출용 서비스 계정 키는 `secrets/play-service-account.json`(커밋 금지, .gitignore 처리).
+
+## iOS 출시 (#37)
+- EAS 프로젝트 `@dohun1214/dailift`(projectId는 app.json `extra.eas`). App Store Connect 앱 ID `6816855441`, Team `65J6R92P2U` → eas.json `submit.production.ios`.
+- 빌드·제출은 비대화형으로 한다. 키는 `secrets/`(git 제외): `ids.txt`(1 ASC Key ID, 2 Issuer ID, 3 SIWA Key ID, 4 Team ID, 5 Expo 토큰), `AuthKey_<id>.p8` 두 개(ASC API 키, Sign in with Apple 키).
+  환경 변수 `EXPO_TOKEN`, `EXPO_ASC_API_KEY_PATH`, `EXPO_ASC_KEY_ID`, `EXPO_ASC_ISSUER_ID`, `EXPO_APPLE_TEAM_ID`를 채우고 `eas build -p ios --profile production --non-interactive`, `eas submit -p ios --latest --non-interactive`.
+- iOS 설정: 수출 규정 암호화 없음(`ios.config.usesNonExemptEncryption: false`), 아이폰 전용, 권한 문구·표시 이름은 `locales/ko.json`·`locales/en.json`.
+- Apple 로그인 연결 끊기(App Store 5.1.1(v)): 로그인 직후 앱이 authorizationCode를 Edge Function `apple-token`에 보내면 refresh token으로 바꿔 `apple_tokens`(서비스 롤 전용)에 보관 → `delete-account`가 계정 삭제 전에 Apple `/auth/revoke`를 호출한다. Sign in with Apple 키는 Supabase Vault `apple_siwa`(JSON)에 있고 `public.apple_siwa_config()`(service_role만 실행)로 읽는다. 공통 코드는 `supabase/functions/_shared/apple.ts`.
