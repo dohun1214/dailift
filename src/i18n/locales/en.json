@@ -233,7 +233,7 @@
   },
   "workout": {
     "emptyName": "Quick workout",
-    "collapse": "Minimize",
+    "collapse": "Collapse {{name}}",
     "more": "More",
     "position": "{{index}} / {{total}} · {{group}}",
     "positionNoGroup": "{{index}} / {{total}}",

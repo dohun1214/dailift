@@ -1,4 +1,4 @@
-import { ChevronDown, Disc, Plus } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Disc, Plus } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
@@ -20,6 +20,8 @@ type CardProps = {
   onPlatesPress?: () => void;
   /** 무게 컬럼 제목을 바꿀 때 (덤벨 한 손/합계) */
   weightColumn?: string;
+  /** 지금 하는 종목이 아닌데 펼쳐 둔 카드면 접기 버튼 */
+  onCollapse?: () => void;
 };
 
 /** 지금 하는 종목 카드: 위치·부위 / 이름 / 증량 제안 / 컬럼 헤더 / 세트 행들 / 세트 추가 */
@@ -33,6 +35,7 @@ export function ActiveExerciseCard({
   onNamePress,
   onPlatesPress,
   weightColumn,
+  onCollapse,
 }: CardProps) {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
@@ -55,6 +58,14 @@ export function ActiveExerciseCard({
             tone="raised"
             label={t('workout.plates')}
             onPress={onPlatesPress}
+          />
+        ) : null}
+        {onCollapse ? (
+          <IconButton
+            icon={ChevronUp}
+            tone="raised"
+            label={t('workout.collapse', { name })}
+            onPress={onCollapse}
           />
         ) : null}
       </View>

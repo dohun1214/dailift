@@ -15,7 +15,13 @@ import { addRecordedSet, cleanupRecordedWorkout, deleteWorkout } from '@/db/hist
 import * as schema from '@/db/schema';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
 import { useWorkoutExercises } from '@/db/use-workout';
-import { addExercisesToWorkout, deleteSet, setCompleted, updateSet } from '@/db/workout';
+import {
+  addExercisesToWorkout,
+  completeSet,
+  deleteSet,
+  setCompleted,
+  updateSet,
+} from '@/db/workout';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { removePhotoFile } from '@/lib/photos';
 import { openExercisePicker } from '@/stores/exercise-picker';
@@ -152,7 +158,11 @@ export default function WorkoutEditScreen() {
                   completed={s.completedAt !== null}
                   pr={false}
                   onChange={(patch) => updateSet(db, s.id, patch)}
-                  onToggle={() => setCompleted(db, s.id, s.completedAt === null, completedAt)}
+                  onToggle={() =>
+                    s.completedAt === null
+                      ? completeSet(db, s.id, type, completedAt)
+                      : setCompleted(db, s.id, false)
+                  }
                   onDelete={() => deleteSet(db, s.id)}
                 />
               ))}

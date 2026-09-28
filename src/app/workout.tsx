@@ -26,6 +26,7 @@ import {
 import {
   addExercisesToWorkout,
   addSet,
+  completeSet,
   deleteSet,
   discardWorkout,
   exerciseBests,
@@ -84,6 +85,8 @@ export default function WorkoutScreen() {
   const stopRest = useRestTimer((s) => s.stop);
   const now = useNow(1000, !!workout);
   const [activeId, setActiveId] = useState<string | null>(null);
+  // 지금 하는 종목과 별개로 사용자가 펼쳐 둔 종목(완료한 종목 다시 보기 등)
+  const [openIds, setOpenIds] = useState<string[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [finished, setFinished] = useState(false);
 
@@ -127,7 +130,11 @@ export default function WorkoutScreen() {
 
   useEffect(() => {
     if (activeId && !exercises.some((e) => e.id === activeId)) setActiveId(null);
-  }, [activeId, exercises]);
+    if (openIds.some((id) => !exercises.some((e) => e.id === id))) {
+      setOpenIds((ids) => ids.filter((id) => exercises.some((e) => e.id === id)));
+    }
+  }, [activeId, openIds, exercises]);
+  const collapse = (id: string) => setOpenIds((ids) => ids.filter((x) => x !== id));
 
   if (!workout) {
     // 첫 조회 전이거나, 운동이 끝났거나 버려졌다.
@@ -142,13 +149,9 @@ export default function WorkoutScreen() {
       setCompleted(db, set.id, false);
       return;
     }
+    // 빈 칸(0kg · 0회로 보임)이어도 완료할 수 있다. 빈 칸은 0으로 기록된다.
     const type = catalog.byId.get(we.exerciseId)?.type ?? 'weight_reps';
-    const missing = type === 'time' ? set.durationSec === null : set.reps === null;
-    if (missing) {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-      return;
-    }
-    setCompleted(db, set.id, true);
+    completeSet(db, set.id, type);
     const pr = prSetIds(we, bests.get(we.exerciseId) ?? null, set.id).has(set.id);
     void (
       pr
@@ -161,8 +164,10 @@ export default function WorkoutScreen() {
     if (leftAll > 0)
       startRest(set.kind === 'warmup' ? Math.min(WARMUP_REST_SEC, we.restSec) : we.restSec);
     if (leftHere === 0) {
+      // 다 끝낸 종목은 접고, 남은 종목이 있으면 그걸 지금 종목으로
       const next = exercises.find((e) => e.id !== we.id && pendingOf(e) > 0);
       if (next) setActiveId(next.id);
+      setOpenIds((ids) => ids.filter((id) => id !== we.id && id !== next?.id));
     }
   };
 
@@ -269,7 +274,8 @@ export default function WorkoutScreen() {
             const info = catalog.byId.get(we.exerciseId);
             const type = info?.type ?? 'weight_reps';
             const working = we.sets.filter((s) => s.kind !== 'warmup');
-            if (we.id !== active?.id) {
+            const extra = we.id !== active?.id;
+            if (extra && !openIds.includes(we.id)) {
               const done = working.filter((s) => s.completedAt !== null).length;
               const metaKey =
                 type === 'time' ? 'workout.collapsedMetaTime' : 'workout.collapsedMeta';
@@ -282,7 +288,7 @@ export default function WorkoutScreen() {
                   key={we.id}
                   name={info?.name ?? ''}
                   meta={meta}
-                  onPress={() => setActiveId(we.id)}
+                  onPress={() => setOpenIds((ids) => [...ids, we.id])}
                 />
               );
             }
@@ -306,6 +312,7 @@ export default function WorkoutScreen() {
                 }
                 name={info?.name ?? ''}
                 type={type}
+                onCollapse={extra ? () => collapse(we.id) : undefined}
                 suggestion={
                   <SuggestionLine data={suggestions.get(we.id)} type={type} unit={unit} we={we} />
                 }
