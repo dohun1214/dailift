@@ -45,3 +45,4 @@ example
 # 스토어 제출용 키 (절대 커밋 금지)
 secrets/
 *.p8
+credentials.json
