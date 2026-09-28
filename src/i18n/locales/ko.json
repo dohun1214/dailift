@@ -228,7 +228,7 @@
   },
   "workout": {
     "emptyName": "빈 운동",
-    "collapse": "접기",
+    "collapse": "{{name}} 접기",
     "more": "더보기",
     "position": "{{index}} / {{total}} · {{group}}",
     "positionNoGroup": "{{index}} / {{total}}",

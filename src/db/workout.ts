@@ -557,6 +557,30 @@ export function setCompleted(db: AppDatabase, setId: string, done: boolean, now 
     .run();
 }
 
+/**
+ * 세트를 완료로 표시한다. 빈 칸은 0으로 채워 기록한다(0kg · 0회로 보이던 그대로).
+ * 맨몸 종목의 추가 무게는 '추가 무게 없음'이라 비워 둔다.
+ */
+export function completeSet(
+  db: AppDatabase,
+  setId: string,
+  type: schema.ExerciseType,
+  now = Date.now(),
+) {
+  const set = db.select().from(schema.sets).where(eq(schema.sets.id, setId)).get();
+  if (!set) return;
+  const fill =
+    type === 'time'
+      ? { durationSec: set.durationSec ?? 0 }
+      : type === 'weight_reps'
+        ? { weight: set.weight ?? 0, reps: set.reps ?? 0 }
+        : { reps: set.reps ?? 0 };
+  db.update(schema.sets)
+    .set({ ...fill, completedAt: now, dirty: 1 })
+    .where(eq(schema.sets.id, setId))
+    .run();
+}
+
 export function deleteSet(db: AppDatabase, setId: string) {
   db.update(schema.sets)
     .set({ deletedAt: Date.now(), dirty: 1 })

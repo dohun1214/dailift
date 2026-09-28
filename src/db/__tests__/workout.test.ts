@@ -12,6 +12,7 @@ import { seedReferenceData } from '../seed';
 import {
   addExercisesToWorkout,
   addSet,
+  completeSet,
   discardWorkout,
   exerciseBests,
   finishWorkout,
@@ -140,6 +141,40 @@ describe('세트 조작', () => {
     ).toEqual([
       [0, 10, 12, null],
       [1, 10, 12, null],
+    ]);
+  });
+
+  it('빈 칸인 세트도 완료할 수 있고 빈 칸은 0으로 기록한다', () => {
+    const db = createTestDb();
+    const routineId = routineWith(db, ['lateral_raise'], 2);
+    const id = startWorkout(db, { routineId, name: 'R', weightUnit: 'kg' }, makeId);
+    const [we] = exercisesOf(db, id);
+    const [first, second] = setsOf(db, we?.id ?? '');
+    updateSet(db, first?.id ?? '', { weight: null, reps: null });
+    updateSet(db, second?.id ?? '', { weight: 7.5, reps: null });
+    completeSet(db, first?.id ?? '', 'weight_reps', 5_000);
+    completeSet(db, second?.id ?? '', 'weight_reps', 6_000);
+    expect(setsOf(db, we?.id ?? '').map((s) => [s.weight, s.reps, s.completedAt])).toEqual([
+      [0, 0, 5_000],
+      [7.5, 0, 6_000],
+    ]);
+  });
+
+  it('맨몸 종목은 추가 무게를 비워 두고, 시간 종목은 시간만 채운다', () => {
+    const db = createTestDb();
+    const routineId = routineWith(db, ['lateral_raise'], 2);
+    const id = startWorkout(db, { routineId, name: 'R', weightUnit: 'kg' }, makeId);
+    const [we] = exercisesOf(db, id);
+    const [first, second] = setsOf(db, we?.id ?? '');
+    updateSet(db, first?.id ?? '', { weight: null, reps: null, durationSec: null });
+    updateSet(db, second?.id ?? '', { weight: null, reps: null, durationSec: null });
+    completeSet(db, first?.id ?? '', 'bodyweight_reps', 1);
+    completeSet(db, second?.id ?? '', 'time', 2);
+    expect(
+      setsOf(db, we?.id ?? '').map((s) => [s.weight, s.reps, s.durationSec, s.completedAt]),
+    ).toEqual([
+      [null, 0, null, 1],
+      [null, null, 0, 2],
     ]);
   });
 });
