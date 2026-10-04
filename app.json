@@ -79,6 +79,12 @@
         "projectId": "a69775b9-53c1-4c04-806a-01fdd415c479"
       }
     },
-    "owner": "dohun1214"
+    "owner": "dohun1214",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/a69775b9-53c1-4c04-806a-01fdd415c479"
+    }
   }
 }

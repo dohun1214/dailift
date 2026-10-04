@@ -158,3 +158,14 @@ npm test
   환경 변수 `EXPO_TOKEN`, `EXPO_ASC_API_KEY_PATH`, `EXPO_ASC_KEY_ID`, `EXPO_ASC_ISSUER_ID`, `EXPO_APPLE_TEAM_ID`를 채우고 `eas build -p ios --profile production --non-interactive`, `eas submit -p ios --latest --non-interactive`.
 - iOS 설정: 수출 규정 암호화 없음(`ios.config.usesNonExemptEncryption: false`), 아이폰 전용, 권한 문구·표시 이름은 `locales/ko.json`·`locales/en.json`.
 - Apple 로그인 연결 끊기(App Store 5.1.1(v)): 로그인 직후 앱이 authorizationCode를 Edge Function `apple-token`에 보내면 refresh token으로 바꿔 `apple_tokens`(서비스 롤 전용)에 보관 → `delete-account`가 계정 삭제 전에 Apple `/auth/revoke`를 호출한다. Sign in with Apple 키는 Supabase Vault `apple_siwa`(JSON)에 있고 `public.apple_siwa_config()`(service_role만 실행)로 읽는다. 공통 코드는 `supabase/functions/_shared/apple.ts`.
+
+## 심사 없는 업데이트 — EAS Update (#45)
+- `expo-updates`. app.json `updates.url`(프로젝트 ID) · `runtimeVersion: { policy: "appVersion" }`, eas.json 빌드 프로필에 `channel`(production / preview). 앱은 켤 때 새 수정본을 받아 두고 **다음에 켤 때** 적용한다.
+- 내보내기: `eas update --channel production --environment production --message "<무엇을 고쳤는지>"` (`EXPO_TOKEN` 필요). 먼저 `--channel preview`로 내보내 preview 빌드에서 확인한 뒤 production으로 내보낸다. 되돌리기는 `eas update:rollback`.
+- 규칙
+  - 이 방법으로는 **버그 수정과 작은 개선만** 내보낸다. 새 기능이나 앱 성격이 바뀌는 변경은 스토어 심사로 낸다(스토어 정책).
+  - 수정본은 app.json `version`이 같은 빌드에만 내려간다. **네이티브가 바뀌면**(패키지 추가·삭제, Expo SDK 업그레이드, app.json의 플러그인·권한·아이콘 변경) 반드시 `version`을 올리고 새 빌드를 심사에 낸다. 안 올리면 예전 빌드가 맞지 않는 수정본을 받아 죽을 수 있다.
+  - DB 마이그레이션이 들어간 수정본은 되돌리기가 어렵다 → 스토어 빌드로 낸다.
+- 개발용 빌드(dev client)에서는 업데이트 확인이 동작하지 않는다. 앱 코드에서 `expo-updates`를 import하지 않으므로 이 패키지가 없는 예전 dev client로도 Metro 개발은 그대로 된다.
+- 업데이트 서버(Expo)에는 설치마다 만들어지는 임의 ID와 IP가 전달된다 → 개인정보 처리방침의 수탁자 표와 App Store 개인정보 라벨에 반영한다.
+
