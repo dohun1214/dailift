@@ -64,7 +64,14 @@
           "iosUrlScheme": "com.googleusercontent.apps.85791918223-tccvuepnbqg684npigc9m67hu8nteknq"
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-widgets",
+        {
+          "bundleIdentifier": "com.dohun1214.dailift.widgets",
+          "groupIdentifier": "group.com.dohun1214.dailift"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

@@ -286,7 +286,11 @@
       "blocked": "Notifications are off. Turn them on to be alerted when the screen is off.",
       "nextSet": "Start set {{set}} of {{name}}",
       "nextWarmup": "Start your warm-up set of {{name}}",
-      "nextExercise": "Next exercise: {{name}}"
+      "nextExercise": "Next exercise: {{name}}",
+      "liveChannel": "Rest timer (in progress)",
+      "liveNextSet": "Next · {{name}} set {{set}}",
+      "liveNextWarmup": "Next · {{name}} warm-up",
+      "liveNextExercise": "Next · {{name}}"
     },
     "finish": "Finish workout",
     "finishConfirmTitle": "Finish this workout?",
@@ -596,7 +600,9 @@
     "platesHint": "Turn on the plates you have. The plate calculator builds combinations from these (assumes at least one pair of each).",
     "plateA11y": "{{value}} {{unit}} plate",
     "groupData": "Data",
-    "sync": "Sync"
+    "sync": "Sync",
+    "restOnLockScreen": "Rest timer on Lock Screen",
+    "restOnLockScreenSub": "Shows the time left even when you leave the app or lock your phone"
   },
   "plates": {
     "title": "Plate calculator",

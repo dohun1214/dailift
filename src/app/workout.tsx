@@ -257,11 +257,14 @@ export default function WorkoutScreen() {
     const leftAll = exercises.reduce((n, e) => n + (e.id === we.id ? leftHere : pendingOf(e)), 0);
     const next =
       leftHere === 0 ? exercises.find((e) => e.id !== we.id && pendingOf(e) > 0) : undefined;
-    if (leftAll > 0)
+    if (leftAll > 0) {
+      const text = restMessage(we, set.id, next);
       startRest(
         set.kind === 'warmup' ? Math.min(WARMUP_REST_SEC, we.restSec) : we.restSec,
-        restMessage(we, set.id, next),
+        text.message,
+        text.label,
       );
+    }
     if (leftHere === 0) {
       // 다 끝낸 종목은 접고, 남은 종목이 있으면 그걸 지금 종목으로
       if (next) setActiveId(next.id);
@@ -271,20 +274,39 @@ export default function WorkoutScreen() {
 
   const nameOf = (we: WorkoutExerciseWithSets) => catalog.byId.get(we.exerciseId)?.name ?? '';
 
-  /** 휴식이 끝났을 때 알림에 보일 문장: 다음에 할 세트 또는 종목 */
+  /**
+   * 다음에 할 세트 또는 종목을 알려 주는 문장.
+   * message: 휴식이 끝났을 때 알림에, label: 쉬는 동안 잠금 화면·알림창에 보인다.
+   */
   const restMessage = (
     we: WorkoutExerciseWithSets,
     doneSetId: string,
     nextExercise: WorkoutExerciseWithSets | undefined,
-  ): string | null => {
+  ): { message: string | null; label: string | null } => {
     const upcoming = we.sets.find((s) => s.completedAt === null && s.id !== doneSetId);
     if (!upcoming) {
-      return nextExercise ? t('workout.rest.nextExercise', { name: nameOf(nextExercise) }) : null;
+      if (!nextExercise) return { message: null, label: null };
+      const name = nameOf(nextExercise);
+      return {
+        message: t('workout.rest.nextExercise', { name }),
+        label: t('workout.rest.liveNextExercise', { name }),
+      };
     }
-    if (upcoming.kind === 'warmup') return t('workout.rest.nextWarmup', { name: nameOf(we) });
-    if (upcoming.kind !== 'working') return null;
+    const name = nameOf(we);
+    if (upcoming.kind === 'warmup') {
+      return {
+        message: t('workout.rest.nextWarmup', { name }),
+        label: t('workout.rest.liveNextWarmup', { name }),
+      };
+    }
+    if (upcoming.kind !== 'working') {
+      return { message: null, label: t('workout.rest.liveNextExercise', { name }) };
+    }
     const number = we.sets.filter((s) => s.kind === 'working').indexOf(upcoming) + 1;
-    return t('workout.rest.nextSet', { name: nameOf(we), set: number });
+    return {
+      message: t('workout.rest.nextSet', { name, set: number }),
+      label: t('workout.rest.liveNextSet', { name, set: number }),
+    };
   };
 
   const formatDuration = (sec: number) => {

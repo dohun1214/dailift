@@ -21,6 +21,7 @@ import type { WeightUnit } from '@/db/schema';
 import { BAR_OPTIONS } from '@/domain/plates';
 import { signOut } from '@/lib/auth';
 import { openLegal, openSupportMail } from '@/lib/links';
+import { hideRestLive } from '@/lib/rest-live';
 import { wipeDevice } from '@/lib/wipe-device';
 import { accountInfo, useAuth } from '@/stores/auth';
 import { useProfile } from '@/stores/profile';
@@ -229,6 +230,21 @@ export default function MeScreen() {
                 value={s.keepAwake}
                 onValueChange={s.setKeepAwake}
                 accessibilityLabel={t('settings.keepAwake')}
+              />
+            }
+          />
+          <ListRow
+            label={t('settings.restOnLockScreen')}
+            description={t('settings.restOnLockScreenSub')}
+            trailing={
+              <Toggle
+                value={s.restOnLockScreen}
+                onValueChange={(on) => {
+                  s.setRestOnLockScreen(on);
+                  // 끄면 지금 떠 있는 것도 바로 치운다.
+                  if (!on) hideRestLive();
+                }}
+                accessibilityLabel={t('settings.restOnLockScreen')}
               />
             }
           />

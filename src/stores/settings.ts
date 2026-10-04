@@ -35,6 +35,8 @@ type Data = {
   defaultRestSec: number;
   /** 고급 기록: RPE · 세트 종류 */
   advancedLogging: boolean;
+  /** 휴식 타이머를 잠금 화면(아이폰 실시간 현황) · 알림창(안드로이드)에 보여 줄지 */
+  restOnLockScreen: boolean;
   /** 운동 중 '종목을 꾹 누르면…' 안내를 닫았거나 편집 모드에 들어가 봤는지 */
   editHintSeen: boolean;
   /** 기록 상세의 '한 운동' 카드를 펼쳐 둘지 (마지막으로 누른 상태를 기억) */
@@ -52,6 +54,7 @@ type SettingsState = Data & {
   setDumbbellMode: (value: DumbbellMode) => void;
   setDefaultRestSec: (value: number) => void;
   setAdvancedLogging: (value: boolean) => void;
+  setRestOnLockScreen: (value: boolean) => void;
   markEditHintSeen: () => void;
   setSummaryExercisesOpen: (value: boolean) => void;
   /** 모든 데이터 삭제 때 처음 상태로 */
@@ -70,6 +73,7 @@ function defaults(): Data {
     dumbbellMode: 'single',
     defaultRestSec: DEFAULT_REST_SEC,
     advancedLogging: false,
+    restOnLockScreen: true,
     editHintSeen: false,
     summaryExercisesOpen: false,
   };
@@ -91,6 +95,7 @@ export const useSettings = create<SettingsState>()(
       setDumbbellMode: (dumbbellMode) => set({ dumbbellMode }),
       setDefaultRestSec: (defaultRestSec) => set({ defaultRestSec }),
       setAdvancedLogging: (advancedLogging) => set({ advancedLogging }),
+      setRestOnLockScreen: (restOnLockScreen) => set({ restOnLockScreen }),
       markEditHintSeen: () => set({ editHintSeen: true }),
       setSummaryExercisesOpen: (summaryExercisesOpen) => set({ summaryExercisesOpen }),
       reset: () => set(defaults()),

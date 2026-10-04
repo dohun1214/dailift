@@ -279,7 +279,11 @@
       "blocked": "알림이 꺼져 있어요. 켜면 화면이 꺼져도 알려 드려요.",
       "nextSet": "{{name}} {{set}}세트를 시작해요",
       "nextWarmup": "{{name}} 워밍업 세트를 시작해요",
-      "nextExercise": "다음 종목: {{name}}"
+      "nextExercise": "다음 종목: {{name}}",
+      "liveChannel": "휴식 타이머 (진행 중)",
+      "liveNextSet": "다음 · {{name}} {{set}}세트",
+      "liveNextWarmup": "다음 · {{name}} 워밍업",
+      "liveNextExercise": "다음 · {{name}}"
     },
     "finish": "운동 완료",
     "finishConfirmTitle": "운동을 마칠까요?",
@@ -576,7 +580,9 @@
     "platesHint": "가지고 있는 원판을 켜 두세요. 원판 계산기가 이 원판으로 조합을 찾아요. (한 종류당 한 쌍 이상 있다고 봐요)",
     "plateA11y": "{{value}}{{unit}} 원판",
     "groupData": "데이터",
-    "sync": "동기화"
+    "sync": "동기화",
+    "restOnLockScreen": "잠금 화면에 휴식 타이머",
+    "restOnLockScreenSub": "앱을 나가거나 화면을 꺼도 남은 휴식 시간을 보여 줘요"
   },
   "plates": {
     "title": "원판 계산기",

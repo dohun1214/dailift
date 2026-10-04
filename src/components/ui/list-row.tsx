@@ -7,6 +7,8 @@ import { Card } from './card';
 
 type RowProps = {
   label: string;
+  /** 이름 아래 작은 설명 */
+  description?: string;
   /** 오른쪽에 회색으로 보이는 현재 값 */
   value?: string;
   /** 값 대신 넣을 요소 (토글, 세그먼트 등) */
@@ -17,15 +19,32 @@ type RowProps = {
   last?: boolean;
 };
 
-export function ListRow({ label, value, trailing, onPress, destructive, last }: RowProps) {
+export function ListRow({
+  label,
+  description,
+  value,
+  trailing,
+  onPress,
+  destructive,
+  last,
+}: RowProps) {
   const { theme } = useUnistyles();
   styles.useVariants({ last: !!last, destructive: !!destructive });
 
   const content = (
     <>
-      <Text style={styles.label} numberOfLines={2}>
-        {label}
-      </Text>
+      {description ? (
+        <View style={styles.text}>
+          <Text style={styles.labelText} numberOfLines={2}>
+            {label}
+          </Text>
+          <Text style={styles.description}>{description}</Text>
+        </View>
+      ) : (
+        <Text style={styles.label} numberOfLines={2}>
+          {label}
+        </Text>
+      )}
       {trailing ?? (value ? <Text style={styles.value}>{value}</Text> : null)}
       {onPress && !trailing ? <ChevronRight size={16} color={theme.colors.text2} /> : null}
     </>
@@ -87,6 +106,21 @@ const styles = StyleSheet.create((theme) => ({
         false: { color: theme.colors.text },
       },
     },
+  },
+  text: { flex: 1, gap: 2 },
+  labelText: {
+    fontSize: 15,
+    lineHeight: 20,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.medium,
+    color: theme.colors.text,
+  },
+  description: {
+    fontSize: 12,
+    lineHeight: 16.8,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.text2,
   },
   value: {
     fontSize: 14,

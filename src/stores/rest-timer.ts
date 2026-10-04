@@ -10,6 +10,9 @@ import {
   notificationsAllowed,
   scheduleRestEnd,
 } from '@/lib/notifications';
+import { hideRestLive, showRestLive } from '@/lib/rest-live';
+
+import { useSettings } from './settings';
 
 type RestTimerState = {
   /** 끝나는 시각(ms). null이면 쉬는 중이 아님 */
@@ -18,10 +21,12 @@ type RestTimerState = {
   notificationId: string | null;
   /** 알림에 보일 문장 (다음에 할 세트·종목). 없으면 기본 문장 */
   message: string | null;
+  /** 잠금 화면·알림창에 보일 짧은 문장 (예: "다음 · 벤치프레스 3세트") */
+  label: string | null;
   /** 알림 권한이 꺼져 있어 화면이 꺼지면 알려 줄 수 없음 */
   blocked: boolean;
-  /** message: 휴식이 끝났을 때 알림에 보일 문장 */
-  start: (seconds: number, message?: string | null, now?: number) => void;
+  /** message: 휴식이 끝났을 때 알림에 보일 문장, label: 쉬는 동안 잠금 화면·알림창에 보일 문장 */
+  start: (seconds: number, message?: string | null, label?: string | null, now?: number) => void;
   adjust: (deltaSec: number, now?: number) => void;
   stop: () => void;
 };
@@ -41,11 +46,24 @@ export function notificationText(message: string | null) {
 export const useRestTimer = create<RestTimerState>()(
   persist(
     (set, get) => {
+      /** 설정이 켜져 있으면 잠금 화면·알림창에 남은 시간을 띄운다(이미 떠 있으면 갱신). */
+      const showLive = (endsAt: number) => {
+        if (!useSettings.getState().restOnLockScreen) return;
+        showRestLive({
+          startsAt: endsAt - get().totalSec * 1000,
+          endsAt,
+          title: i18n.t('workout.rest.resting'),
+          doneTitle: i18n.t('workout.rest.doneTitle'),
+          next: get().label ?? '',
+          channel: i18n.t('workout.rest.liveChannel'),
+        });
+      };
       const reschedule = (endsAt: number, now: number) => {
         void cancelScheduled(get().notificationId);
         void dismissRestNotifications();
         set({ notificationId: null });
         const seconds = remainingSec(endsAt, now);
+        showLive(endsAt);
         void scheduleRestEnd(seconds, notificationText(get().message)).then((id) => {
           // 그 사이 타이머가 바뀌었으면 방금 예약한 알림은 버린다.
           if (get().endsAt === endsAt) set({ notificationId: id });
@@ -59,14 +77,15 @@ export const useRestTimer = create<RestTimerState>()(
         totalSec: 0,
         notificationId: null,
         message: null,
+        label: null,
         blocked: false,
-        start: (seconds, message = null, now = Date.now()) => {
+        start: (seconds, message = null, label = null, now = Date.now()) => {
           if (seconds <= 0) {
             get().stop();
             return;
           }
           const endsAt = now + seconds * 1000;
-          set({ endsAt, totalSec: seconds, message });
+          set({ endsAt, totalSec: seconds, message, label });
           reschedule(endsAt, now);
         },
         adjust: (deltaSec, now = Date.now()) => {
@@ -79,7 +98,8 @@ export const useRestTimer = create<RestTimerState>()(
         stop: () => {
           void cancelScheduled(get().notificationId);
           void dismissRestNotifications();
-          set({ endsAt: null, totalSec: 0, notificationId: null, message: null });
+          hideRestLive();
+          set({ endsAt: null, totalSec: 0, notificationId: null, message: null, label: null });
         },
       };
     },
@@ -92,6 +112,7 @@ export const useRestTimer = create<RestTimerState>()(
         totalSec: s.totalSec,
         notificationId: s.notificationId,
         message: s.message,
+        label: s.label,
       }),
     },
   ),

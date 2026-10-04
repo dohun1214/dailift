@@ -76,6 +76,10 @@ npm test
 - 종목별 휴식 시간(#41): 카드의 휴식 칩 → `RestSheet`. `setWorkoutExerciseRest`가 이번 운동에 저장하고, '루틴에도 저장'(기본 켬)이면 같은 루틴의 그 종목에도 저장한다. 빈 운동에는 토글이 없다.
 - 종목 편집(#41): ⋯ 메뉴(`WorkoutMenuSheet`) 또는 종목 카드를 꾹 누르면 편집 모드(`WorkoutEditList`). 손잡이는 바로, 행은 꾹 눌러서 끈다. 삭제는 기록한 세트가 있으면 `ConfirmDialog`로 확인. DB는 `moveWorkoutExercise`·`deleteWorkoutExercise`(소프트 삭제).
 - 제스처 빌더를 함수로 감싸서 콜백을 붙이면 자동으로 워클릿이 되지 않는다 → 콜백 첫 줄에 `'worklet'`을 직접 쓴다.
+- 휴식 타이머를 앱 밖에 표시(#49): 설정 `restOnLockScreen`(기본 켬). 휴식을 시작·조정할 때 `rest-timer` 스토어가 `lib/rest-live.ts`의 `showRestLive`를 부르고, 멈추거나 끝나면 `hideRestLive`.
+  - 아이폰: `widgets/rest-activity.tsx`(expo-widgets Live Activity). `'widget'` 함수는 위젯 확장에서 따로 실행돼 훅·모듈 범위 값을 못 쓴다 → 문구도 props로 넘긴다. 남은 시간은 `Text timerInterval`·`ProgressView timerInterval`이 스스로 줄인다. `staleDate`를 종료 시각으로 줘서 앱이 꺼져 있어도 `environment.isStale`로 '휴식 끝'으로 바뀐다. unistyles 바벨 플러그인이 `src`만 처리하므로 위젯 파일은 `src` 밖에 둔다.
+  - 안드로이드: `modules/rest-notification`(로컬 Expo 모듈, Kotlin). 크로노미터 카운트다운 + `setTimeoutAfter`로 끝나는 시각에 스스로 사라지는 조용한 진행 중 알림(채널 `rest-live`). 이 모듈이 없는 빌드에서는 `requireOptionalNativeModule`이 null이라 아무 일도 안 한다.
+  - 빌드: 위젯 확장 타깃 `ExpoWidgetsTarget`(번들 `com.dohun1214.dailift.widgets`)과 App Group `group.com.dohun1214.dailift`이 필요하다. App Group은 Apple 개발자 사이트에서만 만들 수 있다(App Store Connect API로는 안 됨).
 - 오래 열려 있던 운동(#43): 마지막 완료 세트(없으면 시작)에서 `STALE_WORKOUT_MS`(3시간) 넘게 지나면 `(tabs)/_layout`이 앱을 켤 때·앱으로 돌아올 때 `StaleWorkoutSheet`를 띄운다. '마지막 기록 시각에 마치기'는 `finishWorkout(db, id, now, endedAt)`에 마지막 세트 시각을 넘긴다. '이어서 하기'를 고르면 같은 상태로는 다시 묻지 않는다(모듈 변수 — 개발 중 Fast Refresh로 초기화되면 다시 뜬다). 운동 화면에서 완료할 때도 마지막 세트가 3시간 넘게 전이면 그 시각을 종료 시각으로 쓴다.
 - 세트 값 따라 채우기(#43): 운동 중 입력은 `updateSetWithFollowers`. 아래쪽 미완료 본 세트 중 비어 있거나(0 포함) 고치기 전 값과 같던 칸만 따라온다(`domain/workout-session.ts` `followerSetIds`). 한 글자씩 입력해도 '고치기 전 값과 같음'으로 이어진다. 키보드 줄에 따라오는 세트를 표시한다.
 - 확인 창(#43): 운동 완료·버리기·이어하기는 시스템 Alert 대신 `ConfirmDialog`. 확인 버튼은 기본이 채움(주요), `destructive`면 빨간 글자. 왼쪽이 위험한 동작이면 `cancelDestructive` + `onDismiss`(바깥 터치가 그 동작을 실행하지 않게).
