@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-
+import { RoutineUpdateCard } from '@/components/summary/routine-update-card';
 import { ActionSheet, AppText, Badge, Button, Screen, TopBar } from '@/components/ui';
 import { MuscleMapCard } from '@/components/workout';
 import { db } from '@/db/client';
@@ -293,6 +293,8 @@ export default function WorkoutSummaryScreen() {
         icon={Camera}
         onPress={() => setPhotoSheet(true)}
       />
+
+      <RoutineUpdateCard workoutId={summary.workout.id} />
 
       <ActionSheet
         visible={photoSheet}

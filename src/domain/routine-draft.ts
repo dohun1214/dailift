@@ -1,5 +1,7 @@
 import type { WeightUnit } from '@/db/schema';
 
+import { planIssue, type SetPlan } from './set-plan';
+
 /** 편집 중인 루틴 종목. rowId가 null이면 아직 저장 안 된 새 종목 */
 export type DraftItem = {
   /** 화면 key (저장된 행은 rowId와 같다) */
@@ -13,6 +15,8 @@ export type DraftItem = {
   increment: number;
   incrementUnit: WeightUnit;
   note: string | null;
+  /** 세트별로 정한 계획. null이면 세트 수 · 횟수 범위로 정한 종목 */
+  plan: SetPlan | null;
 };
 
 export type RoutineDraft = {
@@ -41,11 +45,17 @@ export function validateDraft(draft: RoutineDraft): DraftError | null {
   return null;
 }
 
-export type ItemIssue = 'sets' | 'reps' | 'rest' | 'increment';
+export type ItemIssue = 'sets' | 'reps' | 'rest' | 'increment' | 'plan';
 
 export function itemIssue(i: DraftItem): ItemIssue | null {
   const inRange = (v: number, r: { min: number; max: number }) =>
     Number.isFinite(v) && v >= r.min && v <= r.max;
+  if (i.plan) {
+    // 세트별로 정한 종목은 세트 줄과 휴식만 본다(세트 수 · 범위는 쓰지 않는다).
+    if (planIssue(i.plan) !== null) return 'plan';
+    if (!Number.isInteger(i.restSec) || !inRange(i.restSec, LIMITS.restSec)) return 'rest';
+    return null;
+  }
   if (!Number.isInteger(i.targetSets) || !inRange(i.targetSets, LIMITS.sets)) return 'sets';
   if (
     !Number.isInteger(i.repMin) ||
@@ -93,5 +103,6 @@ export function newDraftItem(
     increment: unit === 'lb' ? 5 : 2.5,
     incrementUnit: unit,
     note: null,
+    plan: null,
   };
 }

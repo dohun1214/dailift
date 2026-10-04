@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lt, max, ne, sql } from 'drizzle-orm';
 
 import { MUSCLES } from '@/data/muscles';
+import { parseSetPlan, planInUnit } from '@/domain/set-plan';
 import {
   type Best,
   bestOf,
@@ -186,6 +187,8 @@ export type PlanItem = {
   restSec: number;
   increment: number;
   incrementUnit: WeightUnit;
+  /** 세트별 계획(JSON). 있으면 지난 기록 · 증량 제안 대신 이 값을 그대로 채운다 */
+  setPlan?: string | null;
 };
 
 type PlannedSet = {
@@ -196,7 +199,7 @@ type PlannedSet = {
 };
 
 /**
- * 종목 하나의 시작 세트(프리필)를 만든다. 지난 기록과 증량 제안으로 무게·횟수를 채우고,
+ * 종목 하나의 시작 세트(프리필)를 만든다. 세트별 계획이 있으면 그대로, 없으면 지난 기록과 증량 제안으로 무게·횟수를 채우고,
  * withWarmup이면 바벨 무게×횟수 종목에 워밍업 세트를 앞에 붙인다. 프리필은 완료 전까지 기록이 아니다.
  */
 export function planSets(
@@ -207,6 +210,9 @@ export function planSets(
   withWarmup: boolean,
   bar = defaultBarWeight(unit),
 ): PlannedSet[] {
+  // 세트별로 정해 둔 종목은 적어 둔 그대로(워밍업도 적어 둔 것만)
+  const plan = parseSetPlan(item.setPlan);
+  if (plan) return planInUnit(plan, unit).sets.map((s) => ({ ...s }));
   const history = lastSessions(db, item.exerciseId, 2);
   const inUnit = history.map((s) =>
     s.sets.map((x) => ({

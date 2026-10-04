@@ -39,6 +39,7 @@ import {
   WorkoutMenuSheet,
 } from '@/components/workout';
 import { db } from '@/db/client';
+import { pendingRoutineUpdate, routinePlans } from '@/db/routine-update';
 import type { SetKind } from '@/db/schema';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
 import {
@@ -65,6 +66,7 @@ import {
   updateSet,
 } from '@/db/workout';
 import { formatClock, splitDuration } from '@/domain/rest-timer';
+import { planAchieved, type SetPlan } from '@/domain/set-plan';
 import {
   type Best,
   bestOf,
@@ -84,6 +86,7 @@ import { object as objectJosa } from '@/lib/josa';
 import { useNow } from '@/lib/use-now';
 import { openExercisePicker } from '@/stores/exercise-picker';
 import { useRestTimer } from '@/stores/rest-timer';
+import { useRoutineUpdate } from '@/stores/routine-update';
 import { useSettings, workoutDefaults } from '@/stores/settings';
 
 const SET_KINDS: readonly SetKind[] = ['working', 'warmup', 'drop', 'failure'];
@@ -155,6 +158,7 @@ export default function WorkoutScreen() {
 
   const exerciseKey = exercises.map((e) => e.exerciseId).join(',');
   const workoutId = workout?.id;
+  const routineId = workout?.routineId ?? null;
 
   // 지난 최고 기록(PR 기준)과 증량 제안은 종목 구성이 바뀔 때만 다시 계산한다.
   const bests = useMemo(
@@ -166,7 +170,9 @@ export default function WorkoutScreen() {
   );
   // biome-ignore lint/correctness/useExhaustiveDependencies: 세트 값이 바뀔 때마다가 아니라 종목 구성이 바뀔 때만 다시 계산한다.
   const suggestions = useMemo(() => {
-    const map = new Map<string, { suggestion: Suggestion | null; hasHistory: boolean }>();
+    const map = new Map<string, SuggestionData>();
+    // 세트별로 정해 둔 종목은 증량 제안 대신, 지난번에 계획을 다 채웠을 때만 안내한다.
+    const plans = routineId ? routinePlans(db, routineId) : new Map<string, SetPlan>();
     for (const we of exercises) {
       const history = lastSessions(db, we.exerciseId, 2).map((s) =>
         s.sets.map((x) => ({
@@ -174,6 +180,15 @@ export default function WorkoutScreen() {
           weight: x.weight === null ? null : convertWeight(x.weight, x.unit, unit),
         })),
       );
+      const plan = plans.get(we.exerciseId);
+      if (plan) {
+        map.set(we.id, {
+          suggestion: null,
+          hasHistory: history.length > 0,
+          plan: planAchieved(plan, history[0] ?? [], unit) ? 'achieved' : 'planned',
+        });
+        continue;
+      }
       const increment = convertWeight(we.increment, we.incrementUnit, unit) || we.increment;
       map.set(we.id, {
         suggestion: suggestNext(history, { repMin: we.repMin, repMax: we.repMax, increment }),
@@ -181,7 +196,7 @@ export default function WorkoutScreen() {
       });
     }
     return map;
-  }, [exerciseKey, unit]);
+  }, [exerciseKey, unit, routineId]);
 
   // 펼칠 종목: 고른 게 없으면 아직 안 끝난 첫 종목
   const pendingOf = (we: WorkoutExerciseWithSets) =>
@@ -424,6 +439,8 @@ export default function WorkoutScreen() {
     const at = Date.now();
     stopRest();
     setFinished(true);
+    // 루틴과 다르게 했는지는 끝내기 전에 본다(끝내면 안 한 세트 · 종목이 지워진다).
+    useRoutineUpdate.getState().set(pendingRoutineUpdate(db, currentWorkout.id, unit));
     finishWorkout(db, currentWorkout.id, at, last > 0 && isStaleWorkout(last, at) ? last : at);
     router.replace({ pathname: '/workout-summary/[id]', params: { id: currentWorkout.id } });
   };
@@ -831,18 +848,35 @@ function prSetIds(
   return out;
 }
 
+type SuggestionData = {
+  suggestion: Suggestion | null;
+  hasHistory: boolean;
+  /** 세트별로 정해 둔 종목: 지난번에 계획을 다 채웠는지 */
+  plan?: 'planned' | 'achieved';
+};
+
 function SuggestionLine({
   data,
   type,
   unit,
   we,
 }: {
-  data: { suggestion: Suggestion | null; hasHistory: boolean } | undefined;
+  data: SuggestionData | undefined;
   type: string;
   unit: string;
   we: WorkoutExerciseWithSets;
 }): ReactNode {
   const { t } = useTranslation();
+  if (data?.plan) {
+    return data.plan === 'achieved' ? (
+      <Text style={styles.suggest}>
+        <Trans
+          i18nKey="workout.suggest.planAchieved"
+          components={{ b: <Text style={styles.suggestStrong} /> }}
+        />
+      </Text>
+    ) : null;
+  }
   if (!data || type === 'time') return null;
   const { suggestion, hasHistory } = data;
   if (!suggestion) {

@@ -140,7 +140,7 @@
       "days": "요일",
       "sets": "목표 세트",
       "setsUnit": "세트",
-      "reps": "렙 범위",
+      "reps": "횟수 범위",
       "repsUnit": "회",
       "time": "목표 시간",
       "timeUnit": "초",
@@ -159,7 +159,7 @@
       "drag": "순서 바꾸기",
       "moveUp": "위로 옮기기",
       "moveDown": "아래로 옮기기",
-      "expandHint": "눌러서 세트·렙·휴식을 바꿔요",
+      "expandHint": "눌러서 세트·횟수·휴식을 바꿔요",
       "collapseHint": "눌러서 접어요",
       "discardTitle": "저장하지 않고 나갈까요?",
       "discardBody": "바꾼 내용이 사라져요.",
@@ -172,11 +172,18 @@
         "sets": "세트는 1–20",
         "reps": "최소 ≤ 최대, 1–100",
         "rest": "휴식은 0–900초",
-        "increment": "0.25–50"
+        "increment": "0.25–50",
+        "plan": "세트 값을 확인해 주세요."
       },
       "notFound": "루틴을 찾을 수 없어요",
       "min": "최소",
-      "max": "최대"
+      "max": "최대",
+      "bySets": "세트별로 정하기",
+      "byRange": "범위로 정하기",
+      "addWarmup": "워밍업 추가",
+      "planWarmups_other": "워밍업 {{count}}",
+      "planSets_other": "{{count}}세트",
+      "planRest": "휴식 {{rest}}초"
     },
     "start": "운동 시작"
   },
@@ -257,7 +264,8 @@
       "repeat": "지난번 <b>{{weight}}</b>. 오늘은 {{min}}–{{max}}회를 목표로 해봐요.",
       "decrease": "최근 두 번 목표 횟수에 못 미쳤어요. 오늘은 <b>{{weight}}</b>로 가볍게 해볼까요?",
       "first": "처음 하는 종목이에요. 편한 무게로 시작해요.",
-      "increaseOne": "지난번 {{reps}}회 성공. 오늘은 <b>{{weight}}</b> 어때요?"
+      "increaseOne": "지난번 {{reps}}회 성공. 오늘은 <b>{{weight}}</b> 어때요?",
+      "planAchieved": "지난번에 정해 둔 세트를 모두 채웠어요. <b>무게를 올려 볼까요?</b>"
     },
     "collapsedMeta_other": "{{count}}세트 · {{min}}–{{max}}회",
     "collapsedMetaTime_other": "{{count}}세트 · {{min}}–{{max}}초",
@@ -412,7 +420,16 @@
     "setCount_other": "{{count}}세트",
     "repsOnly": "{{reps}}회",
     "exercisesA11y": "한 운동, {{count}}",
-    "exerciseA11y": "{{name}}, {{sets}}, {{line}}"
+    "exerciseA11y": "{{name}}, {{sets}}, {{line}}",
+    "routineUpdate": {
+      "title": "오늘 한 대로 루틴을 바꿀까요?",
+      "body": "{{name}} 루틴과 다르게 운동했어요.",
+      "sets": "무게 · 횟수가 달라요",
+      "added": "새로 추가했어요",
+      "removed": "뺐어요",
+      "button": "루틴 바꾸기",
+      "done": "{{name}} 루틴을 바꿨어요"
+    }
   },
   "history": {
     "segHistory": "히스토리",
