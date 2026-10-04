@@ -111,7 +111,7 @@
     "duplicate": "Duplicate",
     "cancel": "Cancel",
     "copyName": "{{name}} copy",
-    "openHint": "Opens the routine editor. Long press to duplicate.",
+    "openHint": "Opens the routine editor. Long press to start, duplicate or delete.",
     "template": {
       "full_body": {
         "freq": "3×/week",
@@ -191,7 +191,11 @@
       "planSets_other": "{{count}} sets",
       "planRest": "rest {{rest}}s"
     },
-    "start": "Start workout"
+    "start": "Start workout",
+    "delete": "Delete",
+    "deleteTitle": "Delete {{name}}?",
+    "deleteBody": "Your past workouts stay as they are.",
+    "deleteA11y": "Delete {{name}}"
   },
   "exercises": {
     "pickerTitle": "Add exercises",
@@ -309,18 +313,20 @@
     "finishConfirm": "Finish",
     "keepGoing": "Keep going",
     "emptyTitle": "No sets recorded",
-    "emptyBody": "Discard this workout?",
-    "discard": "Discard",
+    "emptyBody": "End without saving?",
+    "discard": "End",
     "menu": {
       "title": "Workout menu",
       "addExercise": "Add exercises",
-      "replace": "Replace {{name}}",
-      "discard": "Discard workout",
+      "discard": "End without saving",
       "cancel": "Cancel",
-      "editExercises": "Reorder or delete exercises"
+      "editExercises": "Reorder exercises",
+      "replaceThis": "Swap for another exercise",
+      "removeThis": "Remove this exercise",
+      "exerciseA11y": "{{name}} menu"
     },
-    "discardTitle": "Discard this workout?",
-    "discardBody": "Everything from this workout will be deleted.",
+    "discardTitle": "End without saving?",
+    "discardBody": "This workout won't be saved.",
     "recoverTitle": "You have a workout in progress",
     "recoverBody": "{{name}} · {{elapsed}} in",
     "resume": "Resume",
@@ -398,9 +404,10 @@
       "started": "Started {{when}}",
       "finish": "Finish at last set",
       "resume": "Keep going",
-      "discard": "Discard workout",
+      "discard": "End without saving",
       "close": "Close"
-    }
+    },
+    "recoverDiscard": "Quit"
   },
   "summary": {
     "headline": "Another one done",

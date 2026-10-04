@@ -57,6 +57,7 @@ npm test
 - 바디 그림은 `BodyFigure`(react-native-body-highlighter). 라이브러리 에셋에 기본색이 박혀 있어서 모든 slug에 `styles.fill`을 명시해야 테마 트랙색으로 칠해진다.
 
 ## 루틴
+- 루틴 목록(#55): 카드를 꾹 누르면 앱 디자인 시트(운동 시작 / 복제 / 삭제), 왼쪽으로 밀면 삭제 버튼. 삭제는 둘 다 확인 창을 거친다(`deleteRoutine`, 지난 기록은 남는다).
 - 추천 루틴 데이터는 `src/data/templates.ts`(코드가 원본, 복사하면 묶음째 DB로). 복사·복제는 `src/db/routines.ts`, 편집 저장·삭제·커스텀 종목은 `src/db/routine-editor.ts`.
 - 화면은 DB를 `useLiveQuery`(drizzle expo-sqlite)로 읽는다: `use-routine-sections.ts`, `use-exercise-catalog.ts`. 쓰기 후 따로 새로고침할 필요 없다.
 - 편집 화면은 초안(`src/domain/routine-draft.ts`)을 로컬 상태로 들고 있다가 저장할 때 한 트랜잭션으로 반영한다(빠진 종목은 툼스톤, position 재부여). 이탈 확인은 `usePreventRemove`(`expo-router/react-navigation`).
@@ -66,12 +67,14 @@ npm test
 - 번역 복수형: 영어는 `_one`/`_other`, 한국어는 `_other`만. 키 비교 테스트는 복수형 접미사를 떼고 비교한다.
 
 - 세트별로 정하기(#53): 종목마다 세트 수 · 횟수 범위 대신 세트 줄(무게 · 횟수, 워밍업 포함)을 적어 둘 수 있다. `routine_exercises.set_plan`(JSON `{unit, sets:[{kind, weight, reps, durationSec}]}`, null이면 범위로 정한 종목, 읽고 쓰는 곳은 `domain/set-plan.ts`). 서버 테이블에도 같은 칸이 있어 그대로 동기화된다(예전 빌드는 모르는 칸을 무시한다).
-  - 편집 화면은 `components/routines/plan-editor.tsx`. 종목 줄 전체가 밀어서 삭제(Swipeable)라 세트 줄은 밀기 대신 줄 오른쪽 ✕ 버튼으로 지운다. '세트별로 정하기'를 켜면 지난 기록의 무게 · 횟수로 줄을 채운다.
+  - 편집 화면은 `components/routines/plan-editor.tsx`. 종목 줄 전체가 밀어서 삭제(Swipeable)라 세트 줄은 밀기 대신 줄 오른쪽 ✕ 버튼으로 지운다. '세트별로 정하기'를 켜면 무게는 빈칸으로 시작한다(#55).
   - 증량 단위는 화면에서 뺐다(새 종목은 kg 2.5 / lb 5, 저장돼 있던 값은 그대로 쓴다).
   - 이 루틴으로 시작하면 `planSets`가 계획을 그대로 채운다(지난 기록 · 증량 제안 · 자동 워밍업을 건너뜀). 지난번에 계획한 본 세트를 모두 채웠으면 종목 카드에 '무게를 올려 볼까요?' 안내만 띄운다(`planAchieved`).
-  - 운동을 끝낼 때 `pendingRoutineUpdate`(`db/routine-update.ts`)로 루틴과 다른 점을 구한다: 세트별로 정한 종목의 세트 변경, 추가한 종목, 뺀 종목. 끝내면 안 한 세트 · 종목이 지워지므로 **끝내기 직전에** 계산해 `stores/routine-update.ts`(저장 안 함)에 둔다. 기록 화면 맨 아래 카드(`components/summary/routine-update-card.tsx`)에서 '루틴 바꾸기'를 누르면 `applyRoutineUpdate`. 목록에 남겨 두고 하나도 안 한 종목은 뺀 것으로 보지 않는다.
+  - 운동을 끝낼 때 `pendingRoutineUpdate`(`db/routine-update.ts`)로 루틴과 다른 점을 구한다: 세트별로 정한 종목의 세트 변경, 추가한 종목, 뺀 종목. 세트별로 정한 종목은 **세트 줄 전체(안 한 줄 포함)** 를 계획과 견준다(#55) — 세트를 일부만 하고 끝낸 것은 다른 게 아니고, 줄을 지우거나 더했을 때 · 값을 고쳤을 때만 다르다. 끝내면 안 한 세트 · 종목이 지워지므로 **끝내기 직전에** 계산해 `stores/routine-update.ts`(저장 안 함)에 둔다. 기록 화면 맨 아래 카드(`components/summary/routine-update-card.tsx`)에서 '루틴 바꾸기'를 누르면 `applyRoutineUpdate`. 목록에 남겨 두고 하나도 안 한 종목은 뺀 것으로 보지 않는다.
 
 ## 운동 중
+- 메뉴(#55): 위쪽 ⋯는 종목 추가 / 종목 순서 변경 / 기록 없이 끝내기(예전 '운동 버리기'). 종목 하나에 대한 동작은 카드마다 있는 ⋯(펼친 카드는 원판 계산기 옆, 접힌 카드는 화살표 앞) → 다른 종목으로 변경 / 이 종목 빼기. 펼친 카드는 `Pressable`이라 입력칸 · 버튼이 아닌 빈 곳을 꾹 눌러도 종목 편집으로 간다.
+- 아래쪽 창(`components/ui/bottom-sheet.tsx`)은 손잡이 · 제목 부분을 잡고 쓸어내려 닫을 수 있다(`PanResponder`, 80 넘게 끌거나 빠르게 튕기면 닫힘). 닿는 순간부터 잡아야 해서 `onStartShouldSetPanResponder`를 켰다(이동만으로는 Modal 안에서 잡히지 않았다).
 - 화면 `src/app/workout.tsx`(진행 중 운동은 항상 하나). 접으면 탭 위 `WorkoutMiniBar`, 앱을 다시 켜면 `(tabs)/_layout`이 이어하기/버리기를 묻는다.
 - 시작·세트·교체·완료·버리기는 `src/db/workout.ts`. 시작할 때 지난 기록 + 증량 제안으로 세트를 프리필하고(완료 체크 전까지는 기록 아님), 부위별 첫 바벨 종목에 워밍업을 붙인다.
 - 계산은 `src/domain/strength.ts`(Epley e1RM 1–12회, 더블 프로그레션, 워밍업, PR = 최고 중량 또는 e1RM 돌파·첫 기록 제외, kg 환산 비교).

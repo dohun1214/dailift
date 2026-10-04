@@ -1,13 +1,16 @@
 import { router } from 'expo-router';
-import { Plus, Repeat } from 'lucide-react-native';
+import { Copy, Play, Plus, Repeat, Trash2 } from 'lucide-react-native';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { RoutineCard, SectionLabel, TemplateRow } from '@/components/routines';
-import { IconButton, Screen } from '@/components/ui';
+import { ConfirmDialog, IconButton, Screen } from '@/components/ui';
+import { WorkoutMenuSheet } from '@/components/workout';
 import { ROUTINE_TEMPLATES } from '@/data/templates';
 import { db } from '@/db/client';
+import { deleteRoutine } from '@/db/routine-editor';
 import { duplicateRoutine } from '@/db/routines';
 import { useRoutineSections } from '@/db/use-routine-sections';
 import { getActiveWorkout, startWorkout } from '@/db/workout';
@@ -33,30 +36,20 @@ export default function RoutinesScreen() {
       ? t('routines.metaEmpty')
       : t('routines.meta', { count: r.exerciseCount, minutes: r.minutes });
 
-  const openActions = (r: RoutineSummary) => {
-    Alert.alert(t('routines.actionsTitle', { name: r.name }), undefined, [
-      {
-        text: t('routines.start'),
-        onPress: () => {
-          if (!getActiveWorkout(db)) {
-            startWorkout(db, {
-              routineId: r.id,
-              name: r.name,
-              weightUnit: useSettings.getState().weightUnit,
-              barWeight: workoutDefaults().barWeight,
-            });
-          }
-          router.push('/workout');
-        },
-      },
-      {
-        text: t('routines.duplicate'),
-        onPress: () => {
-          duplicateRoutine(db, r.id, t('routines.copyName', { name: r.name }));
-        },
-      },
-      { text: t('routines.cancel'), style: 'cancel' },
-    ]);
+  // 꾹 누른 루틴(메뉴)과 삭제를 확인 중인 루틴
+  const [menuFor, setMenuFor] = useState<RoutineSummary | null>(null);
+  const [deleteFor, setDeleteFor] = useState<RoutineSummary | null>(null);
+
+  const start = (r: RoutineSummary) => {
+    if (!getActiveWorkout(db)) {
+      startWorkout(db, {
+        routineId: r.id,
+        name: r.name,
+        weightUnit: useSettings.getState().weightUnit,
+        barWeight: workoutDefaults().barWeight,
+      });
+    }
+    router.push('/workout');
   };
 
   return (
@@ -99,7 +92,8 @@ export default function RoutinesScreen() {
               meta={meta(r)}
               today={isScheduledOn(r.weekdays, today)}
               onPress={() => router.push({ pathname: '/routine/[id]', params: { id: r.id } })}
-              onLongPress={() => openActions(r)}
+              onLongPress={() => setMenuFor(r)}
+              onDelete={() => setDeleteFor(r)}
             />
           ))}
         </View>
@@ -120,6 +114,49 @@ export default function RoutinesScreen() {
           />
         ))}
       </View>
+
+      <WorkoutMenuSheet
+        visible={menuFor !== null}
+        title={menuFor?.name ?? ''}
+        cancelLabel={t('routines.cancel')}
+        onClose={() => setMenuFor(null)}
+        items={[
+          {
+            label: t('routines.start'),
+            icon: Play,
+            onPress: () => {
+              if (menuFor) start(menuFor);
+            },
+          },
+          {
+            label: t('routines.duplicate'),
+            icon: Copy,
+            onPress: () => {
+              if (menuFor)
+                duplicateRoutine(db, menuFor.id, t('routines.copyName', { name: menuFor.name }));
+            },
+          },
+          {
+            label: t('routines.delete'),
+            icon: Trash2,
+            onPress: () => setDeleteFor(menuFor),
+            destructive: true,
+          },
+        ]}
+      />
+      <ConfirmDialog
+        visible={deleteFor !== null}
+        title={t('routines.deleteTitle', { name: deleteFor?.name ?? '' })}
+        body={t('routines.deleteBody')}
+        cancelLabel={t('routines.cancel')}
+        confirmLabel={t('routines.delete')}
+        destructive
+        onCancel={() => setDeleteFor(null)}
+        onConfirm={() => {
+          if (deleteFor) deleteRoutine(db, deleteFor.id);
+          setDeleteFor(null);
+        }}
+      />
     </Screen>
   );
 }

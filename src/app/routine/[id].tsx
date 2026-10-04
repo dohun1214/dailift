@@ -17,7 +17,6 @@ import {
   saveRoutineDraft,
 } from '@/db/routine-editor';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
-import { lastSessions } from '@/db/workout';
 import {
   type DraftError,
   type DraftItem,
@@ -30,7 +29,6 @@ import {
   validateDraft,
 } from '@/domain/routine-draft';
 import { planFromRange, planSummary, rangeFromPlan } from '@/domain/set-plan';
-import { convertWeight } from '@/domain/strength';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { newId } from '@/lib/id';
 import { hasDay, toggleDay, WEEKDAYS } from '@/lib/weekdays';
@@ -170,12 +168,7 @@ export default function RoutineEditScreen() {
   /** 세트 수 · 횟수 범위로 정하기 ↔ 세트별로 정하기 */
   const toggleMode = (item: DraftItem, isTime: boolean) => {
     if (!item.plan) {
-      // 지난 기록이 있으면 그 무게 · 횟수로 줄을 채워 둔다.
-      const last = (lastSessions(db, item.exerciseId, 1)[0]?.sets ?? []).map((x) => ({
-        ...x,
-        weight: x.weight === null ? null : convertWeight(x.weight, x.unit, weightUnit),
-      }));
-      updateItem(item.key, { plan: planFromRange(item, weightUnit, isTime, last) });
+      updateItem(item.key, { plan: planFromRange(item, weightUnit, isTime) });
       return;
     }
     const back = rangeFromPlan(item.plan, isTime);

@@ -13,6 +13,7 @@ import * as schema from '../schema';
 import { seedReferenceData } from '../seed';
 import {
   addExercisesToWorkout,
+  deleteSet,
   deleteWorkoutExercise,
   setCompleted,
   startWorkout,
@@ -128,6 +129,21 @@ describe('오늘 한 대로 루틴 바꾸기', () => {
     const id = startWorkout(db, { routineId, name: 'Push', weightUnit: 'kg' }, makeId);
     for (const we of exercisesOf(db, id)) completeAll(db, we.id);
     expect(pendingRoutineUpdate(db, id, 'kg')).toBeNull();
+  });
+
+  it('세트를 일부만 하고 끝내도 묻지 않고, 세트 줄을 지우면 묻는다', () => {
+    const db = createTestDb();
+    const routineId = makeRoutine(db);
+    const id = startWorkout(db, { routineId, name: 'Push', weightUnit: 'kg' }, makeId);
+    const [first] = exercisesOf(db, id);
+    const benchSets = setsOf(db, first?.id ?? '');
+    setCompleted(db, benchSets[0]?.id ?? '', true, 1);
+    setCompleted(db, benchSets[1]?.id ?? '', true, 2);
+    expect(pendingRoutineUpdate(db, id, 'kg')).toBeNull();
+
+    deleteSet(db, benchSets[2]?.id ?? '');
+    const pending = pendingRoutineUpdate(db, id, 'kg');
+    expect(pending?.changes.map((c) => c.type)).toEqual(['sets']);
   });
 
   it('루틴 없이 시작한 운동은 묻지 않는다', () => {

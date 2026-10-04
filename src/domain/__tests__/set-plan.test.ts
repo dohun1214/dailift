@@ -60,13 +60,6 @@ describe('범위 ↔ 세트별', () => {
       reps: null,
       durationSec: 30,
     });
-    // 지난 기록이 있으면 그 무게 · 횟수로 채운다(모자라는 줄은 마지막 세트 값)
-    expect(
-      planFromRange({ targetSets: 3, repMin: 8 }, 'kg', false, [
-        { weight: 60, reps: 10, durationSec: null },
-        { weight: 62.5, reps: 8, durationSec: null },
-      ]).sets,
-    ).toEqual([w(60, 10), w(62.5, 8), w(62.5, 8)]);
     expect(rangeFromPlan(plan, false)).toEqual({ targetSets: 3, range: { min: 6, max: 10 } });
     expect(rangeFromPlan({ unit: 'kg', sets: [w(60, null)] }, false).range).toBeNull();
   });
@@ -129,14 +122,31 @@ describe('differsFromPlan · planAchieved', () => {
 });
 
 describe('routineChanges', () => {
-  const done = (weight: number, reps: number) => ({
+  const row = (weight: number | null, reps: number | null) => ({
     kind: 'working' as const,
     weight,
     reps,
     durationSec: null,
   });
+  /** 세트 줄과 그중 앞에서부터 완료한 수 */
+  const item = (
+    exerciseId: string,
+    restSec: number,
+    sets: ReturnType<typeof row>[],
+    done: number,
+  ) => ({
+    exerciseId,
+    restSec,
+    sets,
+    doneCount: done,
+    doneWorking: done,
+  });
   const routine = [
-    { id: 'r1', exerciseId: 'bench', plan: { unit: 'kg' as const, sets: [w(60, 10), w(60, 10)] } },
+    {
+      id: 'r1',
+      exerciseId: 'bench',
+      plan: { unit: 'kg' as const, sets: [w(60, 10), w(60, 10), w(60, 10)] },
+    },
     { id: 'r2', exerciseId: 'row', plan: null },
     { id: 'r3', exerciseId: 'raise', plan: null },
   ];
@@ -146,25 +156,58 @@ describe('routineChanges', () => {
       routineChanges(
         routine,
         [
-          { exerciseId: 'bench', restSec: 90, done: [done(60, 10), done(60, 10)] },
-          { exerciseId: 'row', restSec: 90, done: [done(50, 8)] },
+          item('bench', 90, [row(60, 10), row(60, 10), row(60, 10)], 3),
+          item('row', 90, [row(50, 8)], 1),
           // 목록에 남겨 두고 하나도 안 한 종목은 뺀 것이 아니다
-          { exerciseId: 'raise', restSec: 60, done: [] },
+          item('raise', 60, [row(null, null)], 0),
         ],
         'kg',
       ),
     ).toEqual([]);
   });
 
-  it('세트별로 정한 종목의 변경 · 추가한 종목 · 뺀 종목', () => {
+  it('세트를 일부만 하고 끝낸 것은 다른 게 아니다', () => {
+    expect(
+      routineChanges(
+        routine.slice(0, 1),
+        [item('bench', 90, [row(60, 10), row(60, 10), row(60, 10)], 1)],
+        'kg',
+      ),
+    ).toEqual([]);
+  });
+
+  it('세트 줄을 지우거나 더하면 바뀐 종목이다', () => {
+    const removed = routineChanges(
+      routine.slice(0, 1),
+      [item('bench', 90, [row(60, 10), row(60, 10)], 2)],
+      'kg',
+    );
+    expect(removed).toEqual([
+      {
+        type: 'sets',
+        routineExerciseId: 'r1',
+        exerciseId: 'bench',
+        plan: { unit: 'kg', sets: [w(60, 10), w(60, 10)] },
+      },
+    ]);
+    const added = routineChanges(
+      routine.slice(0, 1),
+      [item('bench', 90, [row(60, 10), row(60, 10), row(60, 10), row(60, 10)], 1)],
+      'kg',
+    );
+    expect(added[0]?.type).toBe('sets');
+  });
+
+  it('무게를 고친 세트 · 추가한 종목 · 뺀 종목', () => {
     const changes = routineChanges(
       routine,
       [
-        { exerciseId: 'bench', restSec: 90, done: [done(62.5, 10), done(62.5, 9)] },
-        { exerciseId: 'fly', restSec: 60, done: [done(20, 12), done(20, 12)] },
-        { exerciseId: 'row', restSec: 90, done: [done(50, 8)] },
+        // 한 세트만 무게를 올려서 하고 끝냈다: 안 한 줄은 원래 값 그대로 루틴에 남는다
+        item('bench', 90, [row(62.5, 10), row(60, 10), row(60, 10)], 1),
+        item('fly', 60, [row(20, 12), row(20, 12), row(20, 12)], 2),
+        item('row', 90, [row(50, 8)], 1),
         // 추가만 하고 안 한 종목은 넣지 않는다
-        { exerciseId: 'curl', restSec: 60, done: [] },
+        item('curl', 60, [row(null, null)], 0),
       ],
       'kg',
     );
@@ -173,7 +216,7 @@ describe('routineChanges', () => {
         type: 'sets',
         routineExerciseId: 'r1',
         exerciseId: 'bench',
-        plan: { unit: 'kg', sets: [w(62.5, 10), w(62.5, 9)] },
+        plan: { unit: 'kg', sets: [w(62.5, 10), w(60, 10), w(60, 10)] },
       },
       { type: 'added', exerciseId: 'fly', afterExerciseId: 'bench', targetSets: 2, restSec: 60 },
       { type: 'removed', routineExerciseId: 'r3', exerciseId: 'raise' },
@@ -182,7 +225,7 @@ describe('routineChanges', () => {
 
   it('세트별로 정한 종목을 하나도 안 했으면 계획을 그대로 둔다', () => {
     expect(
-      routineChanges(routine.slice(0, 1), [{ exerciseId: 'bench', restSec: 90, done: [] }], 'kg'),
+      routineChanges(routine.slice(0, 1), [item('bench', 90, [row(70, 10)], 0)], 'kg'),
     ).toEqual([]);
   });
 });
