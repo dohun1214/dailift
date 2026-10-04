@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 
-import type { SummarySet } from '@/domain/session-summary';
+import type { RecordedSet, SummarySet } from '@/domain/session-summary';
 import type { Best } from '@/domain/strength';
 import { newId } from '@/lib/id';
 
@@ -8,11 +8,16 @@ import * as schema from './schema';
 import type { AppDatabase } from './seed';
 import { exerciseBests } from './workout';
 
+/** 운동 안의 종목 하나와 그 완료 세트 (한 순서대로) */
+export type SummaryExercise = { id: string; exerciseId: string; sets: RecordedSet[] };
+
 export type SummaryData = {
   workout: typeof schema.workouts.$inferSelect;
   /** 종목 순서대로 */
   exerciseIds: string[];
   sets: SummarySet[];
+  /** 기록 상세의 '한 운동' 목록 */
+  exercises: SummaryExercise[];
   musclesOf: Map<string, { muscleId: string; role: schema.MuscleRole }[]>;
   /** 이 운동 전까지의 최고 기록 */
   bests: Map<string, Best>;
@@ -29,12 +34,14 @@ export function loadSummary(db: AppDatabase, workoutId: string): SummaryData | n
 
   const rows = db
     .select({
+      workoutExerciseId: schema.workoutExercises.id,
       exerciseId: schema.workoutExercises.exerciseId,
       position: schema.workoutExercises.position,
       kind: schema.sets.kind,
       weight: schema.sets.weight,
       reps: schema.sets.reps,
       unit: schema.sets.weightUnit,
+      durationSec: schema.sets.durationSec,
       setPosition: schema.sets.position,
     })
     .from(schema.sets)
@@ -73,9 +80,26 @@ export function loadSummary(db: AppDatabase, workoutId: string): SummaryData | n
     else musclesOf.set(m.exerciseId, [m]);
   }
 
+  const exercises: SummaryExercise[] = [];
+  for (const r of rows) {
+    let ex = exercises[exercises.length - 1];
+    if (!ex || ex.id !== r.workoutExerciseId) {
+      ex = { id: r.workoutExerciseId, exerciseId: r.exerciseId, sets: [] };
+      exercises.push(ex);
+    }
+    ex.sets.push({
+      kind: r.kind,
+      weight: r.weight,
+      unit: r.unit,
+      reps: r.reps,
+      durationSec: r.durationSec,
+    });
+  }
+
   return {
     workout,
     exerciseIds,
+    exercises,
     sets: rows.map((r) => ({
       exerciseId: r.exerciseId,
       kind: r.kind,

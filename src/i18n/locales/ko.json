@@ -401,7 +401,13 @@
     "photoDelete": "지우기",
     "photoDeleteHint": "길게 눌러 지우기",
     "done": "완료",
-    "notFound": "운동 기록을 찾을 수 없어요"
+    "notFound": "운동 기록을 찾을 수 없어요",
+    "exercises": "한 운동",
+    "exerciseCount_other": "{{count}}종목",
+    "setCount_other": "{{count}}세트",
+    "repsOnly": "{{reps}}회",
+    "exercisesA11y": "한 운동, {{count}}",
+    "exerciseA11y": "{{name}}, {{sets}}, {{line}}"
   },
   "history": {
     "segHistory": "히스토리",

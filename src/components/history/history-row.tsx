@@ -7,6 +7,8 @@ type Props = {
   weekday: string;
   day: number;
   name: string;
+  /** 한 종목 이름들 (예: "벤치프레스 · 스쿼트 외 3") */
+  exercises?: string;
   meta: string;
   pr?: string;
   a11yLabel: string;
@@ -15,11 +17,12 @@ type Props = {
   onLongPress: () => void;
 };
 
-/** 히스토리 한 줄: 왼쪽 고정폭 날짜(요일·일) + 세션 카드(이름·시간·세트·볼륨, PR 배지) */
+/** 히스토리 한 줄: 왼쪽 고정폭 날짜(요일·일) + 세션 카드(이름·한 종목·시간·세트·볼륨, PR 배지) */
 export function HistoryRow({
   weekday,
   day,
   name,
+  exercises,
   meta,
   pr,
   a11yLabel,
@@ -45,6 +48,11 @@ export function HistoryRow({
           <Text style={styles.name} numberOfLines={1}>
             {name}
           </Text>
+          {exercises ? (
+            <Text style={styles.exercises} numberOfLines={1}>
+              {exercises}
+            </Text>
+          ) : null}
           <Text style={styles.meta} numberOfLines={1}>
             {meta}
           </Text>
@@ -94,6 +102,13 @@ const styles = StyleSheet.create((theme) => ({
     lineHeight: 20,
     includeFontPadding: false,
     fontFamily: theme.fonts.bold,
+    color: theme.colors.text,
+  },
+  exercises: {
+    fontSize: 13,
+    lineHeight: 17,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
     color: theme.colors.text,
   },
   meta: {

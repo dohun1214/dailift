@@ -1,6 +1,8 @@
 import {
+  groupSetsByWeight,
   muscleCredits,
   muscleLevels,
+  type RecordedSet,
   type SummarySet,
   sessionPrs,
   sessionStats,
@@ -79,5 +81,35 @@ describe('sessionPrs', () => {
       { exerciseId: 'bench', kind: 'weight', weight: 62.5, reps: 10, unit: 'kg' },
       { exerciseId: 'ohp', kind: 'e1rm', e1rm: 56, unit: 'kg' },
     ]);
+  });
+});
+
+describe('groupSetsByWeight', () => {
+  const r = (
+    weight: number | null,
+    reps: number,
+    extra: Partial<RecordedSet> = {},
+  ): RecordedSet => ({
+    kind: 'working',
+    weight,
+    unit: 'kg',
+    reps,
+    durationSec: null,
+    ...extra,
+  });
+
+  it('같은 무게가 이어지면 한 묶음, 무게가 바뀌면 새 묶음', () => {
+    expect(groupSetsByWeight([r(40, 8), r(40, 8), r(42.5, 6), r(40, 5)])).toEqual([
+      { weight: 40, unit: 'kg', reps: [8, 8] },
+      { weight: 42.5, unit: 'kg', reps: [6] },
+      { weight: 40, unit: 'kg', reps: [5] },
+    ]);
+  });
+
+  it('워밍업은 빼고, 무게 없는 세트(맨몸)는 한 묶음, 단위가 다르면 나눈다', () => {
+    expect(groupSetsByWeight([r(20, 10, { kind: 'warmup' }), r(null, 12), r(null, 10)])).toEqual([
+      { weight: null, unit: 'kg', reps: [12, 10] },
+    ]);
+    expect(groupSetsByWeight([r(100, 5), r(100, 5, { unit: 'lb' })])).toHaveLength(2);
   });
 });

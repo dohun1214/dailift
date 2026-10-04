@@ -12,6 +12,33 @@ export type SummarySet = {
   completed: boolean;
 };
 
+/** 기록 상세에 보여 줄 세트 하나 */
+export type RecordedSet = {
+  kind: SetKind;
+  weight: number | null;
+  unit: WeightUnit;
+  reps: number | null;
+  durationSec: number | null;
+};
+
+export type SetGroup = { weight: number | null; unit: WeightUnit; reps: number[] };
+
+/**
+ * 본 세트를 같은 무게끼리 이어 묶는다 (예: 62.5kg × 10 · 9 · 9, 무게가 바뀌면 새 묶음).
+ * 워밍업은 뺀다. 화면 한 줄 요약용.
+ */
+export function groupSetsByWeight(sets: readonly RecordedSet[]): SetGroup[] {
+  const out: SetGroup[] = [];
+  for (const s of sets) {
+    if (s.kind === 'warmup') continue;
+    const last = out[out.length - 1];
+    if (last && last.weight === s.weight && (s.weight === null || last.unit === s.unit))
+      last.reps.push(s.reps ?? 0);
+    else out.push({ weight: s.weight, unit: s.unit, reps: [s.reps ?? 0] });
+  }
+  return out;
+}
+
 /** 협응근은 주동근의 절반으로 센다(볼륨 계산 규칙과 같음) */
 const ROLE_CREDIT: Record<MuscleRole, number> = { primary: 1, secondary: 0.5 };
 
