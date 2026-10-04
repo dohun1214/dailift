@@ -1,12 +1,12 @@
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { usePreventRemove } from 'expo-router/react-navigation';
-import { Plus } from 'lucide-react-native';
+import { ArrowLeftRight, List, Plus } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import { ExerciseEditList, NumberField, RangeField } from '@/components/routines';
+import { ExerciseEditList, NumberField, PlanEditor, RangeField } from '@/components/routines';
 import { AppText, Card, Screen, TextButton, TextField, TopBar } from '@/components/ui';
 import { db } from '@/db/client';
 import {
@@ -17,6 +17,7 @@ import {
   saveRoutineDraft,
 } from '@/db/routine-editor';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
+import { lastSessions } from '@/db/workout';
 import {
   type DraftError,
   type DraftItem,
@@ -28,6 +29,8 @@ import {
   type RoutineDraft,
   validateDraft,
 } from '@/domain/routine-draft';
+import { planFromRange, planSummary, rangeFromPlan } from '@/domain/set-plan';
+import { convertWeight } from '@/domain/strength';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { newId } from '@/lib/id';
 import { hasDay, toggleDay, WEEKDAYS } from '@/lib/weekdays';
@@ -132,62 +135,120 @@ export default function RoutineEditScreen() {
     ]);
   };
 
+  const fmt = (n: number) => String(Math.round(n * 100) / 100);
   const rows = draft.items.map((item) => {
     const ex = catalog.byId.get(item.exerciseId);
     const metaKey = ex?.type === 'time' ? 'routines.edit.rowMetaTime' : 'routines.edit.rowMeta';
-    return {
-      item,
-      name: ex?.name ?? '',
-      meta: t(metaKey, {
+    let meta: string;
+    if (item.plan) {
+      // 세트별로 정한 종목: 워밍업 1 · 3세트 · 60–65kg · 휴식 90초
+      const sum = planSummary(item.plan);
+      const weight = sum.weight
+        ? sum.weight.min === sum.weight.max
+          ? `${fmt(sum.weight.min)}${item.plan.unit}`
+          : `${fmt(sum.weight.min)}–${fmt(sum.weight.max)}${item.plan.unit}`
+        : null;
+      meta = [
+        sum.warmups > 0 ? t('routines.edit.planWarmups', { count: sum.warmups }) : null,
+        t('routines.edit.planSets', { count: sum.working }),
+        weight,
+        t('routines.edit.planRest', { rest: item.restSec }),
+      ]
+        .filter(Boolean)
+        .join(' · ');
+    } else {
+      meta = t(metaKey, {
         count: item.targetSets,
         min: item.repMin,
         max: item.repMax,
         rest: item.restSec,
-      }),
-    };
+      });
+    }
+    return { item, name: ex?.name ?? '', meta };
   });
+
+  /** 세트 수 · 횟수 범위로 정하기 ↔ 세트별로 정하기 */
+  const toggleMode = (item: DraftItem, isTime: boolean) => {
+    if (!item.plan) {
+      // 지난 기록이 있으면 그 무게 · 횟수로 줄을 채워 둔다.
+      const last = (lastSessions(db, item.exerciseId, 1)[0]?.sets ?? []).map((x) => ({
+        ...x,
+        weight: x.weight === null ? null : convertWeight(x.weight, x.unit, weightUnit),
+      }));
+      updateItem(item.key, { plan: planFromRange(item, weightUnit, isTime, last) });
+      return;
+    }
+    const back = rangeFromPlan(item.plan, isTime);
+    updateItem(item.key, {
+      plan: null,
+      targetSets: back.targetSets,
+      ...(back.range ? { repMin: back.range.min, repMax: back.range.max } : {}),
+    });
+  };
 
   const renderFields = (item: DraftItem) => {
     const issue = itemIssue(item);
-    const isTime = catalog.byId.get(item.exerciseId)?.type === 'time';
+    const type = catalog.byId.get(item.exerciseId)?.type ?? 'weight_reps';
+    const isTime = type === 'time';
+    const rest = (
+      <NumberField
+        label={t('routines.edit.rest')}
+        unit={t('routines.edit.restUnit')}
+        value={item.restSec}
+        invalid={issue === 'rest'}
+        onChange={(v) => updateItem(item.key, { restSec: v })}
+      />
+    );
+    const mode = (
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => toggleMode(item, isTime)}
+        style={({ pressed }) => [styles.mode, pressed && styles.pressed]}
+      >
+        {item.plan ? (
+          <ArrowLeftRight size={16} color={theme.colors.text2} strokeWidth={1.8} />
+        ) : (
+          <List size={16} color={theme.colors.text2} strokeWidth={1.8} />
+        )}
+        <Text style={styles.modeText} numberOfLines={1}>
+          {t(item.plan ? 'routines.edit.byRange' : 'routines.edit.bySets')}
+        </Text>
+      </Pressable>
+    );
     return (
       <View style={styles.fields}>
+        {item.plan ? null : (
+          <View style={styles.fieldRow}>
+            <NumberField
+              label={t('routines.edit.sets')}
+              unit={t('routines.edit.setsUnit')}
+              value={item.targetSets}
+              invalid={issue === 'sets'}
+              onChange={(v) => updateItem(item.key, { targetSets: v })}
+            />
+            <RangeField
+              label={isTime ? t('routines.edit.time') : t('routines.edit.reps')}
+              unit={isTime ? t('routines.edit.timeUnit') : t('routines.edit.repsUnit')}
+              min={item.repMin}
+              max={item.repMax}
+              minLabel={t('routines.edit.min')}
+              maxLabel={t('routines.edit.max')}
+              invalid={issue === 'reps'}
+              onChange={(repMin, repMax) => updateItem(item.key, { repMin, repMax })}
+            />
+          </View>
+        )}
         <View style={styles.fieldRow}>
-          <NumberField
-            label={t('routines.edit.sets')}
-            unit={t('routines.edit.setsUnit')}
-            value={item.targetSets}
-            invalid={issue === 'sets'}
-            onChange={(v) => updateItem(item.key, { targetSets: v })}
-          />
-          <RangeField
-            label={isTime ? t('routines.edit.time') : t('routines.edit.reps')}
-            unit={isTime ? t('routines.edit.timeUnit') : t('routines.edit.repsUnit')}
-            min={item.repMin}
-            max={item.repMax}
-            minLabel={t('routines.edit.min')}
-            maxLabel={t('routines.edit.max')}
-            invalid={issue === 'reps'}
-            onChange={(repMin, repMax) => updateItem(item.key, { repMin, repMax })}
-          />
+          {rest}
+          {mode}
         </View>
-        <View style={styles.fieldRow}>
-          <NumberField
-            label={t('routines.edit.rest')}
-            unit={t('routines.edit.restUnit')}
-            value={item.restSec}
-            invalid={issue === 'rest'}
-            onChange={(v) => updateItem(item.key, { restSec: v })}
+        {item.plan ? (
+          <PlanEditor
+            plan={item.plan}
+            type={type}
+            onChange={(plan) => updateItem(item.key, { plan })}
           />
-          <NumberField
-            label={t('routines.edit.increment')}
-            unit={item.incrementUnit}
-            value={item.increment}
-            decimal
-            invalid={issue === 'increment'}
-            onChange={(v) => updateItem(item.key, { increment: v })}
-          />
-        </View>
+        ) : null}
         {issue ? <Text style={styles.error}>{t(`routines.edit.errors.${issue}`)}</Text> : null}
       </View>
     );
@@ -302,6 +363,27 @@ const styles = StyleSheet.create((theme) => ({
   list: { paddingTop: 4, paddingRight: 16, paddingBottom: 4, paddingLeft: 12, overflow: 'hidden' },
   fields: { gap: 8 },
   fieldRow: { flexDirection: 'row', gap: 8 },
+  mode: {
+    flex: 1,
+    alignSelf: 'flex-end',
+    height: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surface2,
+  },
+  modeText: {
+    flexShrink: 1,
+    fontSize: 14,
+    lineHeight: 18,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.bold,
+    color: theme.colors.text,
+  },
+  pressed: { opacity: 0.7 },
   add: { height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   addText: {
     fontSize: 14,

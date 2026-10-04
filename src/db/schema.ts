@@ -125,6 +125,8 @@ export const routineExercises = sqliteTable(
     increment: real('increment').notNull().default(2.5),
     incrementUnit: text('increment_unit').$type<WeightUnit>().notNull().default('kg'),
     note: text('note'),
+    /** 세트별로 정해 둔 계획(JSON, `domain/set-plan.ts`). null이면 세트 수 · 횟수 범위로 정한 종목 */
+    setPlan: text('set_plan'),
   },
   (t) => [index('routine_exercises_routine_idx').on(t.routineId, t.position)],
 );

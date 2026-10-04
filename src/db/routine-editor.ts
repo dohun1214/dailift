@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray, isNull, max, notInArray } from 'drizzle-orm';
 
 import type { DraftItem, RoutineDraft } from '@/domain/routine-draft';
+import { parseSetPlan, rangeFromPlan, serializeSetPlan } from '@/domain/set-plan';
 import { newId } from '@/lib/id';
 
 import * as schema from './schema';
@@ -41,6 +42,7 @@ export function loadRoutineDraft(db: AppDatabase, id: string): RoutineDraft | nu
         increment: r.increment,
         incrementUnit: r.incrementUnit,
         note: r.note,
+        plan: parseSetPlan(r.setPlan),
       }),
     ),
   };
@@ -102,13 +104,15 @@ export function saveRoutineDraft(
       const values = {
         exerciseId: item.exerciseId,
         position,
-        targetSets: item.targetSets,
+        // 세트별로 정한 종목은 목록 · 예상 시간 계산이 맞도록 본 세트 수를 같이 적어 둔다.
+        targetSets: item.plan ? rangeFromPlan(item.plan, false).targetSets : item.targetSets,
         repMin: item.repMin,
         repMax: item.repMax,
         restSec: item.restSec,
         increment: item.increment,
         incrementUnit: item.incrementUnit,
         note: item.note,
+        setPlan: serializeSetPlan(item.plan),
       };
       if (item.rowId) {
         tx.update(schema.routineExercises)
