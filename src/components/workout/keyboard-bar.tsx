@@ -1,27 +1,52 @@
+import { Check, ChevronsDown } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { Text, View } from 'react-native';
-import { StyleSheet } from 'react-native-unistyles';
+import { Pressable, Text, View } from 'react-native';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { TextButton } from '@/components/ui/text-button';
 
 type Props = {
   /** 지금 입력 중인 칸 (예: "3세트 · 횟수") */
   label: string;
-  /** 이 값을 따라 받는 세트 안내 (예: "2–3세트에도 적용") */
-  note?: string;
+  /** 있으면 '남은 세트에도 적용' 버튼을 보인다 (아래 세트와 값이 다를 때) */
+  onApply?: () => void;
+  /** 방금 적용했다는 안내 (예: "2–3세트에 적용했어요") */
+  applied?: string;
   onNext: () => void;
   onDone: () => void;
 };
 
-/** 숫자 키보드 바로 위에 붙는 줄: 지금 칸 이름 · 다음 · 완료 */
-export function KeyboardBar({ label, note, onNext, onDone }: Props) {
+/** 숫자 키보드 바로 위에 붙는 줄: 지금 칸 이름 · 남은 세트에도 적용 · 다음 · 완료 */
+export function KeyboardBar({ label, onApply, applied, onNext, onDone }: Props) {
   const { t } = useTranslation();
+  const { theme } = useUnistyles();
   return (
     <View style={styles.bar}>
       <Text style={styles.label} numberOfLines={1}>
         {label}
-        {note ? <Text style={styles.note}> · {note}</Text> : null}
       </Text>
+      <View style={styles.middle}>
+        {onApply ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={onApply}
+            hitSlop={6}
+            style={({ pressed }) => [styles.apply, pressed && styles.pressed]}
+          >
+            <ChevronsDown size={16} color={theme.colors.onAccent} strokeWidth={2.2} />
+            <Text style={styles.applyText} numberOfLines={1}>
+              {t('workout.keyboard.apply')}
+            </Text>
+          </Pressable>
+        ) : applied ? (
+          <View style={styles.applied} accessibilityLiveRegion="polite">
+            <Check size={15} color={theme.colors.text} strokeWidth={2.4} />
+            <Text style={styles.appliedText} numberOfLines={1}>
+              {applied}
+            </Text>
+          </View>
+        ) : null}
+      </View>
       <TextButton label={t('workout.keyboard.next')} tone="muted" onPress={onNext} />
       <TextButton label={t('workout.keyboard.done')} onPress={onDone} />
     </View>
@@ -41,12 +66,41 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: theme.colors.surface,
   },
   label: {
-    flex: 1,
+    flexShrink: 1,
     fontSize: 13,
     lineHeight: 17,
     includeFontPadding: false,
     fontFamily: theme.fonts.medium,
     color: theme.colors.text2,
   },
-  note: { fontFamily: theme.fonts.semibold, color: theme.colors.text },
+  middle: { flex: 1, minWidth: 0, flexDirection: 'row', paddingLeft: 8 },
+  apply: {
+    flexShrink: 1,
+    height: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingLeft: 10,
+    paddingRight: 12,
+    borderRadius: 12,
+    backgroundColor: theme.colors.accent,
+  },
+  pressed: { opacity: 0.8 },
+  applyText: {
+    flexShrink: 1,
+    fontSize: 13,
+    lineHeight: 17,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.bold,
+    color: theme.colors.onAccent,
+  },
+  applied: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  appliedText: {
+    flexShrink: 1,
+    fontSize: 13,
+    lineHeight: 17,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.semibold,
+    color: theme.colors.text,
+  },
 }));

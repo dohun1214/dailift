@@ -49,6 +49,7 @@ import {
 import {
   addExercisesToWorkout,
   addSet,
+  applyToRemainingSets,
   completeSet,
   deleteSet,
   deleteWorkoutExercise,
@@ -62,7 +63,6 @@ import {
   setCompleted,
   setWorkoutExerciseRest,
   updateSet,
-  updateSetWithFollowers,
 } from '@/db/workout';
 import { formatClock, splitDuration } from '@/domain/rest-timer';
 import {
@@ -74,9 +74,9 @@ import {
   suggestNext,
 } from '@/domain/strength';
 import {
+  applyTargetIds,
   contiguousRange,
   type FillField,
-  followerSetIds,
   isStaleWorkout,
 } from '@/domain/workout-session';
 import { useAppLanguage } from '@/i18n/use-app-language';
@@ -147,6 +147,8 @@ export default function WorkoutScreen() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   // 방금 지운 종목 (되돌리기)
   const [undo, setUndo] = useState<{ id: string; name: string; deletedAt: number } | null>(null);
+  // '남은 세트에도 적용'을 누른 칸과 그 안내 문장
+  const [applied, setApplied] = useState<{ key: string; text: string } | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hintSeen = useSettings((s) => s.editHintSeen);
   const markHintSeen = useSettings((s) => s.markEditHintSeen);
@@ -205,6 +207,11 @@ export default function WorkoutScreen() {
       return we.sets.flatMap((s) => setFieldKeys(s.id, type));
     });
   const fieldNav = useFieldNav(fieldOrder);
+  const fieldKey = fieldNav.current?.key;
+  useEffect(() => {
+    // 다른 칸으로 옮기면 적용 안내를 지운다
+    setApplied((a) => (a && a.key !== fieldKey ? null : a));
+  }, [fieldKey]);
 
   // 편집 모드에서 안드로이드 뒤로 가기는 편집만 끝낸다.
   const isEditing = editing !== null;
@@ -358,22 +365,33 @@ export default function WorkoutScreen() {
     else deleteExercise(id, nameOf(we));
   };
 
-  /** 지금 입력 중인 칸의 값을 따라 받는 세트 안내 (예: "2–3세트에도 적용") */
-  const followerNote = (key: string | undefined): string | undefined => {
-    if (!key) return undefined;
+  /** 지금 입력 중인 칸: 세트 id · 칸 · 그 종목 */
+  const fieldTarget = (key: string | undefined) => {
+    if (!key) return null;
     const [setId, part] = key.split(':');
     const field = part ? FIELD_OF[part] : undefined;
     const we = exercises.find((e) => e.sets.some((x) => x.id === setId));
-    if (!setId || !field || !we) return undefined;
-    const ids = followerSetIds(we.sets, setId, field);
-    if (ids.length === 0) return undefined;
-    const working = we.sets.filter((x) => x.kind === 'working');
+    return setId && field && we ? { setId, field, we } : null;
+  };
+  const target = keyboardVisible ? fieldTarget(fieldKey) : null;
+  /** 아래 세트와 값이 다를 때만 '남은 세트에도 적용'을 보인다. */
+  const canApply = target
+    ? applyTargetIds(target.we.sets, target.setId, target.field).length > 0
+    : false;
+  const applyToRest = () => {
+    if (!target || !fieldKey) return;
+    const working = target.we.sets.filter((x) => x.kind === 'working');
+    const ids = applyToRemainingSets(db, target.setId, target.field);
+    if (ids.length === 0) return;
     const numbers = ids.map((id) => working.findIndex((x) => x.id === id) + 1);
     const range = contiguousRange(numbers);
-    if (!range) return t('workout.keyboard.alsoCount', { count: numbers.length });
-    return range[0] === range[1]
-      ? t('workout.keyboard.alsoOne', { set: range[0] })
-      : t('workout.keyboard.alsoRange', { from: range[0], to: range[1] });
+    const text = !range
+      ? t('workout.keyboard.appliedCount', { count: numbers.length })
+      : range[0] === range[1]
+        ? t('workout.keyboard.appliedOne', { set: range[0] })
+        : t('workout.keyboard.appliedRange', { from: range[0], to: range[1] });
+    setApplied({ key: fieldKey, text });
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
   };
 
   const addExercises = () =>
@@ -631,7 +649,7 @@ export default function WorkoutScreen() {
                         unit={s.weightUnit}
                         completed={s.completedAt !== null}
                         pr={prs.has(s.id)}
-                        onChange={(patch) => updateSetWithFollowers(db, s.id, patch)}
+                        onChange={(patch) => updateSet(db, s.id, patch)}
                         onToggle={() => toggleSet(we, s.id)}
                         onDelete={() => deleteSet(db, s.id)}
                         navId={s.id}
@@ -674,7 +692,8 @@ export default function WorkoutScreen() {
         {keyboardVisible && fieldNav.current ? (
           <KeyboardBar
             label={fieldNav.current.label}
-            note={followerNote(fieldNav.current.key)}
+            onApply={canApply ? applyToRest : undefined}
+            applied={applied?.key === fieldNav.current.key ? applied.text : undefined}
             onNext={fieldNav.next}
             onDone={fieldNav.done}
           />

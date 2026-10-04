@@ -81,7 +81,7 @@ npm test
   - 안드로이드: `modules/rest-notification`(로컬 Expo 모듈, Kotlin). 크로노미터 카운트다운 + `setTimeoutAfter`로 끝나는 시각에 스스로 사라지는 조용한 진행 중 알림(채널 `rest-live`). 이 모듈이 없는 빌드에서는 `requireOptionalNativeModule`이 null이라 아무 일도 안 한다.
   - 빌드: 위젯 확장 타깃 `ExpoWidgetsTarget`(번들 `com.dohun1214.dailift.widgets`)과 App Group `group.com.dohun1214.dailift`이 필요하다. App Group은 Apple 개발자 사이트에서만 만들 수 있다(App Store Connect API로는 안 됨).
 - 오래 열려 있던 운동(#43): 마지막 완료 세트(없으면 시작)에서 `STALE_WORKOUT_MS`(3시간) 넘게 지나면 `(tabs)/_layout`이 앱을 켤 때·앱으로 돌아올 때 `StaleWorkoutSheet`를 띄운다. '마지막 기록 시각에 마치기'는 `finishWorkout(db, id, now, endedAt)`에 마지막 세트 시각을 넘긴다. '이어서 하기'를 고르면 같은 상태로는 다시 묻지 않는다(모듈 변수 — 개발 중 Fast Refresh로 초기화되면 다시 뜬다). 운동 화면에서 완료할 때도 마지막 세트가 3시간 넘게 전이면 그 시각을 종료 시각으로 쓴다.
-- 세트 값 따라 채우기(#43): 운동 중 입력은 `updateSetWithFollowers`. 아래쪽 미완료 본 세트 중 비어 있거나(0 포함) 고치기 전 값과 같던 칸만 따라온다(`domain/workout-session.ts` `followerSetIds`). 한 글자씩 입력해도 '고치기 전 값과 같음'으로 이어진다. 키보드 줄에 따라오는 세트를 표시한다.
+- 남은 세트에도 적용(#51, #43의 '따라 채우기'를 대체): 값을 고치면 그 세트만 바뀐다(`updateSet`). 입력 중인 칸의 값이 아래쪽 미완료 본 세트와 다르면 키보드 줄에 버튼이 뜨고(`domain/workout-session.ts` `applyTargetIds`), 누르면 그 칸(무게·횟수·시간 중 하나)만 넣는다(`applyToRemainingSets`). 완료한 세트·워밍업·위쪽 세트는 건드리지 않는다.
 - 확인 창(#43): 운동 완료·버리기·이어하기는 시스템 Alert 대신 `ConfirmDialog`. 확인 버튼은 기본이 채움(주요), `destructive`면 빨간 글자. 왼쪽이 위험한 동작이면 `cancelDestructive` + `onDismiss`(바깥 터치가 그 동작을 실행하지 않게).
 - 종목 삭제 되돌리기(#43): `deleteWorkoutExercise`가 지운 시각을 돌려주고, `restoreWorkoutExercise`가 그 시각에 지워진 세트만 살린다. 편집 화면 하단 `Snackbar`가 5초간 뜬다.
 - 꾹 누르기 안내(#43): 종목이 둘 이상이고 `settings.editHintSeen`이 false면 목록 아래에 한 줄 안내. 닫거나 편집 모드에 들어가면 다시 안 보인다.
@@ -100,7 +100,8 @@ npm test
 
 ## 통계
 - 기록 탭 '통계' = `src/components/stats/stats-view.tsx`, 데이터는 `useStatsData`(완료 본세트 전체 + 종목→부위). 계산은 `src/domain/stats.ts`.
-- 진행도: 지난 7일 vs 그 전 7일 총 볼륨·세트(증감 색·화살표 없음). 밸런스: 세트가 부위의 주동근을 쓰면 1, 협응근만 쓰면 0.5(세트당 부위별 한 번), 권장 범위는 `weeklySetRange(경험)`, 벗어나면 주황.
+- 기간은 **이번 주(월요일 0시부터 지금까지)** 기준이고 비교 대상은 지난주(월–일)다(#51, 그전에는 지난 7일). 주 초반에는 밸런스가 권장보다 적게 보인다.
+- 진행도: 이번 주 vs 지난주 총 볼륨·세트(증감 색·화살표 없음). 밸런스: 세트가 부위의 주동근을 쓰면 1, 협응근만 쓰면 0.5(세트당 부위별 한 번), 권장 범위는 `weeklySetRange(경험)`, 벗어나면 주황.
 - 추정 1RM: 세션별 최고 Epley → 8주 주별 최고, 기본 종목은 8주간 가장 자주 한 종목. 정체: 최근 4–6회·3주 이상 최소제곱 기울기 ≤ 0.
 - 한국어 조사는 `src/lib/josa.ts`(은/는).
 
@@ -113,9 +114,11 @@ npm test
 ## 홈
 - `src/app/(tabs)/index.tsx`, 계산은 `src/domain/home.ts`. 주 시작은 월요일.
 - 주간 스트립(`week-strip.tsx`): 오늘 = 검정, 완료한 날 = 채움, 루틴 계획일 = 점. 오늘 루틴은 로테이션 다음 순서(`todaysRoutine`), 운동 중이면 '운동 이어하기'.
-- 통계 카드: 지난 7일 운동 횟수 / 주 목표, 연속 기록(목표를 채운 연속 주). 시안의 '오늘 영양제' 카드는 M2(영양제)까지 연속 기록으로 대체.
+- 통계 카드: 이번 주 운동 횟수 / 주 목표(`workoutsThisWeek`), 연속 기록(목표를 채운 연속 주). 시안의 '오늘 영양제' 카드는 M2(영양제)까지 연속 기록으로 대체.
 - 오늘 마친 운동이 있으면(`todaysWorkout`) '운동 시작' 대신 완료 카드(기록 보기 / 운동 더 하기)를 보여 준다. '운동 시작'·'운동 더 하기'는 `RoutinePickSheet`(루틴 선택 또는 빈 운동)를 연다(#41).
-- 홈의 '지금'은 `useToday()`로 잡는다(화면 포커스·앱 복귀 때 갱신). 마운트 때 한 번만 잡으면 방금 마친 운동이 지난 7일에서 빠지고, 앱을 켜 둔 채 날짜가 바뀌면 어제 화면이 남는다.
+- 홈의 '지금'은 `useToday()`로 잡는다(화면 포커스·앱 복귀 때 갱신). 마운트 때 한 번만 잡으면 방금 마친 운동이 이번 주 횟수에서 빠지고, 앱을 켜 둔 채 날짜가 바뀌면 어제 화면이 남는다.
+- 운동 중 카드(#51, `components/home/live-workout-card.tsx`): 지금 종목 · 몇 세트째 · 무게×횟수, 전체 진행 막대, 다음 종목, 쉬는 동안 남은 휴식 시간. 지금 종목은 마지막으로 세트를 완료한 종목(세트가 남아 있을 때), 아니면 세트가 남은 첫 종목(`workoutProgress`). 1초마다 다시 그리는 부분을 이 컴포넌트 안에 가둔다.
+- 이번 주 부위별 세트 카드(#51, `muscle-sets-card.tsx`): 통계의 `groupBalance`를 그대로 쓰고 가장 많은 부위를 꽉 찬 막대로 삼는다. 누르면 기록 탭을 `view=stats`로 연다(기록 탭이 한 번 쓰고 지운다).
 - 최근 PR 행 → 해당 세션 요약. 상대 날짜는 i18n `relative.*`(Hermes에 `Intl.RelativeTimeFormat` 없음).
 
 ## 설정 · 원판 계산기

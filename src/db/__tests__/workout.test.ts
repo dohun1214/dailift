@@ -12,6 +12,7 @@ import { seedReferenceData } from '../seed';
 import {
   addExercisesToWorkout,
   addSet,
+  applyToRemainingSets,
   completeSet,
   deleteWorkoutExercise,
   discardWorkout,
@@ -25,7 +26,6 @@ import {
   setWorkoutExerciseRest,
   startWorkout,
   updateSet,
-  updateSetWithFollowers,
   workoutActivity,
 } from '../workout';
 
@@ -302,7 +302,7 @@ describe('운동 중 종목 편집', () => {
 });
 
 describe('v1.2: 따라 채우기 · 되돌리기 · 오래된 운동', () => {
-  it('값을 고치면 아래 미완료 본 세트 중 비어 있거나 같은 값이던 칸만 따라간다', () => {
+  it('남은 세트에도 적용: 아래 미완료 본 세트의 그 칸만 바꾼다', () => {
     const db = createTestDb();
     const routineId = routineWith(db, ['lateral_raise'], 4);
     const id = startWorkout(db, { routineId, name: 'R', weightUnit: 'kg' }, makeId);
@@ -311,31 +311,32 @@ describe('v1.2: 따라 채우기 · 되돌리기 · 오래된 운동', () => {
     const weights = () => setsOf(db, we?.id ?? '').map((s) => s.weight);
     const reps = () => setsOf(db, we?.id ?? '').map((s) => s.reps);
 
-    // 빈 칸은 모두 따라온다 (한 글자씩 입력해도 이어진다)
-    updateSetWithFollowers(db, ids[0] ?? '', { weight: 6 });
-    updateSetWithFollowers(db, ids[0] ?? '', { weight: 60 });
+    // 값을 고치면 그 세트만 바뀐다
+    updateSet(db, ids[0] ?? '', { weight: 60, reps: 12 });
+    expect(weights()).toEqual([60, null, null, null]);
+
+    // 누르면 아래 세트의 무게만 따라온다 (횟수는 그대로)
+    expect(applyToRemainingSets(db, ids[0] ?? '', 'weight')).toEqual(ids.slice(1));
     expect(weights()).toEqual([60, 60, 60, 60]);
-    expect(reps()).toEqual([null, null, null, null]);
+    expect(reps()).toEqual([12, null, null, null]);
+    expect(applyToRemainingSets(db, ids[0] ?? '', 'weight')).toEqual([]);
 
-    // 따로 다르게 적어 둔 세트와 완료한 세트는 그대로
-    updateSet(db, ids[2] ?? '', { weight: 50 });
+    // 완료한 세트와 위쪽 세트는 그대로
     setCompleted(db, ids[3] ?? '', true, 1);
-    updateSetWithFollowers(db, ids[0] ?? '', { weight: 62.5 });
-    expect(weights()).toEqual([62.5, 62.5, 50, 60]);
-
-    // 가운데 세트를 고치면 위쪽 세트는 그대로
-    updateSetWithFollowers(db, ids[1] ?? '', { reps: 10 });
-    expect(reps()).toEqual([null, 10, 10, null]);
+    updateSet(db, ids[1] ?? '', { weight: 62.5 });
+    expect(applyToRemainingSets(db, ids[1] ?? '', 'weight')).toEqual([ids[2]]);
+    expect(weights()).toEqual([60, 62.5, 62.5, 60]);
   });
 
-  it('워밍업 세트를 고칠 때는 따라 채우지 않는다', () => {
+  it('워밍업 세트나 빈 칸에서는 적용할 세트가 없다', () => {
     const db = createTestDb();
     const routineId = routineWith(db, ['lateral_raise'], 2);
     const id = startWorkout(db, { routineId, name: 'R', weightUnit: 'kg' }, makeId);
     const [we] = exercisesOf(db, id);
     const ids = setsOf(db, we?.id ?? '').map((s) => s.id);
-    updateSet(db, ids[0] ?? '', { kind: 'warmup' });
-    updateSetWithFollowers(db, ids[0] ?? '', { weight: 20 });
+    expect(applyToRemainingSets(db, ids[0] ?? '', 'weight')).toEqual([]);
+    updateSet(db, ids[0] ?? '', { kind: 'warmup', weight: 20 });
+    expect(applyToRemainingSets(db, ids[0] ?? '', 'weight')).toEqual([]);
     expect(setsOf(db, we?.id ?? '').map((s) => s.weight)).toEqual([20, null]);
   });
 

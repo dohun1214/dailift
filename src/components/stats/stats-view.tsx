@@ -29,7 +29,7 @@ import { LineChart } from './line-chart';
 const WEEKS = 8;
 const fmt1 = (n: number) => (Math.round(n * 10) / 10).toFixed(1);
 
-/** 통계 (지난 7일 기준): 진행도 두 숫자, 부위 밸런스, 추정 1RM 추이, 정체 한 줄 */
+/** 통계 (이번 주 기준): 진행도 두 숫자, 부위 밸런스, 추정 1RM 추이, 정체 한 줄 */
 export function StatsView() {
   const { t } = useTranslation();
   const { theme } = useUnistyles();

@@ -7,7 +7,7 @@ import {
   todaysRoutine,
   todaysWorkout,
   weekStrip,
-  workoutsInLast7Days,
+  workoutsThisWeek,
 } from '../home';
 import type { SummarySet } from '../session-summary';
 
@@ -63,9 +63,11 @@ describe('todaysRoutine', () => {
 });
 
 describe('counts', () => {
-  it('지난 7일 횟수와 연속 주', () => {
+  it('이번 주 횟수와 연속 주', () => {
     const starts = [at(14), at(16), at(8), at(10), at(1), at(3)];
-    expect(workoutsInLast7Days(starts, NOW.getTime())).toBe(2);
+    expect(workoutsThisWeek(starts, NOW)).toBe(2);
+    // 월요일 0시부터 센다: 일요일(13일)은 지난주, 아직 오지 않은 시각은 빼고
+    expect(workoutsThisWeek([at(13, 23), at(14, 0), at(18, 9), at(18, 11)], NOW)).toBe(2);
     // 이번 주 2회(목표 2 달성) + 지난주 2회 + 그 전 주 2회 = 3주
     expect(streakWeeks(starts, 2, NOW)).toBe(3);
     // 목표 3이면 이번 주 미달 → 지난주부터: 지난주 2회 미달 → 0

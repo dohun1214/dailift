@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
+import { LiveWorkoutCard } from '@/components/home/live-workout-card';
+import { MuscleSetsCard } from '@/components/home/muscle-sets-card';
 import { type PickRoutine, RoutinePickSheet } from '@/components/home/routine-pick-sheet';
 import { WeekStrip } from '@/components/home/week-strip';
 import { Badge, Button, Screen } from '@/components/ui';
@@ -26,9 +28,10 @@ import {
   todaysRoutine,
   todaysWorkout,
   weekStrip,
-  workoutsInLast7Days,
+  workoutsThisWeek,
 } from '@/domain/home';
 import type { SummarySet } from '@/domain/session-summary';
+import { BALANCE_GROUPS, groupBalance } from '@/domain/stats';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { useToday } from '@/lib/use-today';
 import { useProfile } from '@/stores/profile';
@@ -37,7 +40,7 @@ import { useSettings, workoutDefaults } from '@/stores/settings';
 const fmt = (n: number) => String(Math.round(n * 100) / 100);
 const NAMES_SHOWN = 3;
 
-/** 홈: 날짜·오늘 루틴 제목, 주간 스트립, 오늘 루틴 카드(운동 시작), 지난 7일·연속 기록, 최근 PR */
+/** 홈: 날짜·오늘 루틴 제목, 주간 스트립, 오늘 루틴 카드(운동 시작·운동 중), 이번 주 횟수·연속 기록, 이번 주 부위별 세트, 최근 PR */
 export default function HomeScreen() {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
@@ -49,7 +52,7 @@ export default function HomeScreen() {
   const sections = useRoutineSections();
   const { workout: active } = useActiveWorkout();
   const { data: workouts } = useLiveQuery(completedWorkoutsQuery(db));
-  const { sets } = useStatsData();
+  const { sets, musclesOf } = useStatsData();
   const now = useToday();
   const [picking, setPicking] = useState(false);
   const { months } = useHistory(unit);
@@ -98,7 +101,14 @@ export default function HomeScreen() {
     routines.map((r) => r.weekdays),
     starts,
   );
-  const last7 = workoutsInLast7Days(starts, now.getTime());
+  const thisWeek = workoutsThisWeek(starts, now);
+  const muscleRows = useMemo(() => {
+    const balance = groupBalance(sets, now.getTime(), musclesOf);
+    return BALANCE_GROUPS.map((g) => ({
+      name: t(`exercises.group.${g}`),
+      value: balance.get(g) ?? 0,
+    }));
+  }, [sets, now, musclesOf, t]);
   const streak = target ? streakWeeks(starts, target, now) : 0;
 
   const pr = useMemo(() => {
@@ -201,7 +211,9 @@ export default function HomeScreen() {
 
         <WeekStrip days={strip} dateFormat={dayFmt} />
 
-        {doneToday && !active ? (
+        {active ? (
+          <LiveWorkoutCard workout={active} />
+        ) : doneToday ? (
           <View style={[styles.todayCard, styles.doneCard]}>
             <View style={styles.todayMeta}>
               <View>
@@ -234,7 +246,7 @@ export default function HomeScreen() {
               />
             </View>
           </View>
-        ) : today && !active ? (
+        ) : today ? (
           <View style={styles.todayCard}>
             <View style={styles.todayMeta}>
               <View>
@@ -256,47 +268,38 @@ export default function HomeScreen() {
           </View>
         ) : (
           <View style={styles.todayCard}>
-            {active ? (
-              <>
-                <Text style={styles.routineName}>{active.name}</Text>
-                <Button label={t('home.resume')} onPress={() => router.push('/workout')} />
-              </>
+            <View style={styles.todayBody}>
+              <Text style={styles.routineName}>{t('home.restTitle')}</Text>
+              <Text style={styles.names}>
+                {routines.length ? t('home.restBody') : t('home.noRoutinesBody')}
+              </Text>
+            </View>
+            {routines.length > 0 ? (
+              <Button label={t('home.start')} onPress={() => setPicking(true)} />
             ) : (
-              <>
-                <View style={styles.todayBody}>
-                  <Text style={styles.routineName}>{t('home.restTitle')}</Text>
-                  <Text style={styles.names}>
-                    {routines.length ? t('home.restBody') : t('home.noRoutinesBody')}
-                  </Text>
-                </View>
-                {routines.length > 0 ? (
-                  <Button label={t('home.start')} onPress={() => setPicking(true)} />
-                ) : (
-                  <Button
-                    label={t('home.quickStart')}
-                    onPress={() => start(null, t('workout.emptyName'))}
-                  />
-                )}
-                {routines.length === 0 ? (
-                  <Button
-                    label={t('home.goRoutines')}
-                    variant="secondary"
-                    size="md"
-                    onPress={() => router.push('/routines')}
-                  />
-                ) : null}
-              </>
+              <Button
+                label={t('home.quickStart')}
+                onPress={() => start(null, t('workout.emptyName'))}
+              />
             )}
+            {routines.length === 0 ? (
+              <Button
+                label={t('home.goRoutines')}
+                variant="secondary"
+                size="md"
+                onPress={() => router.push('/routines')}
+              />
+            ) : null}
           </View>
         )}
 
         <View style={styles.stats}>
           <View style={styles.stat} accessible>
-            <Text style={styles.statLabel}>{t('home.last7')}</Text>
+            <Text style={styles.statLabel}>{t('home.week')}</Text>
             <Text style={styles.statValue}>
-              {last7}
+              {thisWeek}
               <Text style={styles.statSmall}>
-                {target ? t('home.last7Target', { target }) : t('home.last7NoTarget')}
+                {target ? t('home.weekTarget', { target }) : t('home.weekNoTarget')}
               </Text>
             </Text>
           </View>
@@ -308,6 +311,11 @@ export default function HomeScreen() {
             </Text>
           </View>
         </View>
+
+        <MuscleSetsCard
+          rows={muscleRows}
+          onPress={() => router.navigate({ pathname: '/log', params: { view: 'stats' } })}
+        />
 
         {pr ? (
           <Pressable

@@ -338,9 +338,10 @@
       "next": "다음",
       "done": "완료",
       "field": "{{set}} · {{field}}",
-      "alsoOne": "{{set}}세트에도 적용",
-      "alsoRange": "{{from}}–{{to}}세트에도 적용",
-      "alsoCount_other": "다른 {{count}}세트에도 적용"
+      "apply": "남은 세트에도 적용",
+      "appliedOne": "{{set}}세트에 적용했어요",
+      "appliedRange": "{{from}}–{{to}}세트에 적용했어요",
+      "appliedCount_other": "세트 {{count}}개에 적용했어요"
     },
     "restSheet": {
       "title": "{{name}} 휴식 시간",
@@ -444,10 +445,10 @@
   "stats": {
     "volume": "총 볼륨 ({{unit}})",
     "sets": "총 세트",
-    "compare": "지난 7일 · 그 전 7일",
-    "pairA11y": "{{label}}: 지난 7일 {{current}}, 그 전 7일 {{previous}}",
+    "compare": "이번 주 · 지난주",
+    "pairA11y": "{{label}}: 이번 주 {{current}}, 지난주 {{previous}}",
     "balance": "부위 밸런스",
-    "recommended": "권장 {{min}}–{{max}}세트",
+    "recommended": "이번 주 · 권장 {{min}}–{{max}}세트",
     "gaugeA11y": "{{name}} {{value}}세트, {{state}}",
     "state": {
       "low": "권장보다 적어요",
@@ -493,10 +494,6 @@
     "noRoutinesBody": "아직 루틴이 없어요. 루틴을 만들거나 빈 운동으로 바로 시작해요.",
     "quickStart": "빈 운동 시작",
     "goRoutines": "루틴 보기",
-    "last7": "지난 7일",
-    "last7Value": "{{count}}",
-    "last7Target": " / {{target}}회",
-    "last7NoTarget": "회",
     "streak": "연속 기록",
     "streakValue": "{{count}}",
     "streakUnit": "주",
@@ -520,6 +517,27 @@
       "empty": "빈 운동으로 시작",
       "emptySub": "루틴 없이 종목을 추가하며 기록해요",
       "cancel": "취소"
+    },
+    "week": "이번 주",
+    "weekTarget": " / {{target}}회",
+    "weekNoTarget": "회",
+    "muscleTitle": "이번 주 부위별 세트",
+    "muscleLink": "통계",
+    "muscleA11y": "이번 주 부위별 세트, 통계 열기",
+    "muscleRowA11y": "{{name}} {{value}}세트",
+    "live": {
+      "setNow": "{{set}}세트째",
+      "setNext": "다음은 {{set}}세트",
+      "warmupNow": "워밍업 세트",
+      "warmupNext": "다음은 워밍업 세트",
+      "otherNow": "지금 세트",
+      "otherNext": "다음 세트",
+      "progress": "{{done}} / {{total}}세트",
+      "progressA11y": "전체 {{total}}세트 중 {{done}}세트 완료",
+      "nextExercise": "다음 종목 · {{name}}",
+      "rest": "휴식 {{time}}",
+      "allDone": "세트를 모두 마쳤어요",
+      "reps_other": "{{count}}회"
     }
   },
   "relative": {
