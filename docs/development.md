@@ -76,6 +76,11 @@ npm test
 - 종목별 휴식 시간(#41): 카드의 휴식 칩 → `RestSheet`. `setWorkoutExerciseRest`가 이번 운동에 저장하고, '루틴에도 저장'(기본 켬)이면 같은 루틴의 그 종목에도 저장한다. 빈 운동에는 토글이 없다.
 - 종목 편집(#41): ⋯ 메뉴(`WorkoutMenuSheet`) 또는 종목 카드를 꾹 누르면 편집 모드(`WorkoutEditList`). 손잡이는 바로, 행은 꾹 눌러서 끈다. 삭제는 기록한 세트가 있으면 `ConfirmDialog`로 확인. DB는 `moveWorkoutExercise`·`deleteWorkoutExercise`(소프트 삭제).
 - 제스처 빌더를 함수로 감싸서 콜백을 붙이면 자동으로 워클릿이 되지 않는다 → 콜백 첫 줄에 `'worklet'`을 직접 쓴다.
+- 오래 열려 있던 운동(#43): 마지막 완료 세트(없으면 시작)에서 `STALE_WORKOUT_MS`(3시간) 넘게 지나면 `(tabs)/_layout`이 앱을 켤 때·앱으로 돌아올 때 `StaleWorkoutSheet`를 띄운다. '마지막 기록 시각에 마치기'는 `finishWorkout(db, id, now, endedAt)`에 마지막 세트 시각을 넘긴다. '이어서 하기'를 고르면 같은 상태로는 다시 묻지 않는다(모듈 변수 — 개발 중 Fast Refresh로 초기화되면 다시 뜬다). 운동 화면에서 완료할 때도 마지막 세트가 3시간 넘게 전이면 그 시각을 종료 시각으로 쓴다.
+- 세트 값 따라 채우기(#43): 운동 중 입력은 `updateSetWithFollowers`. 아래쪽 미완료 본 세트 중 비어 있거나(0 포함) 고치기 전 값과 같던 칸만 따라온다(`domain/workout-session.ts` `followerSetIds`). 한 글자씩 입력해도 '고치기 전 값과 같음'으로 이어진다. 키보드 줄에 따라오는 세트를 표시한다.
+- 확인 창(#43): 운동 완료·버리기·이어하기는 시스템 Alert 대신 `ConfirmDialog`. 확인 버튼은 기본이 채움(주요), `destructive`면 빨간 글자. 왼쪽이 위험한 동작이면 `cancelDestructive` + `onDismiss`(바깥 터치가 그 동작을 실행하지 않게).
+- 종목 삭제 되돌리기(#43): `deleteWorkoutExercise`가 지운 시각을 돌려주고, `restoreWorkoutExercise`가 그 시각에 지워진 세트만 살린다. 편집 화면 하단 `Snackbar`가 5초간 뜬다.
+- 꾹 누르기 안내(#43): 종목이 둘 이상이고 `settings.editHintSeen`이 false면 목록 아래에 한 줄 안내. 닫거나 편집 모드에 들어가면 다시 안 보인다.
 - 숫자 입력(#41): `field-nav.tsx`가 화면의 입력 칸을 순서대로 등록한다. 키보드가 올라오면 하단 버튼 대신 `KeyboardBar`(다음/완료)를 보여 주고, 스크롤하면 키보드가 내려간다. `KeyboardAvoidingView`는 두 플랫폼 모두 `padding`.
 
 ## 세션 요약

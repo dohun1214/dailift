@@ -15,6 +15,7 @@ export { OptionCard } from './option-card';
 export { Screen } from './screen';
 export { SearchField } from './search-field';
 export { Segmented, type SegmentOption } from './segmented';
+export { Snackbar } from './snackbar';
 export { TabButton } from './tab-button';
 export { AppText } from './text';
 export { TextButton } from './text-button';

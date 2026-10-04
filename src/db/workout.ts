@@ -10,6 +10,7 @@ import {
   suggestNext,
   warmupSets,
 } from '@/domain/strength';
+import { type FillField, followerSetIds } from '@/domain/workout-session';
 import { newId } from '@/lib/id';
 import type { SetKind, WeightUnit } from './schema';
 import * as schema from './schema';
@@ -549,6 +550,76 @@ export function updateSet(
     .run();
 }
 
+const FILL_FIELDS: readonly FillField[] = ['weight', 'reps', 'durationSec'];
+
+/**
+ * 운동 중 세트 값 고치기 + 따라 채우기: 아래쪽 미완료 본 세트 중 비어 있거나
+ * 고치기 전 값과 같던 칸에도 같은 값을 넣는다(`followerSetIds`).
+ */
+export function updateSetWithFollowers(
+  db: AppDatabase,
+  setId: string,
+  patch: Partial<{ weight: number | null; reps: number | null; durationSec: number | null }>,
+) {
+  db.transaction((tx) => {
+    const set = tx.select().from(schema.sets).where(eq(schema.sets.id, setId)).get();
+    if (!set) return;
+    const list = tx
+      .select()
+      .from(schema.sets)
+      .where(
+        and(
+          eq(schema.sets.workoutExerciseId, set.workoutExerciseId),
+          isNull(schema.sets.deletedAt),
+        ),
+      )
+      .orderBy(asc(schema.sets.position))
+      .all();
+    for (const field of FILL_FIELDS) {
+      const value = patch[field];
+      if (value === undefined) continue;
+      const ids = followerSetIds(list, setId, field);
+      if (ids.length === 0) continue;
+      tx.update(schema.sets)
+        .set({
+          [field]: value,
+          ...(field === 'weight' ? { weightUnit: set.weightUnit } : {}),
+          dirty: 1,
+        })
+        .where(inArray(schema.sets.id, ids))
+        .run();
+    }
+    tx.update(schema.sets)
+      .set({ ...patch, dirty: 1 })
+      .where(eq(schema.sets.id, setId))
+      .run();
+  });
+}
+
+/** 진행 중인 운동의 마지막 기록: 가장 최근에 완료한 세트 시각(없으면 null)과 완료 세트 수 */
+export function workoutActivity(
+  db: AppDatabase,
+  workoutId: string,
+): { lastAt: number | null; completedSets: number } {
+  const row = db
+    .select({ lastAt: max(schema.sets.completedAt), count: sql<number>`count(*)` })
+    .from(schema.sets)
+    .innerJoin(
+      schema.workoutExercises,
+      eq(schema.workoutExercises.id, schema.sets.workoutExerciseId),
+    )
+    .where(
+      and(
+        eq(schema.workoutExercises.workoutId, workoutId),
+        isNull(schema.workoutExercises.deletedAt),
+        isNull(schema.sets.deletedAt),
+        isNotNull(schema.sets.completedAt),
+      ),
+    )
+    .get();
+  return { lastAt: row?.lastAt ?? null, completedSets: row?.count ?? 0 };
+}
+
 /** 세트 완료 체크/해제. 완료해야 기록으로 인정된다. */
 export function setCompleted(db: AppDatabase, setId: string, done: boolean, now = Date.now()) {
   db.update(schema.sets)
@@ -617,12 +688,15 @@ export function moveWorkoutExercise(db: AppDatabase, workoutId: string, from: nu
   });
 }
 
-/** 운동 중 종목 삭제: 종목과 그 세트(완료한 세트 포함)를 지운다. */
+/**
+ * 운동 중 종목 삭제: 종목과 그 세트(완료한 세트 포함)를 지운다.
+ * 지운 시각을 돌려준다 — `restoreWorkoutExercise`로 되돌릴 때 쓴다.
+ */
 export function deleteWorkoutExercise(
   db: AppDatabase,
   workoutExerciseId: string,
   now = Date.now(),
-) {
+): number {
   db.transaction((tx) => {
     tx.update(schema.sets)
       .set({ deletedAt: now, dirty: 1 })
@@ -633,6 +707,35 @@ export function deleteWorkoutExercise(
     tx.update(schema.workoutExercises)
       .set({ deletedAt: now, dirty: 1 })
       .where(eq(schema.workoutExercises.id, workoutExerciseId))
+      .run();
+  });
+  return now;
+}
+
+/** 방금 지운 종목 되돌리기: 그때 같이 지운 세트만 살린다(전에 따로 지운 세트는 그대로). */
+export function restoreWorkoutExercise(
+  db: AppDatabase,
+  workoutExerciseId: string,
+  deletedAt: number,
+) {
+  db.transaction((tx) => {
+    tx.update(schema.sets)
+      .set({ deletedAt: null, dirty: 1 })
+      .where(
+        and(
+          eq(schema.sets.workoutExerciseId, workoutExerciseId),
+          eq(schema.sets.deletedAt, deletedAt),
+        ),
+      )
+      .run();
+    tx.update(schema.workoutExercises)
+      .set({ deletedAt: null, dirty: 1 })
+      .where(
+        and(
+          eq(schema.workoutExercises.id, workoutExerciseId),
+          eq(schema.workoutExercises.deletedAt, deletedAt),
+        ),
+      )
       .run();
   });
 }
@@ -684,8 +787,14 @@ export function setWorkoutExerciseRest(
 /**
  * 운동 완료: 완료 안 한 세트와 완료 세트가 없는 종목은 지우고 상태를 completed로.
  * 기록된 세트 수를 돌려준다(0이면 호출 쪽에서 버리기를 권한다).
+ * endedAt: 운동이 끝난 시각. 오래 열려 있던 운동은 마지막 기록 시각을 넘긴다.
  */
-export function finishWorkout(db: AppDatabase, workoutId: string, now = Date.now()): number {
+export function finishWorkout(
+  db: AppDatabase,
+  workoutId: string,
+  now = Date.now(),
+  endedAt = now,
+): number {
   let completed = 0;
   db.transaction((tx) => {
     const wes = tx
@@ -723,7 +832,7 @@ export function finishWorkout(db: AppDatabase, workoutId: string, now = Date.now
       }
     }
     tx.update(schema.workouts)
-      .set({ status: 'completed', endedAt: now, dirty: 1 })
+      .set({ status: 'completed', endedAt, dirty: 1 })
       .where(eq(schema.workouts.id, workoutId))
       .run();
   });

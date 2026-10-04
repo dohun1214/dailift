@@ -7,17 +7,20 @@ import { TextButton } from '@/components/ui/text-button';
 type Props = {
   /** 지금 입력 중인 칸 (예: "3세트 · 횟수") */
   label: string;
+  /** 이 값을 따라 받는 세트 안내 (예: "2–3세트에도 적용") */
+  note?: string;
   onNext: () => void;
   onDone: () => void;
 };
 
 /** 숫자 키보드 바로 위에 붙는 줄: 지금 칸 이름 · 다음 · 완료 */
-export function KeyboardBar({ label, onNext, onDone }: Props) {
+export function KeyboardBar({ label, note, onNext, onDone }: Props) {
   const { t } = useTranslation();
   return (
     <View style={styles.bar}>
       <Text style={styles.label} numberOfLines={1}>
         {label}
+        {note ? <Text style={styles.note}> · {note}</Text> : null}
       </Text>
       <TextButton label={t('workout.keyboard.next')} tone="muted" onPress={onNext} />
       <TextButton label={t('workout.keyboard.done')} onPress={onDone} />
@@ -45,4 +48,5 @@ const styles = StyleSheet.create((theme) => ({
     fontFamily: theme.fonts.medium,
     color: theme.colors.text2,
   },
+  note: { fontFamily: theme.fonts.semibold, color: theme.colors.text },
 }));

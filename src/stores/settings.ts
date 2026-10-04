@@ -35,6 +35,8 @@ type Data = {
   defaultRestSec: number;
   /** 고급 기록: RPE · 세트 종류 */
   advancedLogging: boolean;
+  /** 운동 중 '종목을 꾹 누르면…' 안내를 닫았거나 편집 모드에 들어가 봤는지 */
+  editHintSeen: boolean;
 };
 
 type SettingsState = Data & {
@@ -48,6 +50,7 @@ type SettingsState = Data & {
   setDumbbellMode: (value: DumbbellMode) => void;
   setDefaultRestSec: (value: number) => void;
   setAdvancedLogging: (value: boolean) => void;
+  markEditHintSeen: () => void;
   /** 모든 데이터 삭제 때 처음 상태로 */
   reset: () => void;
 };
@@ -64,6 +67,7 @@ function defaults(): Data {
     dumbbellMode: 'single',
     defaultRestSec: DEFAULT_REST_SEC,
     advancedLogging: false,
+    editHintSeen: false,
   };
 }
 
@@ -83,6 +87,7 @@ export const useSettings = create<SettingsState>()(
       setDumbbellMode: (dumbbellMode) => set({ dumbbellMode }),
       setDefaultRestSec: (defaultRestSec) => set({ defaultRestSec }),
       setAdvancedLogging: (advancedLogging) => set({ advancedLogging }),
+      markEditHintSeen: () => set({ editHintSeen: true }),
       reset: () => set(defaults()),
     }),
     {

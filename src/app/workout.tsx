@@ -1,11 +1,10 @@
 import * as Haptics from 'expo-haptics';
 import { useKeepAwake } from 'expo-keep-awake';
 import { Redirect, router } from 'expo-router';
-import { ArrowLeftRight, ChevronDown, Ellipsis, Equal, Plus, Trash2 } from 'lucide-react-native';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { ArrowLeftRight, ChevronDown, Ellipsis, Equal, Plus, Trash2, X } from 'lucide-react-native';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import {
-  Alert,
   BackHandler,
   Keyboard,
   KeyboardAvoidingView,
@@ -17,7 +16,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import { ActionSheet, Button, ConfirmDialog, IconButton, TextButton } from '@/components/ui';
+import {
+  ActionSheet,
+  Button,
+  ConfirmDialog,
+  IconButton,
+  Snackbar,
+  TextButton,
+} from '@/components/ui';
 import {
   ActiveExerciseCard,
   CollapsedExerciseCard,
@@ -52,9 +58,11 @@ import {
   lastSessions,
   moveWorkoutExercise,
   replaceWorkoutExercise,
+  restoreWorkoutExercise,
   setCompleted,
   setWorkoutExerciseRest,
   updateSet,
+  updateSetWithFollowers,
 } from '@/db/workout';
 import { formatClock, splitDuration } from '@/domain/rest-timer';
 import {
@@ -65,6 +73,12 @@ import {
   type Suggestion,
   suggestNext,
 } from '@/domain/strength';
+import {
+  contiguousRange,
+  type FillField,
+  followerSetIds,
+  isStaleWorkout,
+} from '@/domain/workout-session';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { object as objectJosa } from '@/lib/josa';
 import { useNow } from '@/lib/use-now';
@@ -78,6 +92,17 @@ const RPE_VALUES = [10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6];
 
 /** 워밍업 세트 뒤 휴식은 짧게 */
 const WARMUP_REST_SEC = 60;
+/** 종목을 지운 뒤 '되돌리기'를 보여 주는 시간 */
+const UNDO_MS = 5000;
+
+const FIELD_OF: Record<string, FillField> = {
+  weight: 'weight',
+  reps: 'reps',
+  time: 'durationSec',
+};
+
+/** 확인 창: 운동 버리기 / 기록 없이 완료(버리기 권유) / 남은 세트가 있는 완료 */
+type Confirm = { kind: 'discard' } | { kind: 'empty' } | { kind: 'finish'; pending: number };
 
 const fmt = (n: number) => String(Math.round(n * 100) / 100);
 
@@ -118,6 +143,13 @@ export default function WorkoutScreen() {
     null,
   );
   const keyboardVisible = useKeyboardVisible();
+  const [confirm, setConfirm] = useState<Confirm>({ kind: 'discard' });
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  // 방금 지운 종목 (되돌리기)
+  const [undo, setUndo] = useState<{ id: string; name: string; deletedAt: number } | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hintSeen = useSettings((s) => s.editHintSeen);
+  const markHintSeen = useSettings((s) => s.markEditHintSeen);
 
   const exerciseKey = exercises.map((e) => e.exerciseId).join(',');
   const workoutId = workout?.id;
@@ -184,6 +216,19 @@ export default function WorkoutScreen() {
     });
     return () => sub.remove();
   }, [isEditing]);
+
+  // 편집 모드를 나가면 되돌리기도 사라진다.
+  useEffect(() => {
+    if (isEditing) return;
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setUndo(null);
+  }, [isEditing]);
+  useEffect(
+    () => () => {
+      if (undoTimer.current) clearTimeout(undoTimer.current);
+    },
+    [],
+  );
 
   if (!workout) {
     // 첫 조회 전이거나, 운동이 끝났거나 버려졌다.
@@ -264,7 +309,22 @@ export default function WorkoutScreen() {
 
   const enterEdit = (highlightId: string | null) => {
     Keyboard.dismiss();
+    markHintSeen();
     setEditing({ highlightId });
+  };
+
+  /** 종목을 지우고 잠깐 '되돌리기'를 띄운다. */
+  const deleteExercise = (id: string, name: string) => {
+    const deletedAt = deleteWorkoutExercise(db, id);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setUndo({ id, name, deletedAt });
+    undoTimer.current = setTimeout(() => setUndo(null), UNDO_MS);
+  };
+  const undoDelete = () => {
+    if (!undo) return;
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    restoreWorkoutExercise(db, undo.id, undo.deletedAt);
+    setUndo(null);
   };
 
   /** 기록한 세트가 있으면 한 번 확인하고, 없으면 바로 지운다. */
@@ -273,7 +333,25 @@ export default function WorkoutScreen() {
     if (!we) return;
     const done = we.sets.filter((s) => s.completedAt !== null).length;
     if (done > 0) setDeleteFor({ id, name: nameOf(we), done });
-    else deleteWorkoutExercise(db, id);
+    else deleteExercise(id, nameOf(we));
+  };
+
+  /** 지금 입력 중인 칸의 값을 따라 받는 세트 안내 (예: "2–3세트에도 적용") */
+  const followerNote = (key: string | undefined): string | undefined => {
+    if (!key) return undefined;
+    const [setId, part] = key.split(':');
+    const field = part ? FIELD_OF[part] : undefined;
+    const we = exercises.find((e) => e.sets.some((x) => x.id === setId));
+    if (!setId || !field || !we) return undefined;
+    const ids = followerSetIds(we.sets, setId, field);
+    if (ids.length === 0) return undefined;
+    const working = we.sets.filter((x) => x.kind === 'working');
+    const numbers = ids.map((id) => working.findIndex((x) => x.id === id) + 1);
+    const range = contiguousRange(numbers);
+    if (!range) return t('workout.keyboard.alsoCount', { count: numbers.length });
+    return range[0] === range[1]
+      ? t('workout.keyboard.alsoOne', { set: range[0] })
+      : t('workout.keyboard.alsoRange', { from: range[0], to: range[1] });
   };
 
   const addExercises = () =>
@@ -290,57 +368,35 @@ export default function WorkoutScreen() {
     });
   };
 
-  const discard = () =>
-    Alert.alert(t('workout.discardTitle'), t('workout.discardBody'), [
-      { text: t('workout.keepGoing'), style: 'cancel' },
-      {
-        text: t('workout.discard'),
-        style: 'destructive',
-        onPress: () => {
-          stopRest();
-          setFinished(true);
-          discardWorkout(db, currentWorkout.id);
-          router.back();
-        },
-      },
-    ]);
-
+  const ask = (next: Confirm) => {
+    setConfirm(next);
+    setConfirmOpen(true);
+  };
+  const discardNow = () => {
+    stopRest();
+    setFinished(true);
+    discardWorkout(db, currentWorkout.id);
+    router.back();
+  };
+  const complete = () => {
+    // 마지막 세트를 마친 지 오래됐으면(끝내는 걸 잊었으면) 그 시각을 운동이 끝난 시각으로 친다.
+    const last = Math.max(0, ...exercises.flatMap((e) => e.sets.map((x) => x.completedAt ?? 0)));
+    const at = Date.now();
+    stopRest();
+    setFinished(true);
+    finishWorkout(db, currentWorkout.id, at, last > 0 && isStaleWorkout(last, at) ? last : at);
+    router.replace({ pathname: '/workout-summary/[id]', params: { id: currentWorkout.id } });
+  };
+  const discard = () => ask({ kind: 'discard' });
   const finish = () => {
     const done = exercises.reduce(
       (n, e) => n + e.sets.filter((s) => s.completedAt !== null).length,
       0,
     );
     const pending = exercises.reduce((n, e) => n + pendingOf(e), 0);
-    if (done === 0) {
-      Alert.alert(t('workout.emptyTitle'), t('workout.emptyBody'), [
-        { text: t('workout.keepGoing'), style: 'cancel' },
-        {
-          text: t('workout.discard'),
-          style: 'destructive',
-          onPress: () => {
-            stopRest();
-            setFinished(true);
-            discardWorkout(db, currentWorkout.id);
-            router.back();
-          },
-        },
-      ]);
-      return;
-    }
-    const complete = () => {
-      stopRest();
-      setFinished(true);
-      finishWorkout(db, currentWorkout.id);
-      router.replace({ pathname: '/workout-summary/[id]', params: { id: currentWorkout.id } });
-    };
-    if (pending === 0) {
-      complete();
-      return;
-    }
-    Alert.alert(t('workout.finishConfirmTitle'), t('workout.finishPending', { count: pending }), [
-      { text: t('workout.keepGoing'), style: 'cancel' },
-      { text: t('workout.finishConfirm'), onPress: complete },
-    ]);
+    if (done === 0) ask({ kind: 'empty' });
+    else if (pending === 0) complete();
+    else ask({ kind: 'finish', pending });
   };
 
   const activeName = active ? (catalog.byId.get(active.exerciseId)?.name ?? '') : '';
@@ -357,8 +413,34 @@ export default function WorkoutScreen() {
       destructive
       onCancel={() => setDeleteFor(null)}
       onConfirm={() => {
-        if (deleteFor) deleteWorkoutExercise(db, deleteFor.id);
+        if (deleteFor) deleteExercise(deleteFor.id, deleteFor.name);
         setDeleteFor(null);
+      }}
+    />
+  );
+  const confirmDialog = (
+    <ConfirmDialog
+      visible={confirmOpen}
+      title={t(
+        confirm.kind === 'finish'
+          ? 'workout.finishConfirmTitle'
+          : confirm.kind === 'empty'
+            ? 'workout.emptyTitle'
+            : 'workout.discardTitle',
+      )}
+      body={
+        confirm.kind === 'finish'
+          ? t('workout.finishPending', { count: confirm.pending })
+          : t(confirm.kind === 'empty' ? 'workout.emptyBody' : 'workout.discardBody')
+      }
+      cancelLabel={t('workout.keepGoing')}
+      confirmLabel={t(confirm.kind === 'finish' ? 'workout.finishConfirm' : 'workout.discard')}
+      destructive={confirm.kind !== 'finish'}
+      onCancel={() => setConfirmOpen(false)}
+      onConfirm={() => {
+        setConfirmOpen(false);
+        if (confirm.kind === 'finish') complete();
+        else discardNow();
       }}
     />
   );
@@ -392,6 +474,15 @@ export default function WorkoutScreen() {
           />
         </ScrollView>
         <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
+          {undo ? (
+            <Snackbar
+              message={t('workout.edit.deleted', {
+                name: lang === 'ko' ? objectJosa(undo.name) : undo.name,
+              })}
+              actionLabel={t('workout.edit.undo')}
+              onAction={undoDelete}
+            />
+          ) : null}
           <Button
             label={t('workout.addExercise')}
             variant="secondary"
@@ -518,7 +609,7 @@ export default function WorkoutScreen() {
                         unit={s.weightUnit}
                         completed={s.completedAt !== null}
                         pr={prs.has(s.id)}
-                        onChange={(patch) => updateSet(db, s.id, patch)}
+                        onChange={(patch) => updateSetWithFollowers(db, s.id, patch)}
                         onToggle={() => toggleSet(we, s.id)}
                         onDelete={() => deleteSet(db, s.id)}
                         navId={s.id}
@@ -535,6 +626,19 @@ export default function WorkoutScreen() {
               );
             })}
           </FieldNavProvider>
+          {!hintSeen && exercises.length > 1 ? (
+            <View style={styles.hint} accessibilityRole="text">
+              <Text style={styles.hintText}>{t('workout.editHint')}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('workout.editHintClose')}
+                onPress={markHintSeen}
+                style={({ pressed }) => [styles.hintClose, pressed && styles.pressed]}
+              >
+                <X size={18} color={theme.colors.text2} strokeWidth={1.8} />
+              </Pressable>
+            </View>
+          ) : null}
           <Pressable
             accessibilityRole="button"
             onPress={addExercises}
@@ -548,6 +652,7 @@ export default function WorkoutScreen() {
         {keyboardVisible && fieldNav.current ? (
           <KeyboardBar
             label={fieldNav.current.label}
+            note={followerNote(fieldNav.current.key)}
             onNext={fieldNav.next}
             onDone={fieldNav.done}
           />
@@ -607,6 +712,7 @@ export default function WorkoutScreen() {
         }}
       />
       {dialogs}
+      {confirmDialog}
 
       <ActionSheet
         visible={setMenu !== null}
@@ -770,6 +876,26 @@ const styles = StyleSheet.create((theme) => ({
     borderWidth: 1.5,
     borderColor: theme.colors.line,
   },
+  hint: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingLeft: 16,
+    paddingRight: 4,
+    borderRadius: 18,
+    backgroundColor: theme.colors.accentSoft,
+  },
+  hintText: {
+    flex: 1,
+    paddingVertical: 8,
+    fontSize: 13,
+    lineHeight: 19,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.medium,
+    color: theme.colors.text,
+  },
+  hintClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   addExerciseText: {
     fontSize: 15,
     lineHeight: 20,

@@ -341,7 +341,11 @@
     "keyboard": {
       "next": "Next",
       "done": "Done",
-      "field": "{{set}} · {{field}}"
+      "field": "{{set}} · {{field}}",
+      "alsoOne": "also set {{set}}",
+      "alsoRange": "also sets {{from}}–{{to}}",
+      "alsoCount_one": "also {{count}} other set",
+      "alsoCount_other": "also {{count}} other sets"
     },
     "restSheet": {
       "title": "Rest time for {{name}}",
@@ -361,7 +365,26 @@
       "subtitle_one": "{{name}} · {{count}} exercise",
       "subtitle_other": "{{name}} · {{count}} exercises",
       "deleteBody_one": "The {{count}} set you logged will be deleted too.",
-      "deleteBody_other": "The {{count}} sets you logged will be deleted too."
+      "deleteBody_other": "The {{count}} sets you logged will be deleted too.",
+      "deleted": "Deleted {{name}}",
+      "undo": "Undo"
+    },
+    "editHint": "Press and hold an exercise to reorder or delete it",
+    "editHintClose": "Dismiss tip",
+    "stale": {
+      "title": "Still working out?",
+      "body": "You started this workout {{ago}} and never finished it. Finishing at your last set saves it as {{duration}}.",
+      "bodyEmpty": "You started this workout {{ago}} and haven't logged a set yet.",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min",
+      "info_one": "{{name}} · {{count}} set done",
+      "info_other": "{{name}} · {{count}} sets done",
+      "last": "Last set {{when}}",
+      "started": "Started {{when}}",
+      "finish": "Finish at last set",
+      "resume": "Keep going",
+      "discard": "Discard workout",
+      "close": "Close"
     }
   },
   "summary": {

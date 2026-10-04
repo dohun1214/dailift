@@ -5,6 +5,7 @@ export { LEVEL_OPACITY, MuscleMapCard } from './muscle-map-card';
 export { RestSheet } from './rest-sheet';
 export { RestTimerBar } from './rest-timer-bar';
 export { SetRow, type SetRowValue, setFieldKeys } from './set-row';
+export { StaleWorkoutSheet } from './stale-workout-sheet';
 export { WorkoutEditList, type WorkoutEditRow } from './workout-edit-list';
 export { WorkoutMenuSheet } from './workout-menu-sheet';
 export { WorkoutMiniBar } from './workout-mini-bar';
