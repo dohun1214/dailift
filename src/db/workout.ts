@@ -10,7 +10,7 @@ import {
   suggestNext,
   warmupSets,
 } from '@/domain/strength';
-import { type FillField, followerSetIds } from '@/domain/workout-session';
+import { applyTargetIds, type FillField } from '@/domain/workout-session';
 import { newId } from '@/lib/id';
 import type { SetKind, WeightUnit } from './schema';
 import * as schema from './schema';
@@ -550,20 +550,14 @@ export function updateSet(
     .run();
 }
 
-const FILL_FIELDS: readonly FillField[] = ['weight', 'reps', 'durationSec'];
-
 /**
- * 운동 중 세트 값 고치기 + 따라 채우기: 아래쪽 미완료 본 세트 중 비어 있거나
- * 고치기 전 값과 같던 칸에도 같은 값을 넣는다(`followerSetIds`).
+ * '남은 세트에도 적용': 한 세트의 한 칸(무게·횟수·시간) 값을 아래쪽 미완료 본 세트에 넣는다
+ * (`applyTargetIds`). 값을 바꾼 세트 id를 돌려준다.
  */
-export function updateSetWithFollowers(
-  db: AppDatabase,
-  setId: string,
-  patch: Partial<{ weight: number | null; reps: number | null; durationSec: number | null }>,
-) {
-  db.transaction((tx) => {
+export function applyToRemainingSets(db: AppDatabase, setId: string, field: FillField): string[] {
+  return db.transaction((tx) => {
     const set = tx.select().from(schema.sets).where(eq(schema.sets.id, setId)).get();
-    if (!set) return;
+    if (!set) return [];
     const list = tx
       .select()
       .from(schema.sets)
@@ -575,24 +569,17 @@ export function updateSetWithFollowers(
       )
       .orderBy(asc(schema.sets.position))
       .all();
-    for (const field of FILL_FIELDS) {
-      const value = patch[field];
-      if (value === undefined) continue;
-      const ids = followerSetIds(list, setId, field);
-      if (ids.length === 0) continue;
-      tx.update(schema.sets)
-        .set({
-          [field]: value,
-          ...(field === 'weight' ? { weightUnit: set.weightUnit } : {}),
-          dirty: 1,
-        })
-        .where(inArray(schema.sets.id, ids))
-        .run();
-    }
+    const ids = applyTargetIds(list, setId, field);
+    if (ids.length === 0) return ids;
     tx.update(schema.sets)
-      .set({ ...patch, dirty: 1 })
-      .where(eq(schema.sets.id, setId))
+      .set({
+        [field]: set[field],
+        ...(field === 'weight' ? { weightUnit: set.weightUnit } : {}),
+        dirty: 1,
+      })
+      .where(inArray(schema.sets.id, ids))
       .run();
+    return ids;
   });
 }
 

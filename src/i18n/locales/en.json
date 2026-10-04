@@ -346,10 +346,11 @@
       "next": "Next",
       "done": "Done",
       "field": "{{set}} · {{field}}",
-      "alsoOne": "also set {{set}}",
-      "alsoRange": "also sets {{from}}–{{to}}",
-      "alsoCount_one": "also {{count}} other set",
-      "alsoCount_other": "also {{count}} other sets"
+      "apply": "Apply to sets below",
+      "appliedOne": "Applied to set {{set}}",
+      "appliedRange": "Applied to sets {{from}}–{{to}}",
+      "appliedCount_one": "Applied to {{count}} set",
+      "appliedCount_other": "Applied to {{count}} sets"
     },
     "restSheet": {
       "title": "Rest time for {{name}}",
@@ -460,10 +461,10 @@
   "stats": {
     "volume": "Total volume ({{unit}})",
     "sets": "Total sets",
-    "compare": "Last 7 days · 7 days before",
-    "pairA11y": "{{label}}: last 7 days {{current}}, 7 days before {{previous}}",
+    "compare": "This week · last week",
+    "pairA11y": "{{label}}: this week {{current}}, last week {{previous}}",
     "balance": "Muscle balance",
-    "recommended": "Target {{min}}–{{max}} sets",
+    "recommended": "This week · target {{min}}–{{max}} sets",
     "gaugeA11y": "{{name}} {{value}} sets, {{state}}",
     "state": {
       "low": "below target",
@@ -511,10 +512,6 @@
     "noRoutinesBody": "You don't have any routines yet. Create one or start a quick workout.",
     "quickStart": "Start quick workout",
     "goRoutines": "View routines",
-    "last7": "Last 7 days",
-    "last7Value": "{{count}}",
-    "last7Target": " / {{target}}",
-    "last7NoTarget": " workouts",
     "streak": "Streak",
     "streakValue": "{{count}}",
     "streakUnit": " wk",
@@ -538,6 +535,28 @@
       "empty": "Start an empty workout",
       "emptySub": "Add exercises as you go, without a routine",
       "cancel": "Cancel"
+    },
+    "week": "This week",
+    "weekTarget": " / {{target}}",
+    "weekNoTarget": " workouts",
+    "muscleTitle": "Sets by muscle this week",
+    "muscleLink": "Stats",
+    "muscleA11y": "Sets by muscle this week, open stats",
+    "muscleRowA11y": "{{name}}: {{value}} sets",
+    "live": {
+      "setNow": "Set {{set}}",
+      "setNext": "Next: set {{set}}",
+      "warmupNow": "Warm-up set",
+      "warmupNext": "Next: warm-up set",
+      "otherNow": "Current set",
+      "otherNext": "Next set",
+      "progress": "{{done}} / {{total}} sets",
+      "progressA11y": "{{done}} of {{total}} sets done",
+      "nextExercise": "Next · {{name}}",
+      "rest": "Rest {{time}}",
+      "allDone": "All sets done",
+      "reps_one": "{{count}} rep",
+      "reps_other": "{{count}} reps"
     }
   },
   "relative": {

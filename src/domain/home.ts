@@ -66,9 +66,11 @@ export function todaysWorkout<T extends { startedAt: number }>(
     .sort((a, b) => b.startedAt - a.startedAt)[0];
 }
 
-/** 최근 7일(지금 포함) 운동 횟수 */
-export function workoutsInLast7Days(workoutStarts: readonly number[], now: number): number {
-  return workoutStarts.filter((t) => t > now - 7 * 86_400_000 && t <= now).length;
+/** 이번 주(월요일 0시부터 지금까지) 운동 횟수 */
+export function workoutsThisWeek(workoutStarts: readonly number[], now: Date): number {
+  const from = startOfWeek(now).getTime();
+  const to = now.getTime();
+  return workoutStarts.filter((t) => t >= from && t <= to).length;
 }
 
 /**

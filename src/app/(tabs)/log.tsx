@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Text, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
@@ -27,6 +27,13 @@ export default function LogScreen() {
   const unit = useSettings((s) => s.weightUnit);
   const catalog = useExerciseCatalog(lang);
   const [view, setView] = useState<View_>('history');
+  // 홈의 '통계' 링크로 들어오면 통계를 연다. 한 번 쓰고 지워서 다음에도 다시 열 수 있게 한다.
+  const params = useLocalSearchParams<{ view?: string }>();
+  useEffect(() => {
+    if (params.view !== 'stats') return;
+    setView('stats');
+    router.setParams({ view: undefined });
+  }, [params.view]);
   const { months, ready } = useHistory(unit);
   const [selected, setSelected] = useState<HistoryItem | null>(null);
   const locale = lang === 'ko' ? 'ko-KR' : 'en-US';

@@ -27,13 +27,20 @@ const s = (
 });
 
 describe('weeklyProgress', () => {
-  it('지난 7일과 그 전 7일을 나눈다', () => {
+  it('이번 주(월요일부터)와 지난주를 나눈다', () => {
+    // NOW는 토요일. 6일 전(일요일)은 7일 안이지만 지난주다.
     const p = weeklyProgress(
-      [s('a', 1, 'x', 100, 5), s('a', 1, 'x', 100, 5), s('b', 10, 'x', 50, 10)],
+      [
+        s('a', 1, 'x', 100, 5),
+        s('a', 1, 'x', 100, 5),
+        s('c', 6, 'x', 10, 10),
+        s('b', 10, 'x', 50, 10),
+        s('d', 15, 'x', 70, 10),
+      ],
       NOW,
       'kg',
     );
-    expect(p).toEqual({ current: { volume: 1000, sets: 2 }, previous: { volume: 500, sets: 1 } });
+    expect(p).toEqual({ current: { volume: 1000, sets: 2 }, previous: { volume: 600, sets: 2 } });
   });
 });
 
@@ -61,6 +68,7 @@ describe('groupBalance', () => {
         s('a', 1, 'bench', 60, 10),
         s('a', 1, 'bench', 60, 10),
         s('a', 1, 'row', 50, 10),
+        s('y', 6, 'row', 50, 10),
         s('z', 9, 'row', 50, 10),
       ],
       NOW,

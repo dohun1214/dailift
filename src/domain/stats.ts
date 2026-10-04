@@ -1,6 +1,7 @@
-/** 통계 계산: 지난 7일 진행도, 부위 밸런스, 주별 추정 1RM, 정체 감지. 모두 순수 함수. */
+/** 통계 계산: 이번 주 진행도, 부위 밸런스, 주별 추정 1RM, 정체 감지. 모두 순수 함수. */
 import type { MuscleGroup, MuscleRole, WeightUnit } from '@/db/schema';
 
+import { startOfWeek } from './home';
 import { convertWeight, epley1RM } from './strength';
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
@@ -28,10 +29,19 @@ function totals(sets: readonly StatSet[], unit: WeightUnit): Totals {
   return { volume: Math.round(volume), sets: sets.length };
 }
 
-/** 지난 7일과 그 전 7일의 총 볼륨·세트 */
+/** 이번 주(월요일 0시)와 지난주가 시작한 시각 */
+function weekStarts(now: number) {
+  const current = startOfWeek(new Date(now));
+  const previous = new Date(current);
+  previous.setDate(previous.getDate() - 7);
+  return { current: current.getTime(), previous: previous.getTime() };
+}
+
+/** 이번 주(월요일부터 지금까지)와 지난주(월–일)의 총 볼륨·세트 */
 export function weeklyProgress(sets: readonly StatSet[], now: number, unit: WeightUnit) {
-  const cur = sets.filter((s) => s.startedAt > now - WEEK_MS && s.startedAt <= now);
-  const prev = sets.filter((s) => s.startedAt > now - 2 * WEEK_MS && s.startedAt <= now - WEEK_MS);
+  const start = weekStarts(now);
+  const cur = sets.filter((s) => s.startedAt >= start.current && s.startedAt <= now);
+  const prev = sets.filter((s) => s.startedAt >= start.previous && s.startedAt < start.current);
   return { current: totals(cur, unit), previous: totals(prev, unit) };
 }
 
@@ -45,7 +55,7 @@ export const BALANCE_GROUPS: readonly MuscleGroup[] = [
 ];
 
 /**
- * 지난 7일 부위별 세트 수. 한 세트가 부위의 주동근을 쓰면 1, 협응근만 쓰면 0.5
+ * 이번 주(월요일부터 지금까지) 부위별 세트 수. 한 세트가 부위의 주동근을 쓰면 1, 협응근만 쓰면 0.5
  * (한 부위에 여러 근육이 걸려도 세트당 한 번만 센다).
  */
 export function groupBalance(
@@ -54,8 +64,9 @@ export function groupBalance(
   musclesOf: ReadonlyMap<string, readonly { group: MuscleGroup; role: MuscleRole }[]>,
 ): Map<MuscleGroup, number> {
   const out = new Map<MuscleGroup, number>(BALANCE_GROUPS.map((g) => [g, 0]));
+  const from = weekStarts(now).current;
   for (const s of sets) {
-    if (s.startedAt <= now - WEEK_MS || s.startedAt > now) continue;
+    if (s.startedAt < from || s.startedAt > now) continue;
     const credit = new Map<MuscleGroup, number>();
     for (const m of musclesOf.get(s.exerciseId) ?? []) {
       const c = m.role === 'primary' ? 1 : 0.5;
@@ -95,8 +106,8 @@ export function sessionBestE1rm(
 }
 
 /**
- * 최근 weeks주를 한 주씩 나눠 주별 최고 추정 1RM. 기록 없는 주는 null.
- * [0]이 가장 오래된 주, 마지막이 이번 주(지난 7일).
+ * 지금부터 7일씩 거슬러 weeks칸으로 나눈 칸별 최고 추정 1RM(달력 주가 아니다). 기록 없는 칸은 null.
+ * [0]이 가장 오래된 칸, 마지막이 가장 최근 7일.
  */
 export function weeklyE1rm(
   sessions: readonly { startedAt: number; e1rm: number }[],
