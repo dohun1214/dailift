@@ -333,7 +333,10 @@
     "keyboard": {
       "next": "다음",
       "done": "완료",
-      "field": "{{set}} · {{field}}"
+      "field": "{{set}} · {{field}}",
+      "alsoOne": "{{set}}세트에도 적용",
+      "alsoRange": "{{from}}–{{to}}세트에도 적용",
+      "alsoCount_other": "다른 {{count}}세트에도 적용"
     },
     "restSheet": {
       "title": "{{name}} 휴식 시간",
@@ -351,7 +354,24 @@
       "deleteTitle": "{{name}} 종목을 삭제할까요?",
       "delete": "삭제",
       "subtitle_other": "{{name}} · {{count}}종목",
-      "deleteBody_other": "이미 기록한 {{count}}세트도 함께 지워져요."
+      "deleteBody_other": "이미 기록한 {{count}}세트도 함께 지워져요.",
+      "deleted": "{{name}} 삭제했어요",
+      "undo": "되돌리기"
+    },
+    "editHint": "종목을 꾹 누르면 순서를 바꾸거나 삭제할 수 있어요",
+    "editHintClose": "안내 닫기",
+    "stale": {
+      "title": "아직 운동 중인가요?",
+      "body": "{{ago}} 시작한 운동을 마치지 않았어요. 마지막 기록 시각에 마치면 운동 시간이 {{duration}}으로 저장돼요.",
+      "bodyEmpty": "{{ago}} 시작한 운동에 아직 기록한 세트가 없어요.",
+      "minutes_other": "{{count}}분",
+      "info_other": "{{name}} · {{count}}세트 완료",
+      "last": "마지막 기록 {{when}}",
+      "started": "시작 {{when}}",
+      "finish": "마지막 기록 시각에 마치기",
+      "resume": "이어서 하기",
+      "discard": "운동 버리기",
+      "close": "닫기"
     }
   },
   "summary": {

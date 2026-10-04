@@ -20,10 +20,13 @@ import {
   getActiveWorkout,
   moveWorkoutExercise,
   replaceWorkoutExercise,
+  restoreWorkoutExercise,
   setCompleted,
   setWorkoutExerciseRest,
   startWorkout,
   updateSet,
+  updateSetWithFollowers,
+  workoutActivity,
 } from '../workout';
 
 function createTestDb() {
@@ -295,5 +298,85 @@ describe('운동 중 종목 편집', () => {
     setWorkoutExerciseRest(db, we?.id ?? '', 45, true);
     expect(exercisesOf(db, id)[0]?.restSec).toBe(45);
     expect(routineRest()).toEqual([45]);
+  });
+});
+
+describe('v1.2: 따라 채우기 · 되돌리기 · 오래된 운동', () => {
+  it('값을 고치면 아래 미완료 본 세트 중 비어 있거나 같은 값이던 칸만 따라간다', () => {
+    const db = createTestDb();
+    const routineId = routineWith(db, ['lateral_raise'], 4);
+    const id = startWorkout(db, { routineId, name: 'R', weightUnit: 'kg' }, makeId);
+    const [we] = exercisesOf(db, id);
+    const ids = setsOf(db, we?.id ?? '').map((s) => s.id);
+    const weights = () => setsOf(db, we?.id ?? '').map((s) => s.weight);
+    const reps = () => setsOf(db, we?.id ?? '').map((s) => s.reps);
+
+    // 빈 칸은 모두 따라온다 (한 글자씩 입력해도 이어진다)
+    updateSetWithFollowers(db, ids[0] ?? '', { weight: 6 });
+    updateSetWithFollowers(db, ids[0] ?? '', { weight: 60 });
+    expect(weights()).toEqual([60, 60, 60, 60]);
+    expect(reps()).toEqual([null, null, null, null]);
+
+    // 따로 다르게 적어 둔 세트와 완료한 세트는 그대로
+    updateSet(db, ids[2] ?? '', { weight: 50 });
+    setCompleted(db, ids[3] ?? '', true, 1);
+    updateSetWithFollowers(db, ids[0] ?? '', { weight: 62.5 });
+    expect(weights()).toEqual([62.5, 62.5, 50, 60]);
+
+    // 가운데 세트를 고치면 위쪽 세트는 그대로
+    updateSetWithFollowers(db, ids[1] ?? '', { reps: 10 });
+    expect(reps()).toEqual([null, 10, 10, null]);
+  });
+
+  it('워밍업 세트를 고칠 때는 따라 채우지 않는다', () => {
+    const db = createTestDb();
+    const routineId = routineWith(db, ['lateral_raise'], 2);
+    const id = startWorkout(db, { routineId, name: 'R', weightUnit: 'kg' }, makeId);
+    const [we] = exercisesOf(db, id);
+    const ids = setsOf(db, we?.id ?? '').map((s) => s.id);
+    updateSet(db, ids[0] ?? '', { kind: 'warmup' });
+    updateSetWithFollowers(db, ids[0] ?? '', { weight: 20 });
+    expect(setsOf(db, we?.id ?? '').map((s) => s.weight)).toEqual([20, null]);
+  });
+
+  it('지운 종목을 되돌리면 그때 같이 지운 세트만 살아난다', () => {
+    const db = createTestDb();
+    const routineId = routineWith(db, ['lateral_raise', 'squat'], 3);
+    const id = startWorkout(db, { routineId, name: 'R', weightUnit: 'kg' }, makeId);
+    const [first] = exercisesOf(db, id);
+    const before = setsOf(db, first?.id ?? '').map((s) => s.id);
+    // 세트 하나는 종목을 지우기 전에 따로 지웠다
+    db.update(schema.sets)
+      .set({ deletedAt: 5 })
+      .where(eq(schema.sets.id, before[2] ?? ''))
+      .run();
+    completeSet(db, before[0] ?? '', 'weight_reps', 6);
+
+    const at = deleteWorkoutExercise(db, first?.id ?? '', 10);
+    expect(at).toBe(10);
+    expect(exercisesOf(db, id)).toHaveLength(1);
+
+    restoreWorkoutExercise(db, first?.id ?? '', at);
+    expect(exercisesOf(db, id).map((e) => e.id)[0]).toBe(first?.id);
+    const restored = setsOf(db, first?.id ?? '');
+    expect(restored.map((s) => s.id)).toEqual([before[0], before[1]]);
+    expect(restored[0]?.completedAt).toBe(6);
+  });
+
+  it('마지막 기록 시각을 구하고, 그 시각으로 운동을 마칠 수 있다', () => {
+    const db = createTestDb();
+    const routineId = routineWith(db, ['lateral_raise'], 3);
+    const id = startWorkout(db, { routineId, name: 'R', weightUnit: 'kg', now: 1000 }, makeId);
+    expect(workoutActivity(db, id)).toEqual({ lastAt: null, completedSets: 0 });
+    const [we] = exercisesOf(db, id);
+    const ids = setsOf(db, we?.id ?? '').map((s) => s.id);
+    completeSet(db, ids[0] ?? '', 'weight_reps', 2000);
+    completeSet(db, ids[1] ?? '', 'weight_reps', 3000);
+    expect(workoutActivity(db, id)).toEqual({ lastAt: 3000, completedSets: 2 });
+
+    finishWorkout(db, id, 999_999, 3000);
+    const w = db.select().from(schema.workouts).where(eq(schema.workouts.id, id)).get();
+    expect(w?.status).toBe('completed');
+    expect(w?.endedAt).toBe(3000);
   });
 });
