@@ -72,6 +72,11 @@ npm test
 - 휴식 타이머는 끝나는 시각 기준(`src/stores/rest-timer.ts`, kv-store에 저장). 앱이 켜져 있으면 `useRestTimerAlarm`(루트)이 진동, 백그라운드면 예약한 로컬 알림(`src/lib/notifications.ts`, 채널 `rest-timer`)이 울린다. 알림 권한은 첫 휴식 때 요청.
 - 화면 꺼짐 방지는 설정 `keepAwake`(기본 켬). 네이티브 모듈: expo-notifications, expo-keep-awake, expo-haptics.
 - 안드로이드에서 둥근 모서리 뷰는 자식을 잘라낸다 → 칸 밖으로 나가는 배지는 감싸는 뷰에 둔다.
+- 휴식이 끝나면(#41): 타이머를 바로 지우지 않고 '휴식 끝' 막대를 `REST_DONE_LINGER_MS`(1분) 동안 남긴다. 앱을 보고 있으면 진동 + 배너·소리(알림 핸들러가 포그라운드에서도 표시). 안드로이드는 예약 알림이 늦게 울릴 수 있어 앱이 켜져 있으면 `presentRestEnd`로 직접 띄운다. 확인하거나 다음 휴식이 시작되면 알림 센터의 휴식 알림을 치운다(`dismissRestNotifications`).
+- 종목별 휴식 시간(#41): 카드의 휴식 칩 → `RestSheet`. `setWorkoutExerciseRest`가 이번 운동에 저장하고, '루틴에도 저장'(기본 켬)이면 같은 루틴의 그 종목에도 저장한다. 빈 운동에는 토글이 없다.
+- 종목 편집(#41): ⋯ 메뉴(`WorkoutMenuSheet`) 또는 종목 카드를 꾹 누르면 편집 모드(`WorkoutEditList`). 손잡이는 바로, 행은 꾹 눌러서 끈다. 삭제는 기록한 세트가 있으면 `ConfirmDialog`로 확인. DB는 `moveWorkoutExercise`·`deleteWorkoutExercise`(소프트 삭제).
+- 제스처 빌더를 함수로 감싸서 콜백을 붙이면 자동으로 워클릿이 되지 않는다 → 콜백 첫 줄에 `'worklet'`을 직접 쓴다.
+- 숫자 입력(#41): `field-nav.tsx`가 화면의 입력 칸을 순서대로 등록한다. 키보드가 올라오면 하단 버튼 대신 `KeyboardBar`(다음/완료)를 보여 주고, 스크롤하면 키보드가 내려간다. `KeyboardAvoidingView`는 두 플랫폼 모두 `padding`.
 
 ## 세션 요약
 - 화면 `src/app/workout-summary/[id].tsx`(운동 완료 직후·히스토리 공용, "완료"는 뒤로 갈 곳이 있으면 back). 데이터는 `src/db/summary.ts`의 `loadSummary`(완료 세트·근육·이 운동 전까지의 최고 기록).
@@ -98,6 +103,8 @@ npm test
 - `src/app/(tabs)/index.tsx`, 계산은 `src/domain/home.ts`. 주 시작은 월요일.
 - 주간 스트립(`week-strip.tsx`): 오늘 = 검정, 완료한 날 = 채움, 루틴 계획일 = 점. 오늘 루틴은 로테이션 다음 순서(`todaysRoutine`), 운동 중이면 '운동 이어하기'.
 - 통계 카드: 지난 7일 운동 횟수 / 주 목표, 연속 기록(목표를 채운 연속 주). 시안의 '오늘 영양제' 카드는 M2(영양제)까지 연속 기록으로 대체.
+- 오늘 마친 운동이 있으면(`todaysWorkout`) '운동 시작' 대신 완료 카드(기록 보기 / 운동 더 하기)를 보여 준다. '운동 시작'·'운동 더 하기'는 `RoutinePickSheet`(루틴 선택 또는 빈 운동)를 연다(#41).
+- 홈의 '지금'은 `useToday()`로 잡는다(화면 포커스·앱 복귀 때 갱신). 마운트 때 한 번만 잡으면 방금 마친 운동이 지난 7일에서 빠지고, 앱을 켜 둔 채 날짜가 바뀌면 어제 화면이 남는다.
 - 최근 PR 행 → 해당 세션 요약. 상대 날짜는 i18n `relative.*`(Hermes에 `Intl.RelativeTimeFormat` 없음).
 
 ## 설정 · 원판 계산기

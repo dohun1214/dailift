@@ -20,3 +20,8 @@ export function topic(word: string): string {
 export function topicParticle(word: string): string {
   return hasBatchim(word) ? '은' : '는';
 }
+
+/** 을/를 */
+export function object(word: string): string {
+  return `${word}${hasBatchim(word) ? '을' : '를'}`;
+}

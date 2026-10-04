@@ -1,4 +1,4 @@
-import { adjustEnd, elapsedRatio, formatClock, remainingSec } from '../rest-timer';
+import { adjustEnd, elapsedRatio, formatClock, remainingSec, splitDuration } from '../rest-timer';
 
 describe('rest timer', () => {
   it('남은 시간은 올림, 음수 없음', () => {
@@ -22,5 +22,11 @@ describe('rest timer', () => {
     expect(formatClock(72)).toBe('1:12');
     expect(formatClock(5)).toBe('0:05');
     expect(formatClock(3725)).toBe('1:02:05');
+  });
+
+  it('초를 분·초로 나눈다', () => {
+    expect(splitDuration(90)).toEqual({ m: 1, s: 30 });
+    expect(splitDuration(45)).toEqual({ m: 0, s: 45 });
+    expect(splitDuration(300)).toEqual({ m: 5, s: 0 });
   });
 });

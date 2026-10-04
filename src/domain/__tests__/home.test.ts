@@ -5,6 +5,7 @@ import {
   latestPr,
   streakWeeks,
   todaysRoutine,
+  todaysWorkout,
   weekStrip,
   workoutsInLast7Days,
 } from '../home';
@@ -26,6 +27,26 @@ describe('weekStrip', () => {
       [19, 'plan'],
       [20, 'rest'],
     ]);
+  });
+
+  it('오늘 칸은 운동을 마쳤는지도 알려 준다', () => {
+    const before = weekStrip(NOW, [], [at(14)]);
+    expect(before[4]).toMatchObject({ state: 'today', done: false });
+    const after = weekStrip(NOW, [], [at(14), at(18, 7)]);
+    expect(after[4]).toMatchObject({ state: 'today', done: true });
+    expect(after[0]).toMatchObject({ state: 'done', done: true });
+  });
+});
+
+describe('todaysWorkout', () => {
+  it('오늘 마친 운동 중 가장 최근 것', () => {
+    const list = [
+      { id: 'old', startedAt: at(17, 20) },
+      { id: 'morning', startedAt: at(18, 7) },
+      { id: 'evening', startedAt: at(18, 19) },
+    ];
+    expect(todaysWorkout(list, NOW)?.id).toBe('evening');
+    expect(todaysWorkout(list.slice(0, 1), NOW)).toBeUndefined();
   });
 });
 

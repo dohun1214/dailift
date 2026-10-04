@@ -39,7 +39,11 @@ type RoutineRow = {
   createdAt: number;
 };
 
-export type RoutineSummary = RoutineRow & { exerciseCount: number; minutes: number };
+export type RoutineSummary = RoutineRow & {
+  exerciseCount: number;
+  setCount: number;
+  minutes: number;
+};
 export type RoutineSection = {
   group: GroupRow | null;
   routines: RoutineSummary[];
@@ -67,7 +71,12 @@ export function buildRoutineSections(
   }
   const summarize = (r: RoutineRow): RoutineSummary => {
     const list = loads.get(r.id) ?? [];
-    return { ...r, exerciseCount: list.length, minutes: estimateMinutes(list) };
+    return {
+      ...r,
+      exerciseCount: list.length,
+      setCount: list.reduce((n, e) => n + e.targetSets, 0),
+      minutes: estimateMinutes(list),
+    };
   };
 
   const groupIds = new Set(groups.map((g) => g.id));

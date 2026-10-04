@@ -588,6 +588,99 @@ export function deleteSet(db: AppDatabase, setId: string) {
     .run();
 }
 
+/** 운동 중 종목 순서 바꾸기: from 자리의 종목을 to 자리로 옮기고 position을 0부터 다시 매긴다. */
+export function moveWorkoutExercise(db: AppDatabase, workoutId: string, from: number, to: number) {
+  db.transaction((tx) => {
+    const list = tx
+      .select({ id: schema.workoutExercises.id, position: schema.workoutExercises.position })
+      .from(schema.workoutExercises)
+      .where(
+        and(
+          eq(schema.workoutExercises.workoutId, workoutId),
+          isNull(schema.workoutExercises.deletedAt),
+        ),
+      )
+      .orderBy(asc(schema.workoutExercises.position))
+      .all();
+    if (from < 0 || from >= list.length || to < 0 || to >= list.length || from === to) return;
+    const next = [...list];
+    const [moved] = next.splice(from, 1);
+    if (!moved) return;
+    next.splice(to, 0, moved);
+    next.forEach((row, position) => {
+      if (row.position === position) return;
+      tx.update(schema.workoutExercises)
+        .set({ position, dirty: 1 })
+        .where(eq(schema.workoutExercises.id, row.id))
+        .run();
+    });
+  });
+}
+
+/** 운동 중 종목 삭제: 종목과 그 세트(완료한 세트 포함)를 지운다. */
+export function deleteWorkoutExercise(
+  db: AppDatabase,
+  workoutExerciseId: string,
+  now = Date.now(),
+) {
+  db.transaction((tx) => {
+    tx.update(schema.sets)
+      .set({ deletedAt: now, dirty: 1 })
+      .where(
+        and(eq(schema.sets.workoutExerciseId, workoutExerciseId), isNull(schema.sets.deletedAt)),
+      )
+      .run();
+    tx.update(schema.workoutExercises)
+      .set({ deletedAt: now, dirty: 1 })
+      .where(eq(schema.workoutExercises.id, workoutExerciseId))
+      .run();
+  });
+}
+
+/**
+ * 종목별 휴식 시간 바꾸기. saveToRoutine이면 이 운동을 시작한 루틴의 같은 종목에도 저장해
+ * 다음 운동부터 적용된다(루틴 없이 시작한 운동이면 무시).
+ */
+export function setWorkoutExerciseRest(
+  db: AppDatabase,
+  workoutExerciseId: string,
+  restSec: number,
+  saveToRoutine = false,
+) {
+  db.transaction((tx) => {
+    const we = tx
+      .select({
+        workoutId: schema.workoutExercises.workoutId,
+        exerciseId: schema.workoutExercises.exerciseId,
+      })
+      .from(schema.workoutExercises)
+      .where(eq(schema.workoutExercises.id, workoutExerciseId))
+      .get();
+    if (!we) return;
+    tx.update(schema.workoutExercises)
+      .set({ restSec, dirty: 1 })
+      .where(eq(schema.workoutExercises.id, workoutExerciseId))
+      .run();
+    if (!saveToRoutine) return;
+    const workout = tx
+      .select({ routineId: schema.workouts.routineId })
+      .from(schema.workouts)
+      .where(eq(schema.workouts.id, we.workoutId))
+      .get();
+    if (!workout?.routineId) return;
+    tx.update(schema.routineExercises)
+      .set({ restSec, dirty: 1 })
+      .where(
+        and(
+          eq(schema.routineExercises.routineId, workout.routineId),
+          eq(schema.routineExercises.exerciseId, we.exerciseId),
+          isNull(schema.routineExercises.deletedAt),
+        ),
+      )
+      .run();
+  });
+}
+
 /**
  * 운동 완료: 완료 안 한 세트와 완료 세트가 없는 종목은 지우고 상태를 completed로.
  * 기록된 세트 수를 돌려준다(0이면 호출 쪽에서 버리기를 권한다).

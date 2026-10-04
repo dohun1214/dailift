@@ -13,12 +13,15 @@ import {
   addExercisesToWorkout,
   addSet,
   completeSet,
+  deleteWorkoutExercise,
   discardWorkout,
   exerciseBests,
   finishWorkout,
   getActiveWorkout,
+  moveWorkoutExercise,
   replaceWorkoutExercise,
   setCompleted,
+  setWorkoutExerciseRest,
   startWorkout,
   updateSet,
 } from '../workout';
@@ -241,5 +244,56 @@ describe('PR 기준 · 종목 교체', () => {
     ]);
     expect(setsOf(db, wes[0]?.id ?? '')).toHaveLength(1);
     expect(setsOf(db, wes[1]?.id ?? '')).toHaveLength(2);
+  });
+});
+
+describe('운동 중 종목 편집', () => {
+  it('순서를 바꾸면 position을 0부터 다시 매긴다', () => {
+    const db = createTestDb();
+    const routineId = routineWith(db, ['bench_press', 'lateral_raise', 'squat'], 1);
+    const id = startWorkout(db, { routineId, name: 'R', weightUnit: 'kg' }, makeId);
+    const before = exercisesOf(db, id).map((e) => e.id);
+    moveWorkoutExercise(db, id, 0, 2);
+    const after = exercisesOf(db, id);
+    expect(after.map((e) => e.id)).toEqual([before[1], before[2], before[0]]);
+    expect(after.map((e) => e.position)).toEqual([0, 1, 2]);
+    // 범위를 벗어나면 그대로
+    moveWorkoutExercise(db, id, 0, 5);
+    expect(exercisesOf(db, id).map((e) => e.id)).toEqual([before[1], before[2], before[0]]);
+  });
+
+  it('종목을 지우면 그 세트도 함께 지워진다', () => {
+    const db = createTestDb();
+    const routineId = routineWith(db, ['lateral_raise', 'squat'], 2);
+    const id = startWorkout(db, { routineId, name: 'R', weightUnit: 'kg' }, makeId);
+    const [first, second] = exercisesOf(db, id);
+    completeSet(db, setsOf(db, first?.id ?? '')[0]?.id ?? '', 'weight_reps', 1);
+    deleteWorkoutExercise(db, first?.id ?? '', 2);
+    expect(exercisesOf(db, id).map((e) => e.id)).toEqual([second?.id]);
+    expect(setsOf(db, first?.id ?? '')).toEqual([]);
+    expect(setsOf(db, second?.id ?? '').length).toBeGreaterThan(0);
+  });
+
+  it('휴식 시간은 이 운동에만, 원하면 루틴에도 저장한다', () => {
+    const db = createTestDb();
+    const routineId = routineWith(db, ['lateral_raise'], 1);
+    const id = startWorkout(db, { routineId, name: 'R', weightUnit: 'kg' }, makeId);
+    const [we] = exercisesOf(db, id);
+    const routineRest = () =>
+      db
+        .select({ restSec: schema.routineExercises.restSec })
+        .from(schema.routineExercises)
+        .where(eq(schema.routineExercises.routineId, routineId))
+        .all()
+        .map((r) => r.restSec);
+    const original = routineRest();
+
+    setWorkoutExerciseRest(db, we?.id ?? '', 150);
+    expect(exercisesOf(db, id)[0]?.restSec).toBe(150);
+    expect(routineRest()).toEqual(original);
+
+    setWorkoutExerciseRest(db, we?.id ?? '', 45, true);
+    expect(exercisesOf(db, id)[0]?.restSec).toBe(45);
+    expect(routineRest()).toEqual([45]);
   });
 });

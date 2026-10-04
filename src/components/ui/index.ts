@@ -1,11 +1,13 @@
 export { ActionSheet, type SheetAction } from './action-sheet';
 export { Badge } from './badge';
 export { BodyFigure } from './body-figure';
+export { BottomSheet } from './bottom-sheet';
 export { Button } from './button';
 export { Card } from './card';
 export { CheckMark } from './check-mark';
 export { Checkbox } from './checkbox';
 export { Chip } from './chip';
+export { ConfirmDialog } from './confirm-dialog';
 export { ConsentCheck } from './consent-check';
 export { IconButton } from './icon-button';
 export { ListRow, ListSection } from './list-row';

@@ -1,19 +1,36 @@
 import * as Haptics from 'expo-haptics';
 import { useKeepAwake } from 'expo-keep-awake';
 import { Redirect, router } from 'expo-router';
-import { ChevronDown, Ellipsis } from 'lucide-react-native';
+import { ArrowLeftRight, ChevronDown, Ellipsis, Equal, Plus, Trash2 } from 'lucide-react-native';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import {
+  Alert,
+  BackHandler,
+  Keyboard,
+  KeyboardAvoidingView,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import { ActionSheet, Button, IconButton } from '@/components/ui';
+import { ActionSheet, Button, ConfirmDialog, IconButton, TextButton } from '@/components/ui';
 import {
   ActiveExerciseCard,
   CollapsedExerciseCard,
+  FieldNavProvider,
+  KeyboardBar,
+  RestSheet,
   RestTimerBar,
   SetRow,
+  setFieldKeys,
+  useFieldNav,
+  useKeyboardVisible,
+  WorkoutEditList,
+  WorkoutMenuSheet,
 } from '@/components/workout';
 import { db } from '@/db/client';
 import type { SetKind } from '@/db/schema';
@@ -28,15 +45,18 @@ import {
   addSet,
   completeSet,
   deleteSet,
+  deleteWorkoutExercise,
   discardWorkout,
   exerciseBests,
   finishWorkout,
   lastSessions,
+  moveWorkoutExercise,
   replaceWorkoutExercise,
   setCompleted,
+  setWorkoutExerciseRest,
   updateSet,
 } from '@/db/workout';
-import { formatClock } from '@/domain/rest-timer';
+import { formatClock, splitDuration } from '@/domain/rest-timer';
 import {
   type Best,
   bestOf,
@@ -46,6 +66,7 @@ import {
   suggestNext,
 } from '@/domain/strength';
 import { useAppLanguage } from '@/i18n/use-app-language';
+import { object as objectJosa } from '@/lib/josa';
 import { useNow } from '@/lib/use-now';
 import { openExercisePicker } from '@/stores/exercise-picker';
 import { useRestTimer } from '@/stores/rest-timer';
@@ -68,6 +89,7 @@ function KeepScreenOn() {
 /** 운동 중 화면. 탭 위에 뜨는 전체 화면이고, 접어도(아래 화살표) 운동은 계속된다. */
 export default function WorkoutScreen() {
   const { t } = useTranslation();
+  const { theme } = useUnistyles();
   const insets = useSafeAreaInsets();
   const lang = useAppLanguage();
   const { workout, ready } = useActiveWorkout();
@@ -89,6 +111,13 @@ export default function WorkoutScreen() {
   const [openIds, setOpenIds] = useState<string[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [finished, setFinished] = useState(false);
+  // 종목 편집(순서 · 삭제) 모드. highlightId는 꾹 눌러 들어온 종목
+  const [editing, setEditing] = useState<{ highlightId: string | null } | null>(null);
+  const [restFor, setRestFor] = useState<string | null>(null);
+  const [deleteFor, setDeleteFor] = useState<{ id: string; name: string; done: number } | null>(
+    null,
+  );
+  const keyboardVisible = useKeyboardVisible();
 
   const exerciseKey = exercises.map((e) => e.exerciseId).join(',');
   const workoutId = workout?.id;
@@ -136,6 +165,26 @@ export default function WorkoutScreen() {
   }, [activeId, openIds, exercises]);
   const collapse = (id: string) => setOpenIds((ids) => ids.filter((x) => x !== id));
 
+  // 화면에 펼쳐진 세트 입력칸을 위에서 아래 순으로 (키보드 위 '다음' 이동 순서)
+  const fieldOrder = exercises
+    .filter((we) => we.id === active?.id || openIds.includes(we.id))
+    .flatMap((we) => {
+      const type = catalog.byId.get(we.exerciseId)?.type ?? 'weight_reps';
+      return we.sets.flatMap((s) => setFieldKeys(s.id, type));
+    });
+  const fieldNav = useFieldNav(fieldOrder);
+
+  // 편집 모드에서 안드로이드 뒤로 가기는 편집만 끝낸다.
+  const isEditing = editing !== null;
+  useEffect(() => {
+    if (!isEditing) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setEditing(null);
+      return true;
+    });
+    return () => sub.remove();
+  }, [isEditing]);
+
   if (!workout) {
     // 첫 조회 전이거나, 운동이 끝났거나 버려졌다.
     return !ready || finished ? <View style={styles.root} /> : <Redirect href="/" />;
@@ -161,14 +210,70 @@ export default function WorkoutScreen() {
 
     const leftHere = we.sets.filter((s) => s.completedAt === null && s.id !== set.id).length;
     const leftAll = exercises.reduce((n, e) => n + (e.id === we.id ? leftHere : pendingOf(e)), 0);
+    const next =
+      leftHere === 0 ? exercises.find((e) => e.id !== we.id && pendingOf(e) > 0) : undefined;
     if (leftAll > 0)
-      startRest(set.kind === 'warmup' ? Math.min(WARMUP_REST_SEC, we.restSec) : we.restSec);
+      startRest(
+        set.kind === 'warmup' ? Math.min(WARMUP_REST_SEC, we.restSec) : we.restSec,
+        restMessage(we, set.id, next),
+      );
     if (leftHere === 0) {
       // 다 끝낸 종목은 접고, 남은 종목이 있으면 그걸 지금 종목으로
-      const next = exercises.find((e) => e.id !== we.id && pendingOf(e) > 0);
       if (next) setActiveId(next.id);
       setOpenIds((ids) => ids.filter((id) => id !== we.id && id !== next?.id));
     }
+  };
+
+  const nameOf = (we: WorkoutExerciseWithSets) => catalog.byId.get(we.exerciseId)?.name ?? '';
+
+  /** 휴식이 끝났을 때 알림에 보일 문장: 다음에 할 세트 또는 종목 */
+  const restMessage = (
+    we: WorkoutExerciseWithSets,
+    doneSetId: string,
+    nextExercise: WorkoutExerciseWithSets | undefined,
+  ): string | null => {
+    const upcoming = we.sets.find((s) => s.completedAt === null && s.id !== doneSetId);
+    if (!upcoming) {
+      return nextExercise ? t('workout.rest.nextExercise', { name: nameOf(nextExercise) }) : null;
+    }
+    if (upcoming.kind === 'warmup') return t('workout.rest.nextWarmup', { name: nameOf(we) });
+    if (upcoming.kind !== 'working') return null;
+    const number = we.sets.filter((s) => s.kind === 'working').indexOf(upcoming) + 1;
+    return t('workout.rest.nextSet', { name: nameOf(we), set: number });
+  };
+
+  const formatDuration = (sec: number) => {
+    const { m, s: rest } = splitDuration(sec);
+    if (m > 0 && rest > 0) return t('duration.minSec', { m, s: rest });
+    return m > 0 ? t('duration.min', { m }) : t('duration.sec', { s: rest });
+  };
+
+  /** 접힌 카드·편집 목록에 보이는 한 줄 요약 */
+  const metaOf = (we: WorkoutExerciseWithSets) => {
+    const type = catalog.byId.get(we.exerciseId)?.type ?? 'weight_reps';
+    const working = we.sets.filter((s) => s.kind !== 'warmup');
+    const done = working.filter((s) => s.completedAt !== null).length;
+    return done > 0
+      ? t('workout.collapsedDone', { done, count: working.length })
+      : t(type === 'time' ? 'workout.collapsedMetaTime' : 'workout.collapsedMeta', {
+          count: working.length,
+          min: we.repMin,
+          max: we.repMax,
+        });
+  };
+
+  const enterEdit = (highlightId: string | null) => {
+    Keyboard.dismiss();
+    setEditing({ highlightId });
+  };
+
+  /** 기록한 세트가 있으면 한 번 확인하고, 없으면 바로 지운다. */
+  const removeExercise = (id: string) => {
+    const we = exercises.find((e) => e.id === id);
+    if (!we) return;
+    const done = we.sets.filter((s) => s.completedAt !== null).length;
+    if (done > 0) setDeleteFor({ id, name: nameOf(we), done });
+    else deleteWorkoutExercise(db, id);
   };
 
   const addExercises = () =>
@@ -239,6 +344,66 @@ export default function WorkoutScreen() {
   };
 
   const activeName = active ? (catalog.byId.get(active.exerciseId)?.name ?? '') : '';
+  const restTarget = exercises.find((e) => e.id === restFor);
+  const routineName = currentWorkout.routineId ? currentWorkout.name : null;
+
+  const dialogs = (
+    <ConfirmDialog
+      visible={deleteFor !== null}
+      title={t('workout.edit.deleteTitle', { name: deleteFor?.name ?? '' })}
+      body={t('workout.edit.deleteBody', { count: deleteFor?.done ?? 0 })}
+      cancelLabel={t('workout.menu.cancel')}
+      confirmLabel={t('workout.edit.delete')}
+      destructive
+      onCancel={() => setDeleteFor(null)}
+      onConfirm={() => {
+        if (deleteFor) deleteWorkoutExercise(db, deleteFor.id);
+        setDeleteFor(null);
+      }}
+    />
+  );
+
+  if (editing) {
+    return (
+      <View style={[styles.root, { paddingTop: insets.top }]}>
+        {keepAwake ? <KeepScreenOn /> : null}
+        <View style={styles.header}>
+          <View style={styles.headerSpacer} />
+          <View style={styles.titleWrap} accessible accessibilityRole="header">
+            <Text style={styles.title} numberOfLines={1}>
+              {t('workout.edit.title')}
+            </Text>
+            <Text style={styles.elapsed} numberOfLines={1}>
+              {t('workout.edit.subtitle', { name: currentWorkout.name, count: exercises.length })}
+            </Text>
+          </View>
+          <TextButton label={t('workout.edit.done')} onPress={() => setEditing(null)} />
+        </View>
+        <ScrollView style={styles.flex} contentContainerStyle={styles.editContent}>
+          <Text style={styles.editHint}>{t('workout.edit.hint')}</Text>
+          <WorkoutEditList
+            rows={exercises.map((we) => ({ id: we.id, name: nameOf(we), meta: metaOf(we) }))}
+            highlightId={editing.highlightId}
+            onMove={(from, to) => {
+              setEditing({ highlightId: null });
+              moveWorkoutExercise(db, currentWorkout.id, from, to);
+            }}
+            onRemove={removeExercise}
+          />
+        </ScrollView>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
+          <Button
+            label={t('workout.addExercise')}
+            variant="secondary"
+            size="md"
+            icon={Plus}
+            onPress={addExercises}
+          />
+        </View>
+        {dialogs}
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -258,141 +423,190 @@ export default function WorkoutScreen() {
         <IconButton icon={Ellipsis} label={t('workout.more')} onPress={() => setMenuOpen(true)} />
       </View>
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
-          {exercises.length === 0 ? (
-            <Text style={styles.empty}>{t('workout.noExercises')}</Text>
-          ) : null}
-          {exercises.map((we, index) => {
-            const info = catalog.byId.get(we.exerciseId);
-            const type = info?.type ?? 'weight_reps';
-            const working = we.sets.filter((s) => s.kind !== 'warmup');
-            const extra = we.id !== active?.id;
-            if (extra && !openIds.includes(we.id)) {
-              const done = working.filter((s) => s.completedAt !== null).length;
-              const metaKey =
-                type === 'time' ? 'workout.collapsedMetaTime' : 'workout.collapsedMeta';
-              const meta =
-                done > 0
-                  ? t('workout.collapsedDone', { done, count: working.length })
-                  : t(metaKey, { count: working.length, min: we.repMin, max: we.repMax });
+          <FieldNavProvider value={fieldNav.nav}>
+            {exercises.length === 0 ? (
+              <Text style={styles.empty}>{t('workout.noExercises')}</Text>
+            ) : null}
+            {exercises.map((we, index) => {
+              const info = catalog.byId.get(we.exerciseId);
+              const type = info?.type ?? 'weight_reps';
+              const working = we.sets.filter((s) => s.kind !== 'warmup');
+              const extra = we.id !== active?.id;
+              if (extra && !openIds.includes(we.id)) {
+                return (
+                  <CollapsedExerciseCard
+                    key={we.id}
+                    name={info?.name ?? ''}
+                    meta={metaOf(we)}
+                    onPress={() => setOpenIds((ids) => [...ids, we.id])}
+                    onLongPress={() => enterEdit(we.id)}
+                  />
+                );
+              }
+              const group = info?.primaryGroups[0];
+              const prs = prSetIds(we, bests.get(we.exerciseId) ?? null);
+              let workingNo = 0;
+              const plateSet =
+                working.find((s) => s.completedAt === null && s.weight !== null) ??
+                [...working].reverse().find((s) => s.weight !== null);
               return (
-                <CollapsedExerciseCard
+                <ActiveExerciseCard
                   key={we.id}
-                  name={info?.name ?? ''}
-                  meta={meta}
-                  onPress={() => setOpenIds((ids) => [...ids, we.id])}
-                />
-              );
-            }
-            const group = info?.primaryGroups[0];
-            const prs = prSetIds(we, bests.get(we.exerciseId) ?? null);
-            let workingNo = 0;
-            const plateSet =
-              working.find((s) => s.completedAt === null && s.weight !== null) ??
-              [...working].reverse().find((s) => s.weight !== null);
-            return (
-              <ActiveExerciseCard
-                key={we.id}
-                position={
-                  group
-                    ? t('workout.position', {
-                        index: index + 1,
-                        total: exercises.length,
-                        group: t(`exercises.group.${group}`),
-                      })
-                    : t('workout.positionNoGroup', { index: index + 1, total: exercises.length })
-                }
-                name={info?.name ?? ''}
-                type={type}
-                onCollapse={extra ? () => collapse(we.id) : undefined}
-                suggestion={
-                  <SuggestionLine data={suggestions.get(we.id)} type={type} unit={unit} we={we} />
-                }
-                onAddSet={() => addSet(db, we.id, unit)}
-                onNamePress={() =>
-                  router.push({ pathname: '/exercise/[id]', params: { id: we.exerciseId } })
-                }
-                onPlatesPress={
-                  info?.equipment === 'barbell' && type === 'weight_reps'
-                    ? () =>
-                        router.push({
-                          pathname: '/plate-calculator',
-                          params: {
-                            weight: plateSet?.weight != null ? String(plateSet.weight) : '',
-                            unit: plateSet?.weightUnit ?? unit,
-                          },
+                  position={
+                    group
+                      ? t('workout.position', {
+                          index: index + 1,
+                          total: exercises.length,
+                          group: t(`exercises.group.${group}`),
                         })
-                    : undefined
-                }
-                weightColumn={
-                  info?.equipment === 'dumbbell'
-                    ? t(dumbbellMode === 'single' ? 'workout.colPerHand' : 'workout.colPair')
-                    : undefined
-                }
-              >
-                {we.sets.map((s) => {
-                  const label =
-                    s.kind === 'warmup'
-                      ? t('workout.warmupLabel')
-                      : s.kind === 'drop'
-                        ? t('workout.dropLabel')
-                        : s.kind === 'failure'
-                          ? t('workout.failureLabel')
-                          : String(++workingNo);
-                  return (
-                    <SetRow
-                      key={s.id}
-                      label={label}
-                      kind={s.kind}
-                      type={type}
-                      value={{ weight: s.weight, reps: s.reps, durationSec: s.durationSec }}
-                      unit={s.weightUnit}
-                      completed={s.completedAt !== null}
-                      pr={prs.has(s.id)}
-                      onChange={(patch) => updateSet(db, s.id, patch)}
-                      onToggle={() => toggleSet(we, s.id)}
-                      onDelete={() => deleteSet(db, s.id)}
-                      rpe={advanced ? s.rpe : null}
-                      onLabelPress={
-                        advanced
-                          ? () => setSetMenu({ id: s.id, kind: s.kind, rpe: s.rpe })
-                          : undefined
-                      }
-                    />
-                  );
-                })}
-              </ActiveExerciseCard>
-            );
-          })}
+                      : t('workout.positionNoGroup', { index: index + 1, total: exercises.length })
+                  }
+                  name={info?.name ?? ''}
+                  type={type}
+                  onCollapse={extra ? () => collapse(we.id) : undefined}
+                  restLabel={t('workout.restChip', { time: formatDuration(we.restSec) })}
+                  onRestPress={() => setRestFor(we.id)}
+                  onLongPress={() => enterEdit(we.id)}
+                  suggestion={
+                    <SuggestionLine data={suggestions.get(we.id)} type={type} unit={unit} we={we} />
+                  }
+                  onAddSet={() => addSet(db, we.id, unit)}
+                  onNamePress={() =>
+                    router.push({ pathname: '/exercise/[id]', params: { id: we.exerciseId } })
+                  }
+                  onPlatesPress={
+                    info?.equipment === 'barbell' && type === 'weight_reps'
+                      ? () =>
+                          router.push({
+                            pathname: '/plate-calculator',
+                            params: {
+                              weight: plateSet?.weight != null ? String(plateSet.weight) : '',
+                              unit: plateSet?.weightUnit ?? unit,
+                            },
+                          })
+                      : undefined
+                  }
+                  weightColumn={
+                    info?.equipment === 'dumbbell'
+                      ? t(dumbbellMode === 'single' ? 'workout.colPerHand' : 'workout.colPair')
+                      : undefined
+                  }
+                >
+                  {we.sets.map((s) => {
+                    const label =
+                      s.kind === 'warmup'
+                        ? t('workout.warmupLabel')
+                        : s.kind === 'drop'
+                          ? t('workout.dropLabel')
+                          : s.kind === 'failure'
+                            ? t('workout.failureLabel')
+                            : String(++workingNo);
+                    return (
+                      <SetRow
+                        key={s.id}
+                        label={label}
+                        kind={s.kind}
+                        type={type}
+                        value={{ weight: s.weight, reps: s.reps, durationSec: s.durationSec }}
+                        unit={s.weightUnit}
+                        completed={s.completedAt !== null}
+                        pr={prs.has(s.id)}
+                        onChange={(patch) => updateSet(db, s.id, patch)}
+                        onToggle={() => toggleSet(we, s.id)}
+                        onDelete={() => deleteSet(db, s.id)}
+                        navId={s.id}
+                        rpe={advanced ? s.rpe : null}
+                        onLabelPress={
+                          advanced
+                            ? () => setSetMenu({ id: s.id, kind: s.kind, rpe: s.rpe })
+                            : undefined
+                        }
+                      />
+                    );
+                  })}
+                </ActiveExerciseCard>
+              );
+            })}
+          </FieldNavProvider>
+          <Pressable
+            accessibilityRole="button"
+            onPress={addExercises}
+            style={({ pressed }) => [styles.addExercise, pressed && styles.pressed]}
+          >
+            <Plus size={18} color={theme.colors.text} strokeWidth={1.8} />
+            <Text style={styles.addExerciseText}>{t('workout.addExercise')}</Text>
+          </Pressable>
         </ScrollView>
 
-        <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
-          <RestTimerBar />
-          <Button label={t('workout.finish')} onPress={finish} />
-        </View>
+        {keyboardVisible && fieldNav.current ? (
+          <KeyboardBar
+            label={fieldNav.current.label}
+            onNext={fieldNav.next}
+            onDone={fieldNav.done}
+          />
+        ) : (
+          <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
+            <RestTimerBar />
+            <Button label={t('workout.finish')} onPress={finish} />
+          </View>
+        )}
       </KeyboardAvoidingView>
 
-      <ActionSheet
+      <WorkoutMenuSheet
         visible={menuOpen}
         title={t('workout.menu.title')}
         cancelLabel={t('workout.menu.cancel')}
         onClose={() => setMenuOpen(false)}
-        actions={[
-          { label: t('workout.menu.addExercise'), onPress: addExercises },
-          ...(active
-            ? [{ label: t('workout.menu.replace', { name: activeName }), onPress: replaceActive }]
+        items={[
+          { label: t('workout.menu.addExercise'), icon: Plus, onPress: addExercises },
+          ...(exercises.length > 0
+            ? [
+                {
+                  label: t('workout.menu.editExercises'),
+                  icon: Equal,
+                  onPress: () => enterEdit(null),
+                },
+              ]
             : []),
-          { label: t('workout.menu.discard'), onPress: discard, destructive: true },
+          ...(active
+            ? [
+                {
+                  label: t('workout.menu.replace', {
+                    name: lang === 'ko' ? objectJosa(activeName) : activeName,
+                  }),
+                  icon: ArrowLeftRight,
+                  onPress: replaceActive,
+                },
+              ]
+            : []),
+          {
+            label: t('workout.menu.discard'),
+            icon: Trash2,
+            onPress: discard,
+            destructive: true,
+          },
         ]}
       />
+
+      <RestSheet
+        visible={restFor !== null && restTarget !== undefined}
+        name={restTarget ? nameOf(restTarget) : ''}
+        value={restTarget?.restSec ?? 0}
+        routineName={routineName}
+        formatDuration={formatDuration}
+        onClose={() => setRestFor(null)}
+        onSave={(restSec, saveToRoutine) => {
+          if (restTarget) setWorkoutExerciseRest(db, restTarget.id, restSec, saveToRoutine);
+        }}
+      />
+      {dialogs}
 
       <ActionSheet
         visible={setMenu !== null}
@@ -518,6 +732,7 @@ const styles = StyleSheet.create((theme) => ({
     paddingHorizontal: 16,
     paddingBottom: 8,
   },
+  headerSpacer: { width: 44 },
   titleWrap: { flex: 1, alignItems: 'center' },
   title: {
     fontSize: 15,
@@ -535,6 +750,34 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.text2,
   },
   content: { gap: 12, paddingTop: 4, paddingHorizontal: 16, paddingBottom: 12 },
+  editContent: { gap: 10, paddingTop: 4, paddingHorizontal: 16, paddingBottom: 12 },
+  editHint: {
+    paddingHorizontal: 6,
+    paddingBottom: 4,
+    fontSize: 13,
+    lineHeight: 19.5,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.text2,
+  },
+  addExercise: {
+    height: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1.5,
+    borderColor: theme.colors.line,
+  },
+  addExerciseText: {
+    fontSize: 15,
+    lineHeight: 20,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.bold,
+    color: theme.colors.text,
+  },
+  pressed: { opacity: 0.7 },
   empty: {
     paddingHorizontal: 6,
     paddingTop: 12,

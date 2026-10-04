@@ -1,5 +1,10 @@
 export { ActiveExerciseCard, CollapsedExerciseCard } from './exercise-card';
+export { FieldNavProvider, useFieldNav, useKeyboardVisible } from './field-nav';
+export { KeyboardBar } from './keyboard-bar';
 export { LEVEL_OPACITY, MuscleMapCard } from './muscle-map-card';
+export { RestSheet } from './rest-sheet';
 export { RestTimerBar } from './rest-timer-bar';
-export { SetRow, type SetRowValue } from './set-row';
+export { SetRow, type SetRowValue, setFieldKeys } from './set-row';
+export { WorkoutEditList, type WorkoutEditRow } from './workout-edit-list';
+export { WorkoutMenuSheet } from './workout-menu-sheet';
 export { WorkoutMiniBar } from './workout-mini-bar';
