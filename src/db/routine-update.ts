@@ -61,31 +61,32 @@ export function pendingRoutineUpdate(
     )
     .orderBy(asc(schema.workoutExercises.position))
     .all();
-  const done = db
+  // 남아 있는 세트 줄 전부(완료 여부와 상관없이). 지운 줄은 빠진다.
+  const sets = db
     .select({ set: schema.sets })
     .from(schema.sets)
     .innerJoin(
       schema.workoutExercises,
       eq(schema.workoutExercises.id, schema.sets.workoutExerciseId),
     )
-    .where(
-      and(
-        eq(schema.workoutExercises.workoutId, workoutId),
-        isNull(schema.sets.deletedAt),
-        isNotNull(schema.sets.completedAt),
-      ),
-    )
+    .where(and(eq(schema.workoutExercises.workoutId, workoutId), isNull(schema.sets.deletedAt)))
     .orderBy(asc(schema.sets.position))
     .all()
     .map((r) => r.set);
 
   const changes = routineChanges(
     items.map((i) => ({ id: i.id, exerciseId: i.exerciseId, plan: parseSetPlan(i.setPlan) })),
-    exercises.map((e) => ({
-      exerciseId: e.exerciseId,
-      restSec: e.restSec,
-      done: done.filter((s) => s.workoutExerciseId === e.id),
-    })),
+    exercises.map((e) => {
+      const own = sets.filter((x) => x.workoutExerciseId === e.id);
+      const done = own.filter((x) => x.completedAt !== null);
+      return {
+        exerciseId: e.exerciseId,
+        restSec: e.restSec,
+        sets: own,
+        doneCount: done.length,
+        doneWorking: done.filter((x) => x.kind !== 'warmup').length,
+      };
+    }),
     unit,
   );
   if (changes.length === 0) return null;

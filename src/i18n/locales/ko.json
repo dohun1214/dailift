@@ -110,7 +110,7 @@
     "duplicate": "복제",
     "cancel": "취소",
     "copyName": "{{name}} 복사본",
-    "openHint": "루틴 편집 화면으로 이동해요. 길게 누르면 복제할 수 있어요.",
+    "openHint": "루틴 편집 화면으로 이동해요. 길게 누르면 시작 · 복제 · 삭제를 고를 수 있어요.",
     "template": {
       "full_body": {
         "freq": "주 3회",
@@ -185,7 +185,11 @@
       "planSets_other": "{{count}}세트",
       "planRest": "휴식 {{rest}}초"
     },
-    "start": "운동 시작"
+    "start": "운동 시작",
+    "delete": "삭제",
+    "deleteTitle": "{{name}} 루틴을 삭제할까요?",
+    "deleteBody": "지난 운동 기록은 그대로 남아요.",
+    "deleteA11y": "{{name}} 삭제"
   },
   "exercises": {
     "pickerTitle": "종목 추가",
@@ -297,19 +301,21 @@
     "finishConfirmTitle": "운동을 마칠까요?",
     "finishPending_other": "완료하지 않은 세트 {{count}}개는 기록되지 않아요.",
     "finishConfirm": "마치기",
-    "keepGoing": "계속하기",
+    "keepGoing": "계속 운동하기",
     "emptyTitle": "기록된 세트가 없어요",
-    "emptyBody": "이 운동을 버릴까요?",
-    "discard": "버리기",
+    "emptyBody": "기록 없이 끝낼까요?",
+    "discard": "끝내기",
     "menu": {
       "title": "운동 메뉴",
       "addExercise": "종목 추가",
-      "replace": "{{name}} 다른 종목으로 교체",
-      "discard": "운동 버리기",
+      "discard": "기록 없이 끝내기",
       "cancel": "취소",
-      "editExercises": "종목 순서 변경 · 삭제"
+      "editExercises": "종목 순서 변경",
+      "replaceThis": "다른 종목으로 변경",
+      "removeThis": "이 종목 빼기",
+      "exerciseA11y": "{{name}} 메뉴"
     },
-    "discardTitle": "운동을 버릴까요?",
+    "discardTitle": "기록 없이 끝낼까요?",
     "discardBody": "이번 운동 기록이 모두 사라져요.",
     "recoverTitle": "진행 중인 운동이 있어요",
     "recoverBody": "{{name}} · {{elapsed}} 진행",
@@ -383,9 +389,10 @@
       "started": "시작 {{when}}",
       "finish": "마지막 기록 시각에 마치기",
       "resume": "이어서 하기",
-      "discard": "운동 버리기",
+      "discard": "기록 없이 끝내기",
       "close": "닫기"
-    }
+    },
+    "recoverDiscard": "그만두기"
   },
   "summary": {
     "headline": "오늘도 해냈어요",

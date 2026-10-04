@@ -152,6 +152,8 @@ export default function WorkoutScreen() {
   const [undo, setUndo] = useState<{ id: string; name: string; deletedAt: number } | null>(null);
   // '남은 세트에도 적용'을 누른 칸과 그 안내 문장
   const [applied, setApplied] = useState<{ key: string; text: string } | null>(null);
+  // ⋯를 누른 종목 카드
+  const [exerciseMenu, setExerciseMenu] = useState<{ id: string; name: string } | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hintSeen = useSettings((s) => s.editHintSeen);
   const markHintSeen = useSettings((s) => s.markEditHintSeen);
@@ -414,12 +416,15 @@ export default function WorkoutScreen() {
       addExercisesToWorkout(db, currentWorkout.id, ids, unit, undefined, workoutDefaults());
     });
 
-  const replaceActive = () => {
-    if (!active) return;
-    const target = active.id;
+  /** 이 종목을 다른 종목으로 바꾼다(완료한 세트는 그대로 두고 남은 세트만 새 종목으로). */
+  const replaceExercise = (id: string) => {
     openExercisePicker((ids) => {
       const [first] = ids;
-      if (first) setActiveId(replaceWorkoutExercise(db, target, first, unit));
+      if (!first) return;
+      const next = replaceWorkoutExercise(db, id, first, unit);
+      // 지금 종목이었거나 펼쳐 둔 카드였으면 새 종목도 그대로 펼쳐 둔다.
+      if (active?.id === id) setActiveId(next);
+      else setOpenIds((open) => (open.includes(id) ? [...open, next] : open));
     });
   };
 
@@ -456,7 +461,6 @@ export default function WorkoutScreen() {
     else ask({ kind: 'finish', pending });
   };
 
-  const activeName = active ? (catalog.byId.get(active.exerciseId)?.name ?? '') : '';
   const restTarget = exercises.find((e) => e.id === restFor);
   const routineName = currentWorkout.routineId ? currentWorkout.name : null;
 
@@ -595,6 +599,7 @@ export default function WorkoutScreen() {
                     meta={metaOf(we)}
                     onPress={() => setOpenIds((ids) => [...ids, we.id])}
                     onLongPress={() => enterEdit(we.id)}
+                    onMenuPress={() => setExerciseMenu({ id: we.id, name: info?.name ?? '' })}
                   />
                 );
               }
@@ -622,6 +627,7 @@ export default function WorkoutScreen() {
                   restLabel={t('workout.restChip', { time: formatDuration(we.restSec) })}
                   onRestPress={() => setRestFor(we.id)}
                   onLongPress={() => enterEdit(we.id)}
+                  onMenuPress={() => setExerciseMenu({ id: we.id, name: info?.name ?? '' })}
                   suggestion={
                     <SuggestionLine data={suggestions.get(we.id)} type={type} unit={unit} we={we} />
                   }
@@ -738,21 +744,34 @@ export default function WorkoutScreen() {
                 },
               ]
             : []),
-          ...(active
-            ? [
-                {
-                  label: t('workout.menu.replace', {
-                    name: lang === 'ko' ? objectJosa(activeName) : activeName,
-                  }),
-                  icon: ArrowLeftRight,
-                  onPress: replaceActive,
-                },
-              ]
-            : []),
           {
             label: t('workout.menu.discard'),
-            icon: Trash2,
+            icon: X,
             onPress: discard,
+            destructive: true,
+          },
+        ]}
+      />
+
+      <WorkoutMenuSheet
+        visible={exerciseMenu !== null}
+        title={exerciseMenu?.name ?? ''}
+        cancelLabel={t('workout.menu.cancel')}
+        onClose={() => setExerciseMenu(null)}
+        items={[
+          {
+            label: t('workout.menu.replaceThis'),
+            icon: ArrowLeftRight,
+            onPress: () => {
+              if (exerciseMenu) replaceExercise(exerciseMenu.id);
+            },
+          },
+          {
+            label: t('workout.menu.removeThis'),
+            icon: Trash2,
+            onPress: () => {
+              if (exerciseMenu) removeExercise(exerciseMenu.id);
+            },
             destructive: true,
           },
         ]}

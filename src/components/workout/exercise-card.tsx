@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Disc, Plus, Timer } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Disc, Ellipsis, Plus, Timer } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
@@ -25,8 +25,10 @@ type CardProps = {
   /** 종목별 휴식 시간 칩 (예: "휴식 1분 30초"). 누르면 시간을 고른다 */
   restLabel?: string;
   onRestPress?: () => void;
-  /** 이름을 꾹 누르면 종목 편집(순서 · 삭제) */
+  /** 카드의 빈 곳(이름 포함)을 꾹 누르면 종목 편집(순서 · 삭제) */
   onLongPress?: () => void;
+  /** ⋯ 버튼: 이 종목을 다른 종목으로 변경 · 빼기 */
+  onMenuPress?: () => void;
 };
 
 /** 지금 하는 종목 카드: 위치·부위 / 이름 / 증량 제안 / 컬럼 헤더 / 세트 행들 / 세트 추가 */
@@ -44,11 +46,19 @@ export function ActiveExerciseCard({
   restLabel,
   onRestPress,
   onLongPress,
+  onMenuPress,
 }: CardProps) {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
   return (
-    <View style={styles.card}>
+    // 입력칸 · 버튼이 아닌 빈 곳을 꾹 눌러도 종목 편집으로 간다(자식의 누르기가 먼저다).
+    <Pressable
+      style={styles.card}
+      accessible={false}
+      disabled={!onLongPress}
+      onLongPress={onLongPress}
+      delayLongPress={350}
+    >
       <View style={styles.head}>
         <Pressable
           style={styles.headText}
@@ -68,6 +78,14 @@ export function ActiveExerciseCard({
             tone="raised"
             label={t('workout.plates')}
             onPress={onPlatesPress}
+          />
+        ) : null}
+        {onMenuPress ? (
+          <IconButton
+            icon={Ellipsis}
+            tone="raised"
+            label={t('workout.menu.exerciseA11y', { name })}
+            onPress={onMenuPress}
           />
         ) : null}
         {onCollapse ? (
@@ -119,7 +137,7 @@ export function ActiveExerciseCard({
         <Plus size={18} color={theme.colors.text} strokeWidth={1.8} />
         <Text style={styles.addSetText}>{t('workout.addSet')}</Text>
       </Pressable>
-    </View>
+    </Pressable>
   );
 }
 
@@ -128,10 +146,17 @@ type CollapsedProps = {
   meta: string;
   onPress: () => void;
   onLongPress?: () => void;
+  onMenuPress?: () => void;
 };
 
 /** 접힌 종목 카드 */
-export function CollapsedExerciseCard({ name, meta, onPress, onLongPress }: CollapsedProps) {
+export function CollapsedExerciseCard({
+  name,
+  meta,
+  onPress,
+  onLongPress,
+  onMenuPress,
+}: CollapsedProps) {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
   return (
@@ -152,6 +177,17 @@ export function CollapsedExerciseCard({ name, meta, onPress, onLongPress }: Coll
           {meta}
         </Text>
       </View>
+      {onMenuPress ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('workout.menu.exerciseA11y', { name })}
+          onPress={onMenuPress}
+          hitSlop={4}
+          style={({ pressed }) => [styles.collapsedMenu, pressed && styles.pressed]}
+        >
+          <Ellipsis size={20} color={theme.colors.text2} strokeWidth={1.8} />
+        </Pressable>
+      ) : null}
       <ChevronDown size={20} color={theme.colors.text2} strokeWidth={1.8} />
     </Pressable>
   );
@@ -239,6 +275,15 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: theme.colors.surface,
   },
   collapsedBody: { flex: 1, gap: 2 },
+  // 카드 높이를 늘리지 않게 위아래로 조금 넘친다(누르는 면적 44).
+  collapsedMenu: {
+    width: 44,
+    height: 44,
+    marginVertical: -8,
+    marginRight: -8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   collapsedName: {
     fontSize: 15,
     lineHeight: 20,

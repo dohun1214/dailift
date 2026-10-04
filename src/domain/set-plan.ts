@@ -60,29 +60,22 @@ export function planIssue(plan: SetPlan): PlanIssue | null {
   return bad ? 'value' : null;
 }
 
-/**
- * '세트별로 정하기'를 처음 켤 때: 지금 세트 수만큼 본 세트 줄을 만든다.
- * 지난 기록(last, unit 단위의 완료 본 세트)이 있으면 그 무게 · 횟수로, 없으면 횟수만 범위의 아래쪽으로 채운다.
- */
+/** '세트별로 정하기'를 처음 켤 때: 지금 세트 수만큼 본 세트 줄을 만든다(무게는 빈칸, 횟수는 범위의 아래쪽). */
 export function planFromRange(
   item: { targetSets: number; repMin: number },
   unit: WeightUnit,
   isTime: boolean,
-  last: readonly { weight: number | null; reps: number | null; durationSec: number | null }[] = [],
 ): SetPlan {
   const count = Math.min(PLAN_LIMITS.sets, Math.max(1, Math.round(item.targetSets) || 1));
   const value = Number.isFinite(item.repMin) ? item.repMin : null;
   return {
     unit,
-    sets: Array.from({ length: count }, (_, i) => {
-      const prev = last[i] ?? last[last.length - 1];
-      return {
-        kind: 'working' as const,
-        weight: isTime ? null : (prev?.weight ?? null),
-        reps: isTime ? null : (prev?.reps ?? value),
-        durationSec: isTime ? (prev?.durationSec ?? value) : null,
-      };
-    }),
+    sets: Array.from({ length: count }, () => ({
+      kind: 'working' as const,
+      weight: null,
+      reps: isTime ? null : value,
+      durationSec: isTime ? value : null,
+    })),
   };
 }
 
@@ -131,7 +124,7 @@ export type DoneSet = {
 const planKind = (kind: SetKind): PlanKind => (kind === 'warmup' ? 'warmup' : 'working');
 const same = (a: number | null, b: number | null) => (a ?? 0) === (b ?? 0);
 
-/** 완료한 세트를 그대로 계획으로 (드롭 · 실패 세트는 본 세트로 친다) */
+/** 운동의 세트 줄을 그대로 계획으로 (드롭 · 실패 세트는 본 세트로 친다) */
 export function planFromDone(sets: readonly DoneSet[], unit: WeightUnit): SetPlan {
   return {
     unit,
@@ -144,7 +137,7 @@ export function planFromDone(sets: readonly DoneSet[], unit: WeightUnit): SetPla
   };
 }
 
-/** 완료한 세트가 계획과 다른가 (세트 수 · 종류 · 무게 · 횟수 · 시간). done은 unit 단위. */
+/** 세트 줄이 계획과 다른가 (세트 수 · 종류 · 무게 · 횟수 · 시간). done은 unit 단위. */
 export function differsFromPlan(plan: SetPlan, done: readonly DoneSet[], unit: WeightUnit) {
   const p = planInUnit(plan, unit).sets;
   if (p.length !== done.length) return true;
@@ -188,15 +181,20 @@ export function planAchieved(
 
 export type RoutineItemRef = { id: string; exerciseId: string; plan: SetPlan | null };
 
-/** 운동에 남아 있는 종목과 그 완료 세트 (화면 순서) */
+/**
+ * 운동에 남아 있는 종목과 그 세트 줄 (화면 순서).
+ * sets는 완료 여부와 상관없이 남아 있는 줄 전부, doneCount는 그중 완료한 줄 수(working은 워밍업 제외).
+ */
 export type WorkoutItemRef = {
   exerciseId: string;
   restSec: number;
-  done: readonly DoneSet[];
+  sets: readonly DoneSet[];
+  doneCount: number;
+  doneWorking: number;
 };
 
 export type RoutineChange =
-  /** 세트별로 정한 종목을 다르게 했다 → 계획을 오늘 한 세트로 */
+  /** 세트별로 정한 종목을 다르게 했다 → 계획을 오늘의 세트 줄로 */
   | { type: 'sets'; routineExerciseId: string; exerciseId: string; plan: SetPlan }
   /** 운동 중에 추가한 종목 → afterExerciseId 뒤에 넣는다(null이면 맨 앞) */
   | {
@@ -213,7 +211,9 @@ export type RoutineChange =
  * 루틴과 오늘 운동의 차이. 운동을 끝내기 직전(안 한 세트를 지우기 전)에 계산한다.
  * - 루틴에는 있는데 운동에 남아 있지 않은 종목 = 뺀 종목
  * - 운동에는 있는데 루틴에 없는 종목 = 추가한 종목 (완료한 세트가 있을 때만)
- * - 세트별로 정한 종목은 완료한 세트가 계획과 다르면 바뀐 종목 (하나도 안 했으면 그대로 둔다)
+ * - 세트별로 정한 종목은 **세트 줄 전체**(안 한 줄 포함)를 계획과 견준다. 그래서 세트를 일부만 하고
+ *   끝낸 것은 다른 게 아니고, 줄을 지우거나 더했을 때 · 무게나 횟수를 고쳤을 때만 바뀐 종목이다.
+ *   하나도 안 한 종목은 그대로 둔다.
  * 같은 종목이 여러 번 있으면 순서대로 짝을 맞춘다.
  */
 export function routineChanges(
@@ -227,13 +227,12 @@ export function routineChanges(
   for (const w of workout) {
     const at = pool.findIndex((r) => r.exerciseId === w.exerciseId);
     if (at === -1) {
-      const working = w.done.filter((s) => s.kind !== 'warmup').length;
-      if (w.done.length > 0) {
+      if (w.doneCount > 0) {
         changes.push({
           type: 'added',
           exerciseId: w.exerciseId,
           afterExerciseId: previous,
-          targetSets: Math.max(1, working),
+          targetSets: Math.max(1, w.doneWorking),
           restSec: w.restSec,
         });
         previous = w.exerciseId;
@@ -242,12 +241,12 @@ export function routineChanges(
     }
     const [item] = pool.splice(at, 1);
     previous = w.exerciseId;
-    if (item?.plan && w.done.length > 0 && differsFromPlan(item.plan, w.done, unit)) {
+    if (item?.plan && w.doneCount > 0 && differsFromPlan(item.plan, w.sets, unit)) {
       changes.push({
         type: 'sets',
         routineExerciseId: item.id,
         exerciseId: w.exerciseId,
-        plan: planFromDone(w.done, unit),
+        plan: planFromDone(w.sets, unit),
       });
     }
   }

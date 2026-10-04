@@ -206,7 +206,7 @@ export default function TabsLayout() {
               })
             : undefined
         }
-        cancelLabel={t('workout.discard')}
+        cancelLabel={t('workout.recoverDiscard')}
         cancelDestructive
         confirmLabel={t('workout.resume')}
         onCancel={discardPrompted}
