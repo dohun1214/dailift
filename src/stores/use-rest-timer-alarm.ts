@@ -4,6 +4,7 @@ import { AppState, Platform, Vibration } from 'react-native';
 
 import { REST_DONE_LINGER_MS } from '@/domain/rest-timer';
 import { presentRestEnd } from '@/lib/notifications';
+import { hideRestLive } from '@/lib/rest-live';
 
 import { notificationText, useRestTimer } from './rest-timer';
 
@@ -29,6 +30,8 @@ export function useRestTimerAlarm() {
       else timers.push(setTimeout(stop, left));
     };
     const fire = () => {
+      // 앱이 앞에 있으니 잠금 화면·알림창의 타이머는 치운다(뒤에 있었다면 돌아온 지금 치운다).
+      hideRestLive();
       const late = Date.now() - endsAt;
       if (late < LATE_MS && AppState.currentState === 'active') {
         Vibration.vibrate([0, 400, 200, 400]);
