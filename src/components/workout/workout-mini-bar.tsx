@@ -17,7 +17,9 @@ export function WorkoutMiniBar({ name, startedAt }: Props) {
   const now = useNow(1000);
   const restEnds = useRestTimer((s) => s.endsAt);
   const elapsed = formatClock((now - startedAt) / 1000);
-  const rest = restEnds !== null ? formatClock(remainingSec(restEnds, now)) : null;
+  // 휴식이 끝나 '휴식 끝'만 남아 있을 때는 남은 시간을 보이지 않는다.
+  const restLeft = restEnds !== null ? remainingSec(restEnds, now) : 0;
+  const rest = restLeft > 0 ? formatClock(restLeft) : null;
 
   return (
     <Pressable

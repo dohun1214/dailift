@@ -4,6 +4,8 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { parseDecimal } from '@/lib/number';
 
+import { useFieldNavTarget } from './field-nav';
+
 type Props = {
   value: number | null;
   unit: string;
@@ -14,6 +16,9 @@ type Props = {
   label: string;
   badge?: string;
   badgeLabel?: string;
+  /** 키보드 위 '다음'으로 옮겨 다닐 때 쓰는 이름표: 고유 key와 줄에 보일 이름 */
+  navKey?: string;
+  navLabel?: string;
 };
 
 const format = (v: number | null) => (v === null ? '' : String(v));
@@ -28,8 +33,11 @@ export function SetField({
   label,
   badge,
   badgeLabel,
+  navKey,
+  navLabel,
 }: Props) {
   const { theme } = useUnistyles();
+  const nav = useFieldNavTarget();
   const [text, setText] = useState(format(value));
 
   useEffect(() => {
@@ -40,6 +48,9 @@ export function SetField({
     <View style={styles.wrap}>
       <View style={styles.box}>
         <TextInput
+          ref={navKey ? (input) => nav.register(navKey, input) : undefined}
+          onFocus={navKey ? () => nav.focused(navKey, navLabel ?? label) : undefined}
+          onBlur={navKey ? () => nav.blurred(navKey) : undefined}
           accessibilityLabel={label}
           value={text}
           placeholder="0"

@@ -27,7 +27,7 @@ export function WeekStrip({ days, dateFormat }: Props) {
             accessible
             accessibilityLabel={t('home.dayA11y', {
               date: dateFormat.format(d.date),
-              state: t(`home.state.${d.state}`),
+              state: t(`home.state.${d.state === 'today' && d.done ? 'todayDone' : d.state}`),
             })}
           >
             <Text
@@ -53,6 +53,9 @@ export function WeekStrip({ days, dateFormat }: Props) {
             <View style={styles.mark}>
               {d.state === 'done' ? (
                 <Check size={13} color={theme.colors.accentText} strokeWidth={2.6} />
+              ) : null}
+              {d.state === 'today' && d.done ? (
+                <Check size={13} color={theme.colors.onAccent} strokeWidth={2.6} />
               ) : null}
               {d.state === 'plan' ? <View style={styles.dot} /> : null}
             </View>

@@ -7,7 +7,8 @@ import { type Best, bestOf } from './strength';
 
 export type DayState = 'today' | 'done' | 'plan' | 'rest';
 
-export type StripDay = { date: Date; weekday: number; state: DayState };
+/** done: 그날 마친 운동이 있음 (오늘 칸에 체크를 그릴 때 쓴다) */
+export type StripDay = { date: Date; weekday: number; state: DayState; done: boolean };
 
 /** 그 주 월요일 0시 */
 export function startOfWeek(d: Date): Date {
@@ -37,11 +38,12 @@ export function weekStrip(
   const allMask = routineMasks.reduce((m, x) => m | x, 0);
   return Array.from({ length: 7 }, (_, i) => {
     const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    const done = workoutStarts.some((t) => sameDay(new Date(t), date));
     let state: DayState = 'rest';
     if (sameDay(date, now)) state = 'today';
-    else if (workoutStarts.some((t) => sameDay(new Date(t), date))) state = 'done';
+    else if (done) state = 'done';
     else if (date > now && hasDay(allMask, i)) state = 'plan';
-    return { date, weekday: i, state };
+    return { date, weekday: i, state, done };
   });
 }
 
@@ -52,6 +54,16 @@ export function todaysRoutine<T extends { weekdays: number }>(
 ): T | undefined {
   const i = weekdayIndex(now);
   return routines.find((r) => hasDay(r.weekdays, i));
+}
+
+/** 오늘 마친 운동 중 가장 최근 것 (목록은 최신 순이 아니어도 된다) */
+export function todaysWorkout<T extends { startedAt: number }>(
+  workouts: readonly T[],
+  now: Date,
+): T | undefined {
+  return workouts
+    .filter((w) => sameDay(new Date(w.startedAt), now))
+    .sort((a, b) => b.startedAt - a.startedAt)[0];
 }
 
 /** 최근 7일(지금 포함) 운동 횟수 */

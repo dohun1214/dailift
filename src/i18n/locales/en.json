@@ -233,7 +233,7 @@
   },
   "workout": {
     "emptyName": "Quick workout",
-    "collapse": "Collapse {{name}}",
+    "collapse": "Minimize",
     "more": "More",
     "position": "{{index}} / {{total}} · {{group}}",
     "positionNoGroup": "{{index}} / {{total}}",
@@ -280,7 +280,13 @@
       "channel": "Rest timer",
       "doneTitle": "Rest over",
       "doneBody": "Time for your next set.",
-      "remainingA11y": "{{time}} of rest left"
+      "remainingA11y": "{{time}} of rest left",
+      "doneHint": "Start your next set",
+      "ok": "OK",
+      "blocked": "Notifications are off. Turn them on to be alerted when the screen is off.",
+      "nextSet": "Start set {{set}} of {{name}}",
+      "nextWarmup": "Start your warm-up set of {{name}}",
+      "nextExercise": "Next exercise: {{name}}"
     },
     "finish": "Finish workout",
     "finishConfirmTitle": "Finish this workout?",
@@ -292,11 +298,12 @@
     "emptyBody": "Discard this workout?",
     "discard": "Discard",
     "menu": {
-      "title": "Workout",
+      "title": "Workout menu",
       "addExercise": "Add exercises",
       "replace": "Replace {{name}}",
       "discard": "Discard workout",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "editExercises": "Reorder or delete exercises"
     },
     "discardTitle": "Discard this workout?",
     "discardBody": "Everything from this workout will be deleted.",
@@ -327,6 +334,34 @@
       "rpe": "Enter RPE",
       "rpeTitle": "RPE (effort, 10 = max)",
       "rpeClear": "Clear RPE"
+    },
+    "collapseCard": "Collapse {{name}}",
+    "addExercise": "Add exercise",
+    "restChip": "Rest {{time}}",
+    "keyboard": {
+      "next": "Next",
+      "done": "Done",
+      "field": "{{set}} · {{field}}"
+    },
+    "restSheet": {
+      "title": "Rest time for {{name}}",
+      "subtitle": "The timer runs this long after each set. Warm-up sets get a shorter rest.",
+      "saveToRoutine": "Save to routine",
+      "saveToRoutineSub": "Use this rest time next time you do {{name}}",
+      "done": "Done",
+      "hint": "Tap to change the rest time"
+    },
+    "edit": {
+      "title": "Edit exercises",
+      "hint": "Drag to reorder. Tap the trash to delete an exercise.",
+      "done": "Done",
+      "removeA11y": "Delete {{name}}",
+      "deleteTitle": "Delete {{name}}?",
+      "delete": "Delete",
+      "subtitle_one": "{{name}} · {{count}} exercise",
+      "subtitle_other": "{{name}} · {{count}} exercises",
+      "deleteBody_one": "The {{count}} set you logged will be deleted too.",
+      "deleteBody_other": "The {{count}} sets you logged will be deleted too."
     }
   },
   "summary": {
@@ -455,9 +490,20 @@
       "today": "today",
       "done": "worked out",
       "plan": "routine planned",
-      "rest": "rest"
+      "rest": "rest",
+      "todayDone": "today, workout done"
     },
-    "stripA11y": "This week"
+    "stripA11y": "This week",
+    "doneTitle": "{{name}} done today",
+    "doneBadge": "Done",
+    "viewRecord": "View workout",
+    "startMore": "Do another workout",
+    "pick": {
+      "title": "What are you training?",
+      "empty": "Start an empty workout",
+      "emptySub": "Add exercises as you go, without a routine",
+      "cancel": "Cancel"
+    }
   },
   "relative": {
     "today": "today",
@@ -603,5 +649,10 @@
     "groupOss": "Open source licenses",
     "hint": "Dailift uses the open source software below. Tap an item to read its full license.",
     "homepage": "Open homepage"
+  },
+  "duration": {
+    "min": "{{m}} min",
+    "sec": "{{s}} sec",
+    "minSec": "{{m}} min {{s}} sec"
   }
 }

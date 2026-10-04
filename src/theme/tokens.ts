@@ -22,6 +22,8 @@ const base = {
     onPr: '#FFFFFF',
     track: '#E6E8EC',
     danger: '#C5281C',
+    /** 시트·확인 창 뒤를 덮는 어두운 막 */
+    scrim: 'rgba(15,16,18,0.45)',
   },
   dark: {
     bg: '#0F1012',
@@ -38,6 +40,7 @@ const base = {
     onPr: '#1A0504',
     track: '#2C2F36',
     danger: '#FF6B63',
+    scrim: 'rgba(0,0,0,0.6)',
   },
 } as const;
 

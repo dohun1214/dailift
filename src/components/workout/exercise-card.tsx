@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Disc, Plus } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Disc, Plus, Timer } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
@@ -22,6 +22,11 @@ type CardProps = {
   weightColumn?: string;
   /** 지금 하는 종목이 아닌데 펼쳐 둔 카드면 접기 버튼 */
   onCollapse?: () => void;
+  /** 종목별 휴식 시간 칩 (예: "휴식 1분 30초"). 누르면 시간을 고른다 */
+  restLabel?: string;
+  onRestPress?: () => void;
+  /** 이름을 꾹 누르면 종목 편집(순서 · 삭제) */
+  onLongPress?: () => void;
 };
 
 /** 지금 하는 종목 카드: 위치·부위 / 이름 / 증량 제안 / 컬럼 헤더 / 세트 행들 / 세트 추가 */
@@ -36,6 +41,9 @@ export function ActiveExerciseCard({
   onPlatesPress,
   weightColumn,
   onCollapse,
+  restLabel,
+  onRestPress,
+  onLongPress,
 }: CardProps) {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
@@ -44,8 +52,10 @@ export function ActiveExerciseCard({
       <View style={styles.head}>
         <Pressable
           style={styles.headText}
-          disabled={!onNamePress}
+          disabled={!onNamePress && !onLongPress}
           onPress={onNamePress}
+          onLongPress={onLongPress}
+          delayLongPress={350}
           accessibilityRole={onNamePress ? 'link' : 'header'}
           accessibilityLabel={`${position}, ${name}`}
         >
@@ -64,12 +74,26 @@ export function ActiveExerciseCard({
           <IconButton
             icon={ChevronUp}
             tone="raised"
-            label={t('workout.collapse', { name })}
+            label={t('workout.collapseCard', { name })}
             onPress={onCollapse}
           />
         ) : null}
       </View>
       {suggestion}
+      {restLabel ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={restLabel}
+          accessibilityHint={t('workout.restSheet.hint')}
+          disabled={!onRestPress}
+          onPress={onRestPress}
+          style={({ pressed }) => [styles.rest, pressed && styles.pressed]}
+        >
+          <Timer size={16} color={theme.colors.text2} strokeWidth={1.8} />
+          <Text style={styles.restText}>{restLabel}</Text>
+          <ChevronDown size={14} color={theme.colors.text2} strokeWidth={1.8} />
+        </Pressable>
+      ) : null}
       <View style={styles.columns} importantForAccessibility="no-hide-descendants">
         <Text style={[styles.col, styles.colSet]}>{t('workout.colSet')}</Text>
         {type === 'time' ? (
@@ -99,10 +123,15 @@ export function ActiveExerciseCard({
   );
 }
 
-type CollapsedProps = { name: string; meta: string; onPress: () => void };
+type CollapsedProps = {
+  name: string;
+  meta: string;
+  onPress: () => void;
+  onLongPress?: () => void;
+};
 
 /** 접힌 종목 카드 */
-export function CollapsedExerciseCard({ name, meta, onPress }: CollapsedProps) {
+export function CollapsedExerciseCard({ name, meta, onPress, onLongPress }: CollapsedProps) {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
   return (
@@ -111,6 +140,8 @@ export function CollapsedExerciseCard({ name, meta, onPress }: CollapsedProps) {
       accessibilityLabel={`${name}, ${meta}`}
       accessibilityHint={t('workout.expandA11y', { name })}
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={350}
       style={({ pressed }) => [styles.collapsed, pressed && styles.pressed]}
     >
       <View style={styles.collapsedBody}>
@@ -150,6 +181,24 @@ const styles = StyleSheet.create((theme) => ({
     lineHeight: 31,
     includeFontPadding: false,
     fontFamily: theme.fonts.bold,
+    color: theme.colors.text,
+  },
+  rest: {
+    alignSelf: 'flex-start',
+    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingLeft: 10,
+    paddingRight: 12,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surface2,
+  },
+  restText: {
+    fontSize: 13,
+    lineHeight: 17,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.semibold,
     color: theme.colors.text,
   },
   columns: { flexDirection: 'row', alignItems: 'center', gap: 8 },

@@ -30,3 +30,15 @@ export function formatClock(totalSec: number): string {
   const sec = String(s % 60).padStart(2, '0');
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`;
 }
+
+/** 종목별 휴식 시간 선택지(초) */
+export const REST_OPTIONS = [30, 45, 60, 90, 120, 150, 180, 240, 300] as const;
+
+/** 휴식이 끝난 뒤 '휴식 끝' 표시를 남겨 두는 시간(ms). 지나면 저절로 사라진다. */
+export const REST_DONE_LINGER_MS = 60_000;
+
+/** 초를 분·초로 나눈다 (표시용: 90 → 1분 30초) */
+export function splitDuration(totalSec: number): { m: number; s: number } {
+  const sec = Math.max(0, Math.round(totalSec));
+  return { m: Math.floor(sec / 60), s: sec % 60 };
+}

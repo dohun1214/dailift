@@ -7,12 +7,14 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
+import { type PickRoutine, RoutinePickSheet } from '@/components/home/routine-pick-sheet';
 import { WeekStrip } from '@/components/home/week-strip';
 import { Badge, Button, Screen } from '@/components/ui';
 import { db } from '@/db/client';
 import { completedWorkoutsQuery } from '@/db/history';
 import * as schema from '@/db/schema';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
+import { useHistory } from '@/db/use-history';
 import { useRoutineSections } from '@/db/use-routine-sections';
 import { useStatsData } from '@/db/use-stats';
 import { useActiveWorkout } from '@/db/use-workout';
@@ -22,11 +24,13 @@ import {
   latestPr,
   streakWeeks,
   todaysRoutine,
+  todaysWorkout,
   weekStrip,
   workoutsInLast7Days,
 } from '@/domain/home';
 import type { SummarySet } from '@/domain/session-summary';
 import { useAppLanguage } from '@/i18n/use-app-language';
+import { useToday } from '@/lib/use-today';
 import { useProfile } from '@/stores/profile';
 import { useSettings, workoutDefaults } from '@/stores/settings';
 
@@ -46,7 +50,9 @@ export default function HomeScreen() {
   const { workout: active } = useActiveWorkout();
   const { data: workouts } = useLiveQuery(completedWorkoutsQuery(db));
   const { sets } = useStatsData();
-  const [now] = useState(() => new Date());
+  const now = useToday();
+  const [picking, setPicking] = useState(false);
+  const { months } = useHistory(unit);
 
   const routines = useMemo(() => sections.flatMap((s) => s.routines), [sections]);
   const today = todaysRoutine(routines, now);
@@ -65,6 +71,25 @@ export default function HomeScreen() {
       )
       .orderBy(asc(schema.routineExercises.position)),
     [today?.id],
+  );
+
+  // 오늘 이미 마친 운동(가장 최근 것). 있으면 '운동 시작' 대신 완료 카드를 보여 준다.
+  const doneToday = todaysWorkout(
+    months.flatMap((m) => m.items),
+    now,
+  );
+  const { data: doneItems } = useLiveQuery(
+    db
+      .select({ exerciseId: schema.workoutExercises.exerciseId })
+      .from(schema.workoutExercises)
+      .where(
+        and(
+          eq(schema.workoutExercises.workoutId, doneToday?.id ?? ''),
+          isNull(schema.workoutExercises.deletedAt),
+        ),
+      )
+      .orderBy(asc(schema.workoutExercises.position)),
+    [doneToday?.id],
   );
 
   const starts = workouts.map((w) => w.startedAt);
@@ -106,9 +131,21 @@ export default function HomeScreen() {
   });
   const title = active
     ? t('home.inProgress', { name: active.name })
-    : today
-      ? t('home.todayRoutine', { name: today.name })
-      : t('home.restDay');
+    : doneToday
+      ? t('home.doneTitle', { name: doneToday.name })
+      : today
+        ? t('home.todayRoutine', { name: today.name })
+        : t('home.restDay');
+
+  // 고를 루틴: 오늘 요일 루틴을 맨 위로
+  const pickList: PickRoutine[] = [...routines]
+    .sort((a, b) => Number(b.id === today?.id) - Number(a.id === today?.id))
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      today: r.id === today?.id,
+      meta: t('home.meta', { count: r.exerciseCount, sets: r.setCount, minutes: r.minutes }),
+    }));
 
   const start = (routineId: string | null, name: string) => {
     if (!active)
@@ -121,14 +158,17 @@ export default function HomeScreen() {
     router.push('/workout');
   };
 
-  const names = todayItems.map((i) => catalog.byId.get(i.exerciseId)?.name ?? '').filter(Boolean);
-  const namesLine =
-    names.length > NAMES_SHOWN
+  const joinNames = (ids: readonly string[]) => {
+    const list = ids.map((id) => catalog.byId.get(id)?.name ?? '').filter(Boolean);
+    return list.length > NAMES_SHOWN
       ? t('home.more', {
-          names: names.slice(0, NAMES_SHOWN).join(' · '),
-          count: names.length - NAMES_SHOWN,
+          names: list.slice(0, NAMES_SHOWN).join(' · '),
+          count: list.length - NAMES_SHOWN,
         })
-      : names.join(' · ');
+      : list.join(' · ');
+  };
+  const namesLine = joinNames(todayItems.map((i) => i.exerciseId));
+  const doneNamesLine = joinNames(doneItems.map((i) => i.exerciseId));
   const totalSets = todayItems.reduce((n, i) => n + i.targetSets, 0);
 
   const prName = pr ? (catalog.byId.get(pr.entry.exerciseId)?.name ?? '') : '';
@@ -161,7 +201,40 @@ export default function HomeScreen() {
 
         <WeekStrip days={strip} dateFormat={dayFmt} />
 
-        {today && !active ? (
+        {doneToday && !active ? (
+          <View style={[styles.todayCard, styles.doneCard]}>
+            <View style={styles.todayMeta}>
+              <View>
+                <Badge label={t('home.doneBadge')} kind="solid" />
+              </View>
+              <Text style={styles.metaText}>
+                {t('history.meta', {
+                  minutes: doneToday.minutes,
+                  sets: doneToday.sets,
+                  volume: `${doneToday.volume.toLocaleString(locale)}${unit}`,
+                })}
+              </Text>
+            </View>
+            <View style={styles.todayBody}>
+              <Text style={styles.routineName}>{doneToday.name}</Text>
+              {doneNamesLine ? <Text style={styles.names}>{doneNamesLine}</Text> : null}
+            </View>
+            <View style={styles.doneActions}>
+              <Button
+                label={t('home.viewRecord')}
+                onPress={() =>
+                  router.push({ pathname: '/workout-summary/[id]', params: { id: doneToday.id } })
+                }
+              />
+              <Button
+                label={t('home.startMore')}
+                variant="ghost"
+                size="sm"
+                onPress={() => setPicking(true)}
+              />
+            </View>
+          </View>
+        ) : today && !active ? (
           <View style={styles.todayCard}>
             <View style={styles.todayMeta}>
               <View>
@@ -179,7 +252,7 @@ export default function HomeScreen() {
               <Text style={styles.routineName}>{today.name}</Text>
               {namesLine ? <Text style={styles.names}>{namesLine}</Text> : null}
             </View>
-            <Button label={t('home.start')} onPress={() => start(today.id, today.name)} />
+            <Button label={t('home.start')} onPress={() => setPicking(true)} />
           </View>
         ) : (
           <View style={styles.todayCard}>
@@ -196,10 +269,14 @@ export default function HomeScreen() {
                     {routines.length ? t('home.restBody') : t('home.noRoutinesBody')}
                   </Text>
                 </View>
-                <Button
-                  label={t('home.quickStart')}
-                  onPress={() => start(null, t('workout.emptyName'))}
-                />
+                {routines.length > 0 ? (
+                  <Button label={t('home.start')} onPress={() => setPicking(true)} />
+                ) : (
+                  <Button
+                    label={t('home.quickStart')}
+                    onPress={() => start(null, t('workout.emptyName'))}
+                  />
+                )}
                 {routines.length === 0 ? (
                   <Button
                     label={t('home.goRoutines')}
@@ -254,6 +331,13 @@ export default function HomeScreen() {
           </Pressable>
         ) : null}
       </View>
+      <RoutinePickSheet
+        visible={picking}
+        routines={pickList}
+        onPick={(r) => start(r.id, r.name)}
+        onEmpty={() => start(null, t('workout.emptyName'))}
+        onClose={() => setPicking(false)}
+      />
     </Screen>
   );
 }
@@ -282,6 +366,8 @@ const styles = StyleSheet.create((theme) => ({
     borderRadius: theme.radius.xl,
     backgroundColor: theme.colors.surface,
   },
+  doneCard: { paddingBottom: 12 },
+  doneActions: { gap: 4 },
   todayMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   metaText: {
     flexShrink: 1,

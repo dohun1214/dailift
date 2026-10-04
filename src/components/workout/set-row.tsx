@@ -28,7 +28,18 @@ type Props = {
   /** 고급 기록이 켜져 있으면 번호를 눌러 세트 종류·RPE를 바꾼다 */
   onLabelPress?: () => void;
   rpe?: number | null;
+  /** 키보드 '다음' 이동용 세트 id (없으면 이동 대상에서 빠진다) */
+  navId?: string;
 };
+
+/** 입력칸 이동용 key */
+export const fieldKey = (setId: string, field: 'weight' | 'reps' | 'time') => `${setId}:${field}`;
+
+/** 한 세트의 입력칸 key를 화면 순서대로 */
+export const setFieldKeys = (setId: string, type: ExerciseType): string[] =>
+  type === 'time'
+    ? [fieldKey(setId, 'time')]
+    : [fieldKey(setId, 'weight'), fieldKey(setId, 'reps')];
 
 /** 세트 한 줄: 번호(워밍업은 주황 W) · 무게 · 횟수(또는 시간) · 완료 체크. 왼쪽으로 밀면 삭제 */
 export function SetRow({
@@ -44,6 +55,7 @@ export function SetRow({
   onDelete,
   onLabelPress,
   rpe,
+  navId,
 }: Props) {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
@@ -101,6 +113,8 @@ export function SetRow({
             onChange={(durationSec) => onChange({ durationSec })}
             badge={pr ? t('workout.pr') : undefined}
             badgeLabel={t('workout.prA11y')}
+            navKey={navId ? fieldKey(navId, 'time') : undefined}
+            navLabel={t('workout.keyboard.field', { set: setName, field: t('workout.colTime') })}
           />
         ) : (
           <>
@@ -111,6 +125,11 @@ export function SetRow({
               decimal
               muted={muted}
               onChange={(weight) => onChange({ weight })}
+              navKey={navId ? fieldKey(navId, 'weight') : undefined}
+              navLabel={t('workout.keyboard.field', {
+                set: setName,
+                field: t(type === 'bodyweight_reps' ? 'workout.colAdded' : 'workout.colWeight'),
+              })}
             />
             <SetField
               label={t('workout.repsA11y', { set: setName })}
@@ -120,6 +139,8 @@ export function SetRow({
               onChange={(reps) => onChange({ reps })}
               badge={pr ? t('workout.pr') : undefined}
               badgeLabel={t('workout.prA11y')}
+              navKey={navId ? fieldKey(navId, 'reps') : undefined}
+              navLabel={t('workout.keyboard.field', { set: setName, field: t('workout.colReps') })}
             />
           </>
         )}

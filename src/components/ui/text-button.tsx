@@ -1,11 +1,15 @@
 import { Pressable, type PressableProps, Text } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
-type Props = Omit<PressableProps, 'children' | 'style'> & { label: string };
+type Props = Omit<PressableProps, 'children' | 'style'> & {
+  label: string;
+  /** muted: 보조 동작(옅은 글자색) */
+  tone?: 'default' | 'muted';
+};
 
 /** 상단 바 오른쪽 "저장" 같은 글자 버튼 (높이 44, 15/700) */
-export function TextButton({ label, disabled, ...props }: Props) {
-  styles.useVariants({ disabled: !!disabled });
+export function TextButton({ label, disabled, tone = 'default', ...props }: Props) {
+  styles.useVariants({ disabled: !!disabled || tone === 'muted' });
   return (
     <Pressable
       accessibilityRole="button"
