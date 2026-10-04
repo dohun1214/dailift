@@ -37,6 +37,8 @@ type Data = {
   advancedLogging: boolean;
   /** 운동 중 '종목을 꾹 누르면…' 안내를 닫았거나 편집 모드에 들어가 봤는지 */
   editHintSeen: boolean;
+  /** 기록 상세의 '한 운동' 카드를 펼쳐 둘지 (마지막으로 누른 상태를 기억) */
+  summaryExercisesOpen: boolean;
 };
 
 type SettingsState = Data & {
@@ -51,6 +53,7 @@ type SettingsState = Data & {
   setDefaultRestSec: (value: number) => void;
   setAdvancedLogging: (value: boolean) => void;
   markEditHintSeen: () => void;
+  setSummaryExercisesOpen: (value: boolean) => void;
   /** 모든 데이터 삭제 때 처음 상태로 */
   reset: () => void;
 };
@@ -68,6 +71,7 @@ function defaults(): Data {
     defaultRestSec: DEFAULT_REST_SEC,
     advancedLogging: false,
     editHintSeen: false,
+    summaryExercisesOpen: false,
   };
 }
 
@@ -88,6 +92,7 @@ export const useSettings = create<SettingsState>()(
       setDefaultRestSec: (defaultRestSec) => set({ defaultRestSec }),
       setAdvancedLogging: (advancedLogging) => set({ advancedLogging }),
       markEditHintSeen: () => set({ editHintSeen: true }),
+      setSummaryExercisesOpen: (summaryExercisesOpen) => set({ summaryExercisesOpen }),
       reset: () => set(defaults()),
     }),
     {

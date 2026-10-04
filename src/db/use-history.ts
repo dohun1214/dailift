@@ -21,6 +21,8 @@ export function useHistory(unit: schema.WeightUnit) {
         weight: schema.sets.weight,
         reps: schema.sets.reps,
         unit: schema.sets.weightUnit,
+        exercisePosition: schema.workoutExercises.position,
+        setPosition: schema.sets.position,
       })
       .from(schema.sets)
       .innerJoin(
@@ -40,8 +42,19 @@ export function useHistory(unit: schema.WeightUnit) {
   );
   const months = useMemo(() => {
     const byWorkout = new Map<string, SummarySet[]>();
-    for (const r of rows) {
-      const set: SummarySet = { ...r, completed: true };
+    // 운동 안에서 한 순서대로 (종목 순서 → 세트 순서)
+    const ordered = [...rows].sort(
+      (a, b) => a.exercisePosition - b.exercisePosition || a.setPosition - b.setPosition,
+    );
+    for (const r of ordered) {
+      const set: SummarySet = {
+        exerciseId: r.exerciseId,
+        kind: r.kind,
+        weight: r.weight,
+        reps: r.reps,
+        unit: r.unit,
+        completed: true,
+      };
       const list = byWorkout.get(r.workoutId);
       if (list) list.push(set);
       else byWorkout.set(r.workoutId, [set]);

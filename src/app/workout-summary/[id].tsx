@@ -2,7 +2,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Camera } from 'lucide-react-native';
+import { Camera, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
@@ -14,7 +14,14 @@ import { db } from '@/db/client';
 import * as schema from '@/db/schema';
 import { addWorkoutPhoto, deleteWorkoutPhoto, loadSummary, setWorkoutNote } from '@/db/summary';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
-import { muscleCredits, muscleLevels, sessionPrs, sessionStats } from '@/domain/session-summary';
+import { splitDuration } from '@/domain/rest-timer';
+import {
+  groupSetsByWeight,
+  muscleCredits,
+  muscleLevels,
+  sessionPrs,
+  sessionStats,
+} from '@/domain/session-summary';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { type PhotoSource, photoUri, pickPhoto, removePhotoFile } from '@/lib/photos';
 import { useProfile } from '@/stores/profile';
@@ -22,7 +29,7 @@ import { useSettings } from '@/stores/settings';
 
 const fmt = (n: number) => String(Math.round(n * 100) / 100);
 
-/** 세션 요약: 시간·세트·볼륨, 근육맵, PR, 메모, 사진. 운동 완료 직후와 히스토리에서 같이 쓴다. */
+/** 세션 요약: 시간·세트·볼륨, 근육맵, PR, 한 운동(접는 카드), 메모, 사진. 운동 완료 직후와 히스토리에서 같이 쓴다. */
 export default function WorkoutSummaryScreen() {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
@@ -30,6 +37,8 @@ export default function WorkoutSummaryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const unit = useSettings((s) => s.weightUnit);
   const bodyType = useProfile((s) => s.bodyType);
+  const exercisesOpen = useSettings((s) => s.summaryExercisesOpen);
+  const setExercisesOpen = useSettings((s) => s.setSummaryExercisesOpen);
   const catalog = useExerciseCatalog(lang);
   const data = useMemo(() => loadSummary(db, id ?? ''), [id]);
   const [note, setNote] = useState(data?.workout.note ?? '');
@@ -102,6 +111,41 @@ export default function WorkoutSummaryScreen() {
       },
     ]);
 
+  const formatDuration = (sec: number) => {
+    const { m, s: rest } = splitDuration(sec);
+    if (m > 0 && rest > 0) return t('duration.minSec', { m, s: rest });
+    return m > 0 ? t('duration.min', { m }) : t('duration.sec', { s: rest });
+  };
+  // 한 운동: 본 세트가 있는 종목만, 종목마다 세트 수와 한 줄 기록
+  const exerciseRows = summary.exercises.flatMap((ex) => {
+    const info = catalog.byId.get(ex.exerciseId);
+    const working = ex.sets.filter((x) => x.kind !== 'warmup');
+    if (working.length === 0) return [];
+    let line: string;
+    if (info?.type === 'time') {
+      line = working.map((x) => formatDuration(x.durationSec ?? 0)).join(' · ');
+    } else {
+      const groups = groupSetsByWeight(working);
+      const text = groups
+        .map((g) =>
+          g.weight === null
+            ? g.reps.join(' · ')
+            : `${info?.type === 'bodyweight_reps' ? '+' : ''}${fmt(g.weight)}${g.unit} × ${g.reps.join(' · ')}`,
+        )
+        .join(' · ');
+      line = groups.every((g) => g.weight === null) ? t('summary.repsOnly', { reps: text }) : text;
+    }
+    return [
+      {
+        id: ex.id,
+        name: info?.name ?? '',
+        sets: t('summary.setCount', { count: working.length }),
+        line,
+      },
+    ];
+  });
+  const exerciseCount = t('summary.exerciseCount', { count: exerciseRows.length });
+
   const statItems: [string, string, string][] = [
     [t('summary.time'), String(stats.minutes), t('summary.minutes')],
     [t('summary.sets'), String(stats.sets), ''],
@@ -163,6 +207,48 @@ export default function WorkoutSummaryScreen() {
               </View>
             );
           })}
+        </View>
+      ) : null}
+
+      {exerciseRows.length > 0 ? (
+        <View style={styles.exCard}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: exercisesOpen }}
+            accessibilityLabel={t('summary.exercisesA11y', { count: exerciseCount })}
+            onPress={() => setExercisesOpen(!exercisesOpen)}
+            style={({ pressed }) => [styles.exHead, pressed && styles.pressed]}
+          >
+            <Text style={styles.exTitle}>{t('summary.exercises')}</Text>
+            <Text style={styles.exCount}>{exerciseCount}</Text>
+            {exercisesOpen ? (
+              <ChevronUp size={20} color={theme.colors.text2} strokeWidth={1.8} />
+            ) : (
+              <ChevronDown size={20} color={theme.colors.text2} strokeWidth={1.8} />
+            )}
+          </Pressable>
+          {exercisesOpen
+            ? exerciseRows.map((row, i) => (
+                <View
+                  key={row.id}
+                  style={[styles.exRow, i < exerciseRows.length - 1 && styles.line]}
+                  accessible
+                  accessibilityLabel={t('summary.exerciseA11y', {
+                    name: row.name,
+                    sets: row.sets,
+                    line: row.line,
+                  })}
+                >
+                  <View style={styles.exTop}>
+                    <Text style={styles.exName} numberOfLines={1}>
+                      {row.name}
+                    </Text>
+                    <Text style={styles.exSets}>{row.sets}</Text>
+                  </View>
+                  <Text style={styles.exLine}>{row.line}</Text>
+                </View>
+              ))
+            : null}
         </View>
       ) : null}
 
@@ -287,6 +373,55 @@ const styles = StyleSheet.create((theme) => ({
     lineHeight: 18,
     includeFontPadding: false,
     fontFamily: theme.fonts.regular,
+    fontVariant: ['tabular-nums'],
+    color: theme.colors.text2,
+  },
+  exCard: {
+    paddingTop: 6,
+    paddingHorizontal: 18,
+    paddingBottom: 6,
+    borderRadius: theme.radius.xl,
+    backgroundColor: theme.colors.surface,
+  },
+  exHead: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pressed: { opacity: 0.7 },
+  exTitle: {
+    flex: 1,
+    fontSize: 16,
+    lineHeight: 21,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.bold,
+    color: theme.colors.text,
+  },
+  exCount: {
+    fontSize: 13,
+    lineHeight: 17,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.text2,
+  },
+  exRow: { gap: 3, paddingVertical: 12 },
+  exTop: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  exName: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 20,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.semibold,
+    color: theme.colors.text,
+  },
+  exSets: {
+    fontSize: 12,
+    lineHeight: 16,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.text2,
+  },
+  exLine: {
+    fontSize: 13,
+    lineHeight: 18,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.numRegular,
     fontVariant: ['tabular-nums'],
     color: theme.colors.text2,
   },

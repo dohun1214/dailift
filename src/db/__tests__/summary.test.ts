@@ -71,6 +71,15 @@ describe('loadSummary', () => {
       [65, 8],
       [65, 8],
     ]);
+    // '한 운동' 목록: 종목별 완료 세트(워밍업 포함, 한 순서대로)
+    expect(s?.exercises).toHaveLength(1);
+    expect(s?.exercises[0]?.exerciseId).toBe(baseExerciseId('bench_press'));
+    expect(
+      s?.exercises[0]?.sets.filter((x) => x.kind === 'working').map((x) => [x.weight, x.reps]),
+    ).toEqual([
+      [65, 8],
+      [65, 8],
+    ]);
     // 세 번째(나중) 운동의 80kg은 기준에 들어가지 않는다
     expect(s?.bests.get(baseExerciseId('bench_press'))?.weightKg).toBe(60);
     expect(

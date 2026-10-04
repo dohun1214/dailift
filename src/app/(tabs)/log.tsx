@@ -9,6 +9,7 @@ import { StatsView } from '@/components/stats/stats-view';
 import { ActionSheet, Screen, Segmented } from '@/components/ui';
 import { db } from '@/db/client';
 import { deleteWorkout } from '@/db/history';
+import { useExerciseCatalog } from '@/db/use-exercise-catalog';
 import { useHistory } from '@/db/use-history';
 import type { HistoryItem } from '@/domain/history';
 import { useAppLanguage } from '@/i18n/use-app-language';
@@ -16,12 +17,15 @@ import { removePhotoFile } from '@/lib/photos';
 import { useSettings } from '@/stores/settings';
 
 type View_ = 'history' | 'stats';
+/** 목록 한 줄에 이름을 보여 줄 종목 수 (나머지는 '외 N') */
+const NAMES_SHOWN = 2;
 
 /** 기록 탭: 히스토리 | 통계 세그먼트. 통계는 #10에서 채운다. */
 export default function LogScreen() {
   const { t } = useTranslation();
   const lang = useAppLanguage();
   const unit = useSettings((s) => s.weightUnit);
+  const catalog = useExerciseCatalog(lang);
   const [view, setView] = useState<View_>('history');
   const { months, ready } = useHistory(unit);
   const [selected, setSelected] = useState<HistoryItem | null>(null);
@@ -40,6 +44,16 @@ export default function LogScreen() {
       sets: i.sets,
       volume: `${i.volume.toLocaleString(locale)}${unit}`,
     });
+
+  const exercisesLine = (i: HistoryItem) => {
+    const names = i.exerciseIds.map((id) => catalog.byId.get(id)?.name ?? '').filter(Boolean);
+    return names.length > NAMES_SHOWN
+      ? t('home.more', {
+          names: names.slice(0, NAMES_SHOWN).join(' · '),
+          count: names.length - NAMES_SHOWN,
+        })
+      : names.join(' · ');
+  };
 
   const confirmDelete = (item: HistoryItem) =>
     Alert.alert(t('history.deleteTitle'), t('history.deleteBody'), [
@@ -85,12 +99,14 @@ export default function LogScreen() {
               {m.items.map((item) => {
                 const d = new Date(item.startedAt);
                 const line = meta(item);
+                const exercises = exercisesLine(item);
                 return (
                   <HistoryRow
                     key={item.id}
                     weekday={dowFmt.format(d)}
                     day={d.getDate()}
                     name={item.name}
+                    exercises={exercises || undefined}
                     meta={line}
                     pr={
                       item.prCount > 0 ? t('history.prBadge', { count: item.prCount }) : undefined
@@ -98,7 +114,7 @@ export default function LogScreen() {
                     a11yLabel={t('history.rowA11y', {
                       date: dateFmt.format(d),
                       name: item.name,
-                      meta: line,
+                      meta: exercises ? `${exercises}, ${line}` : line,
                     })}
                     a11yHint={t('history.rowHint')}
                     onPress={() =>

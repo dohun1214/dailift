@@ -414,7 +414,15 @@
     "photoDelete": "Delete",
     "photoDeleteHint": "Long press to delete",
     "done": "Done",
-    "notFound": "Workout not found"
+    "notFound": "Workout not found",
+    "exercises": "Exercises",
+    "exerciseCount_one": "{{count}} exercise",
+    "exerciseCount_other": "{{count}} exercises",
+    "setCount_one": "{{count}} set",
+    "setCount_other": "{{count}} sets",
+    "repsOnly": "{{reps}} reps",
+    "exercisesA11y": "Exercises, {{count}}",
+    "exerciseA11y": "{{name}}, {{sets}}, {{line}}"
   },
   "history": {
     "segHistory": "History",

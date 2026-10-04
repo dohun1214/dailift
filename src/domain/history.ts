@@ -16,11 +16,14 @@ export type HistoryItem = HistoryWorkout & {
   sets: number;
   volume: number;
   prCount: number;
+  /** 본 세트를 기록한 종목 (한 순서대로, 중복 없이) */
+  exerciseIds: string[];
 };
 
 /**
  * 세션별 통계와 PR 개수. 오래된 운동부터 차례로 최고 기록을 쌓아 가며
  * 그 시점 기준으로 PR을 센다(요약 화면과 같은 기준). 결과는 최신 순.
+ * 세트는 운동 안에서 한 순서대로 넘긴다(exerciseIds 순서가 된다).
  */
 export function buildHistory(
   workouts: readonly HistoryWorkout[],
@@ -33,7 +36,10 @@ export function buildHistory(
     const sets = setsByWorkout.get(w.id) ?? [];
     const stats = sessionStats(sets, w.startedAt, w.endedAt, unit);
     const prCount = sessionPrs(sets, bests, unit).length;
-    items.push({ ...w, ...stats, prCount });
+    const exerciseIds = [
+      ...new Set(sets.filter((s) => s.completed && s.kind !== 'warmup').map((s) => s.exerciseId)),
+    ];
+    items.push({ ...w, ...stats, prCount, exerciseIds });
     // 이 세션 기록을 기준에 더한다.
     const byExercise = new Map<string, SummarySet[]>();
     for (const s of sets) {

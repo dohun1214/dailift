@@ -30,11 +30,28 @@ describe('buildHistory', () => {
     ]);
     expect(items[2]?.volume).toBe(1100);
   });
+
+  it('본 세트를 기록한 종목을 한 순서대로 중복 없이 모은다', () => {
+    const workouts = [{ id: 'w', name: 'A', startedAt: 1, endedAt: 2 }];
+    const warm: SummarySet = { ...s('row', 20, 10), kind: 'warmup' };
+    const sets = new Map([
+      ['w', [warm, s('squat', 100, 5), s('bench', 60, 10), s('squat', 100, 5)]],
+    ]);
+    expect(buildHistory(workouts, sets, 'kg')[0]?.exerciseIds).toEqual(['squat', 'bench']);
+  });
 });
 
 describe('groupByMonth', () => {
   it('같은 달끼리 묶는다', () => {
-    const base = { name: 'x', endedAt: null, minutes: 0, sets: 0, volume: 0, prCount: 0 };
+    const base = {
+      name: 'x',
+      endedAt: null,
+      minutes: 0,
+      sets: 0,
+      volume: 0,
+      prCount: 0,
+      exerciseIds: [],
+    };
     const groups = groupByMonth([
       { ...base, id: 'a', startedAt: new Date(2026, 8, 18).getTime() },
       { ...base, id: 'b', startedAt: new Date(2026, 8, 2).getTime() },
