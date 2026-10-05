@@ -8,6 +8,7 @@ import {
   type ProgressSet,
   progressAxis,
   progressPoints,
+  timePositions,
 } from '../exercise-progress';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -129,6 +130,15 @@ describe('bestSession', () => {
     expect(bestSession(sessions)?.workoutId).toBe('b');
     expect(bestSession([])).toBeNull();
   });
+
+  it('최고 값이 같으면 그날 합계가 큰 날', () => {
+    const sessions = exerciseSessions(
+      [set('a', 10, null, 10), set('a', 10, null, 8), set('b', 3, null, 10), set('b', 3, null, 9)],
+      'bodyweight_reps',
+      'kg',
+    );
+    expect(bestSession(sessions)?.workoutId).toBe('b');
+  });
 });
 
 describe('progressAxis', () => {
@@ -163,5 +173,16 @@ describe('monthMarks', () => {
   it('많으면 넷까지만', () => {
     const ats = Array.from({ length: 12 }, (_, m) => new Date(2026, m, 1).getTime());
     expect(monthMarks(ats)).toEqual([0, 4, 7, 11]);
+  });
+});
+
+describe('timePositions', () => {
+  it('날짜 간격대로 놓는다', () => {
+    expect(timePositions([0, 25, 100])).toEqual([0, 0.25, 1]);
+  });
+
+  it('하루뿐이면 가운데', () => {
+    expect(timePositions([5])).toEqual([0.5]);
+    expect(timePositions([5, 5])).toEqual([0.5, 0.5]);
   });
 });

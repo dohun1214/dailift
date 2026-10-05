@@ -132,11 +132,16 @@ export function hasEarlier(
   return from !== null && sessions.some((s) => s.startedAt < from);
 }
 
-/** 가장 좋은 날 (무게 종목은 무게, 같으면 횟수). 같은 기록이면 먼저 세운 날 */
+/** 가장 좋은 날: 최고 값 → 그 세트의 횟수 → 그날 합계 순으로 비교. 모두 같으면 먼저 세운 날 */
 export function bestSession(sessions: readonly ProgressSession[]): ProgressSession | null {
   let best: ProgressSession | null = null;
   for (const s of sessions) {
-    if (!best || s.max > best.max || (s.max === best.max && s.maxReps > best.maxReps)) best = s;
+    if (!best) {
+      best = s;
+      continue;
+    }
+    const diff = s.max - best.max || s.maxReps - best.maxReps || s.volume - best.volume;
+    if (diff > 0) best = s;
   }
   return best;
 }
@@ -200,4 +205,11 @@ export function monthMarks(startedAts: readonly number[], limit = 4): number[] {
     if (mark !== undefined) out.push(mark);
   }
   return out;
+}
+
+/** 점마다 가로 위치(0–1): 첫 날이 0, 마지막 날이 1. 하루뿐이면 가운데 */
+export function timePositions(startedAts: readonly number[]): number[] {
+  const first = startedAts[0] ?? 0;
+  const span = (startedAts[startedAts.length - 1] ?? first) - first;
+  return startedAts.map((at) => (span > 0 ? (at - first) / span : 0.5));
 }
