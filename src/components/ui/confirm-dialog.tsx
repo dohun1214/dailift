@@ -73,6 +73,44 @@ export function ConfirmDialog({
   );
 }
 
+type NoticeProps = {
+  visible: boolean;
+  title: string;
+  body?: string;
+  okLabel: string;
+  onClose: () => void;
+};
+
+/** 알려 주기만 하는 창: 제목 · 설명 · 확인 하나 */
+export function NoticeDialog({ visible, title, body, okLabel, onClose }: NoticeProps) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <Pressable style={styles.backdrop} onPress={onClose} accessible={false} />
+      <View style={styles.wrap} pointerEvents="box-none">
+        <View style={styles.card} accessibilityRole="alert" accessibilityViewIsModal>
+          <View style={styles.text}>
+            <Text style={styles.title}>{title}</Text>
+            {body ? <Text style={styles.body}>{body}</Text> : null}
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onClose}
+            style={({ pressed }) => [styles.single, pressed && styles.pressed]}
+          >
+            <Text style={styles.label}>{okLabel}</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 const styles = StyleSheet.create((theme) => ({
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: theme.colors.scrim },
   wrap: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
@@ -102,6 +140,13 @@ const styles = StyleSheet.create((theme) => ({
   buttons: { flexDirection: 'row', gap: 8 },
   button: {
     flex: 1,
+    height: 52,
+    borderRadius: theme.radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.surface,
+  },
+  single: {
     height: 52,
     borderRadius: theme.radius.lg,
     alignItems: 'center',

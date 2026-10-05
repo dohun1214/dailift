@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import { Button, CheckMark, Chip, Screen, SearchField, TopBar } from '@/components/ui';
+import { ExerciseSearchRow, NoExerciseCard } from '@/components/exercise/exercise-search';
+import { Button, CheckMark, Chip, Screen, TopBar } from '@/components/ui';
 import type { MuscleGroup } from '@/db/schema';
 import { type CatalogExercise, useExerciseCatalog } from '@/db/use-exercise-catalog';
 import { useAppLanguage } from '@/i18n/use-app-language';
@@ -57,11 +58,15 @@ export default function ExercisePickerScreen() {
     router.back();
   };
 
-  const create = () => {
+  const create = (name: string | null = null) => {
     openExerciseCreator((id) => {
       setSelected((s) => (single ? [id] : [...s, id]));
-    });
+      // 새로 만든 종목이 목록에 보이도록 검색을 푼다.
+      setQuery('');
+    }, name);
   };
+  const searching = query.trim().length > 0;
+  const none = base.length === 0 && custom.length === 0;
 
   const renderSection = (title: string, list: CatalogExercise[]) =>
     list.length === 0 ? null : (
@@ -122,12 +127,7 @@ export default function ExercisePickerScreen() {
       }
     >
       <View style={styles.top}>
-        <SearchField
-          label={t('exercises.search')}
-          placeholder={t('exercises.searchPlaceholder')}
-          value={query}
-          onChangeText={setQuery}
-        />
+        <ExerciseSearchRow query={query} onChangeQuery={setQuery} onCreate={() => create()} />
       </View>
       <ScrollView
         horizontal
@@ -152,11 +152,10 @@ export default function ExercisePickerScreen() {
 
       {renderSection(t('exercises.base'), base)}
       {renderSection(t('exercises.custom'), custom)}
-      {base.length === 0 && custom.length === 0 ? (
-        <Text style={styles.empty}>{t('exercises.empty')}</Text>
-      ) : null}
+      {none && searching ? <NoExerciseCard query={query} onCreate={create} /> : null}
+      {none && !searching ? <Text style={styles.empty}>{t('exercises.empty')}</Text> : null}
 
-      <Pressable accessibilityRole="button" onPress={create} style={styles.create}>
+      <Pressable accessibilityRole="button" onPress={() => create()} style={styles.create}>
         <Plus size={18} color={theme.colors.text} strokeWidth={1.8} />
         <Text style={styles.createText}>{t('exercises.create')}</Text>
       </Pressable>

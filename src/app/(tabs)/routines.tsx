@@ -6,16 +6,17 @@ import { Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { RoutineCard, SectionLabel, TemplateRow } from '@/components/routines';
-import { ConfirmDialog, IconButton, Screen } from '@/components/ui';
+import { ConfirmDialog, IconButton, NoticeDialog, Screen } from '@/components/ui';
 import { WorkoutMenuSheet } from '@/components/workout';
 import { ROUTINE_TEMPLATES } from '@/data/templates';
 import { db } from '@/db/client';
 import { deleteRoutine } from '@/db/routine-editor';
-import { duplicateRoutine } from '@/db/routines';
+import { canAddRoutines, duplicateRoutine } from '@/db/routines';
 import { useRoutineSections } from '@/db/use-routine-sections';
 import { getActiveWorkout, startWorkout } from '@/db/workout';
 import { recommendTemplate } from '@/domain/profile';
 import type { RoutineSummary } from '@/domain/routine';
+import { LIMITS } from '@/domain/routine-draft';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { isScheduledOn } from '@/lib/weekdays';
 import { useProfile } from '@/stores/profile';
@@ -39,6 +40,9 @@ export default function RoutinesScreen() {
   // 꾹 누른 루틴(메뉴)과 삭제를 확인 중인 루틴
   const [menuFor, setMenuFor] = useState<RoutineSummary | null>(null);
   const [deleteFor, setDeleteFor] = useState<RoutineSummary | null>(null);
+
+  // 루틴이 다 찼을 때 알림
+  const [full, setFull] = useState(false);
 
   // 다른 운동이 진행 중일 때 시작을 누르면 그 운동의 이름을 담아 알린다.
   const [busyWith, setBusyWith] = useState<string | null>(null);
@@ -69,7 +73,10 @@ export default function RoutinesScreen() {
         <IconButton
           icon={Plus}
           label={t('routines.create')}
-          onPress={() => router.push({ pathname: '/routine/[id]', params: { id: 'new' } })}
+          onPress={() => {
+            if (!canAddRoutines(db)) return setFull(true);
+            router.push({ pathname: '/routine/[id]', params: { id: 'new' } });
+          }}
         />
       </View>
 
@@ -140,8 +147,9 @@ export default function RoutinesScreen() {
             label: t('routines.duplicate'),
             icon: Copy,
             onPress: () => {
-              if (menuFor)
-                duplicateRoutine(db, menuFor.id, t('routines.copyName', { name: menuFor.name }));
+              if (!menuFor) return;
+              if (!canAddRoutines(db)) return setFull(true);
+              duplicateRoutine(db, menuFor.id, t('routines.copyName', { name: menuFor.name }));
             },
           },
           {
@@ -151,6 +159,13 @@ export default function RoutinesScreen() {
             destructive: true,
           },
         ]}
+      />
+      <NoticeDialog
+        visible={full}
+        title={t('routines.limitTitle', { max: LIMITS.routines })}
+        body={t('routines.limitBody')}
+        okLabel={t('common.ok')}
+        onClose={() => setFull(false)}
       />
       <ConfirmDialog
         visible={busyWith !== null}
