@@ -1,12 +1,13 @@
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
+import { type DayRoutine, DaySheet } from '@/components/home/day-sheet';
 import { LiveWorkoutCard } from '@/components/home/live-workout-card';
 import { MuscleSetsCard } from '@/components/home/muscle-sets-card';
 import { type PickRoutine, RoutinePickSheet } from '@/components/home/routine-pick-sheet';
@@ -20,14 +21,21 @@ import { useHistory } from '@/db/use-history';
 import { useRoutineSections } from '@/db/use-routine-sections';
 import { useStatsData } from '@/db/use-stats';
 import { useActiveWorkout } from '@/db/use-workout';
-import { startWorkout } from '@/db/workout';
+import { addPastWorkout, startWorkout } from '@/db/workout';
+import type { HistoryItem } from '@/domain/history';
 import {
   daysAgo,
+  dayWhen,
   latestPr,
+  MAX_WEEKS_AHEAD,
+  minWeekOffset,
+  pastWorkoutStart,
+  routinesOn,
   streakWeeks,
   todaysRoutine,
   todaysWorkout,
   weekStrip,
+  workoutsOn,
   workoutsThisWeek,
 } from '@/domain/home';
 import type { SummarySet } from '@/domain/session-summary';
@@ -39,6 +47,10 @@ import { useSettings, workoutDefaults } from '@/stores/settings';
 
 const fmt = (n: number) => String(Math.round(n * 100) / 100);
 const NAMES_SHOWN = 3;
+/** 날짜 창의 운동 줄에 이름을 보여 줄 종목 수 */
+const DAY_NAMES_SHOWN = 2;
+/** 빈 운동으로 지난 기록을 추가할 때의 기본 운동 시간(분) */
+const EMPTY_PAST_MINUTES = 60;
 
 /** 홈: 날짜·오늘 루틴 제목, 주간 스트립, 오늘 루틴 카드(운동 시작·운동 중), 이번 주 횟수·연속 기록, 이번 주 부위별 세트, 최근 PR */
 export default function HomeScreen() {
@@ -55,6 +67,18 @@ export default function HomeScreen() {
   const { sets, musclesOf } = useStatsData();
   const now = useToday();
   const [picking, setPicking] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [openDay, setOpenDay] = useState<Date | null>(null);
+  // 다른 주를 보다가 홈을 떠나면 이번 주로 되돌린다(돌아오는 단추가 없으므로).
+  useFocusEffect(
+    useCallback(
+      () => () => {
+        setWeekOffset(0);
+        setOpenDay(null);
+      },
+      [],
+    ),
+  );
   const { months } = useHistory(unit);
 
   const routines = useMemo(() => sections.flatMap((s) => s.routines), [sections]);
@@ -100,7 +124,10 @@ export default function HomeScreen() {
     now,
     routines.map((r) => r.weekdays),
     starts,
+    weekOffset,
   );
+  const canPrev = weekOffset > minWeekOffset(starts, now);
+  const canNext = weekOffset < MAX_WEEKS_AHEAD;
   const thisWeek = workoutsThisWeek(starts, now);
   const muscleRows = useMemo(() => {
     const balance = groupBalance(sets, now.getTime(), musclesOf);
@@ -177,6 +204,37 @@ export default function HomeScreen() {
         })
       : list.join(' · ');
   };
+  const joinNames2 = (ids: readonly string[]) => {
+    const list = ids.map((id) => catalog.byId.get(id)?.name ?? '').filter(Boolean);
+    return list.length > DAY_NAMES_SHOWN
+      ? t('home.more', {
+          names: list.slice(0, DAY_NAMES_SHOWN).join(' · '),
+          count: list.length - DAY_NAMES_SHOWN,
+        })
+      : list.join(' · ');
+  };
+
+  // 날짜 창: 한 번 연 날을 닫히는 동안에도 그대로 보여 준다.
+  const [shownDay, setShownDay] = useState<Date>(now);
+  const showDay = (date: Date) => {
+    setShownDay(date);
+    setOpenDay(date);
+  };
+  const allItems = months.flatMap((m) => m.items);
+  const dayWorkouts = workoutsOn(allItems, shownDay);
+  const dayPlanned = routinesOn(routines, shownDay);
+  const addRecord = (routine: DayRoutine | null) => {
+    const id = addPastWorkout(db, {
+      routineId: routine?.id ?? null,
+      name: routine?.name ?? t('workout.emptyName'),
+      weightUnit: unit,
+      barWeight: workoutDefaults().barWeight,
+      startedAt: pastWorkoutStart(shownDay),
+      minutes: routine?.minutes || EMPTY_PAST_MINUTES,
+    });
+    router.push({ pathname: '/workout-edit/[id]', params: { id, added: '1' } });
+  };
+
   const namesLine = joinNames(todayItems.map((i) => i.exerciseId));
   const doneNamesLine = joinNames(doneItems.map((i) => i.exerciseId));
   const totalSets = todayItems.reduce((n, i) => n + i.targetSets, 0);
@@ -209,7 +267,16 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        <WeekStrip days={strip} dateFormat={dayFmt} />
+        <WeekStrip
+          days={strip}
+          dateFormat={dayFmt}
+          weekOffset={weekOffset}
+          selected={openDay}
+          canPrev={canPrev}
+          canNext={canNext}
+          onShift={(dir) => setWeekOffset((w) => w + dir)}
+          onDayPress={(d) => showDay(d.date)}
+        />
 
         {active ? (
           <LiveWorkoutCard workout={active} />
@@ -339,6 +406,34 @@ export default function HomeScreen() {
           </Pressable>
         ) : null}
       </View>
+      <DaySheet
+        day={openDay}
+        when={dayWhen(shownDay, now)}
+        dateLabel={dayFmt.format(shownDay)}
+        workouts={dayWorkouts}
+        planned={dayPlanned}
+        routines={routines}
+        active={!!active}
+        exerciseName={(id) => catalog.byId.get(id)?.name ?? ''}
+        exerciseType={(id) => catalog.byId.get(id)?.type}
+        workoutMeta={(i: HistoryItem) =>
+          t('history.meta', {
+            minutes: i.minutes,
+            sets: i.sets,
+            volume: `${i.volume.toLocaleString(locale)}${unit}`,
+          })
+        }
+        workoutNames={(i: HistoryItem) => joinNames2(i.exerciseIds)}
+        onClose={() => setOpenDay(null)}
+        onOpenWorkout={(id) => router.push({ pathname: '/workout-summary/[id]', params: { id } })}
+        onStart={(r) => start(r.id, r.name)}
+        onResume={() => router.push('/workout')}
+        onPickStart={() => setTimeout(() => setPicking(true), 320)}
+        onViewRoutine={(id) =>
+          id ? router.push({ pathname: '/routine/[id]', params: { id } }) : router.push('/routines')
+        }
+        onAddRecord={addRecord}
+      />
       <RoutinePickSheet
         visible={picking}
         routines={pickList}

@@ -25,16 +25,22 @@ function sameDay(a: Date, b: Date) {
   );
 }
 
+/** 날짜 줄을 앞으로 넘길 수 있는 주 수 */
+export const MAX_WEEKS_AHEAD = 4;
+
 /**
- * 이번 주(월–일) 7칸. 오늘은 항상 today, 운동을 마친 날은 done,
- * 앞으로 루틴이 잡힌 날은 plan, 나머지는 rest.
+ * 한 주(월–일) 7칸. weekOffset 0이 이번 주, -1이 지난주, 1이 다음 주.
+ * 오늘은 항상 today, 운동을 마친 날은 done, 앞으로 루틴이 잡힌 날은 plan, 나머지는 rest.
+ * (지난 날의 예정은 지금 루틴 요일로 거꾸로 짐작한 값이라 줄에는 표시하지 않는다.)
  */
 export function weekStrip(
   now: Date,
   routineMasks: readonly number[],
   workoutStarts: readonly number[],
+  weekOffset = 0,
 ): StripDay[] {
   const start = startOfWeek(now);
+  start.setDate(start.getDate() + weekOffset * 7);
   const allMask = routineMasks.reduce((m, x) => m | x, 0);
   return Array.from({ length: 7 }, (_, i) => {
     const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
@@ -45,6 +51,47 @@ export function weekStrip(
     else if (date > now && hasDay(allMask, i)) state = 'plan';
     return { date, weekday: i, state, done };
   });
+}
+
+/** 뒤로 넘길 수 있는 가장 먼 주(0 이하): 첫 운동 기록이 있는 주까지. 기록이 없으면 0 */
+export function minWeekOffset(workoutStarts: readonly number[], now: Date): number {
+  if (workoutStarts.length === 0) return 0;
+  const first = startOfWeek(new Date(Math.min(...workoutStarts)));
+  const current = startOfWeek(now);
+  // 서머타임으로 하루 길이가 달라져도 주 수가 어긋나지 않게 반올림한다.
+  return Math.min(0, Math.round((first.getTime() - current.getTime()) / (7 * 24 * 60 * 60 * 1000)));
+}
+
+export type DayWhen = 'past' | 'today' | 'future';
+
+/** 그 날이 오늘보다 앞인지 뒤인지 (시각은 보지 않는다) */
+export function dayWhen(date: Date, now: Date): DayWhen {
+  if (sameDay(date, now)) return 'today';
+  return date.getTime() < now.getTime() ? 'past' : 'future';
+}
+
+/** 그 요일에 잡힌 루틴들 (목록 순서대로) */
+export function routinesOn<T extends { weekdays: number }>(
+  routines: readonly T[],
+  date: Date,
+): T[] {
+  const i = weekdayIndex(date);
+  return routines.filter((r) => hasDay(r.weekdays, i));
+}
+
+/** 그 날 한 운동들 (시작한 순서대로) */
+export function workoutsOn<T extends { startedAt: number }>(
+  workouts: readonly T[],
+  date: Date,
+): T[] {
+  return workouts
+    .filter((w) => sameDay(new Date(w.startedAt), date))
+    .sort((a, b) => a.startedAt - b.startedAt);
+}
+
+/** 지난 날에 기록을 추가할 때 쓰는 시작 시각: 그날 정오 */
+export function pastWorkoutStart(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12).getTime();
 }
 
 /** 오늘 요일에 잡힌 첫 루틴 (목록 순서대로) */

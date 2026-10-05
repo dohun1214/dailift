@@ -2,11 +2,16 @@ import { toMask } from '@/lib/weekdays';
 
 import {
   daysAgo,
+  dayWhen,
   latestPr,
+  minWeekOffset,
+  pastWorkoutStart,
+  routinesOn,
   streakWeeks,
   todaysRoutine,
   todaysWorkout,
   weekStrip,
+  workoutsOn,
   workoutsThisWeek,
 } from '../home';
 import type { SummarySet } from '../session-summary';
@@ -35,6 +40,72 @@ describe('weekStrip', () => {
     const after = weekStrip(NOW, [], [at(14), at(18, 7)]);
     expect(after[4]).toMatchObject({ state: 'today', done: true });
     expect(after[0]).toMatchObject({ state: 'done', done: true });
+  });
+});
+
+describe('주 넘기기', () => {
+  it('지난주: 운동한 날만 표시하고 예정은 표시하지 않는다', () => {
+    const strip = weekStrip(NOW, [toMask(['mon', 'thu'])], [at(9), at(14)], -1);
+    expect(strip.map((d) => [d.date.getDate(), d.state])).toEqual([
+      [7, 'rest'],
+      [8, 'rest'],
+      [9, 'done'],
+      [10, 'rest'],
+      [11, 'rest'],
+      [12, 'rest'],
+      [13, 'rest'],
+    ]);
+  });
+
+  it('다음 주: 루틴이 잡힌 요일은 예정', () => {
+    const strip = weekStrip(NOW, [toMask(['mon', 'thu'])], [], 1);
+    expect(strip.map((d) => [d.date.getDate(), d.state])).toEqual([
+      [21, 'plan'],
+      [22, 'rest'],
+      [23, 'rest'],
+      [24, 'plan'],
+      [25, 'rest'],
+      [26, 'rest'],
+      [27, 'rest'],
+    ]);
+  });
+
+  it('뒤로는 첫 기록이 있는 주까지', () => {
+    expect(minWeekOffset([], NOW)).toBe(0);
+    expect(minWeekOffset([at(16)], NOW)).toBe(0);
+    expect(minWeekOffset([at(13), at(16)], NOW)).toBe(-1);
+    expect(minWeekOffset([new Date(2026, 7, 3, 9).getTime()], NOW)).toBe(-6);
+  });
+});
+
+describe('날짜 칸을 눌렀을 때', () => {
+  it('지난 날 · 오늘 · 앞으로 올 날', () => {
+    expect(dayWhen(new Date(2026, 8, 17), NOW)).toBe('past');
+    expect(dayWhen(new Date(2026, 8, 18, 23), NOW)).toBe('today');
+    expect(dayWhen(new Date(2026, 8, 19), NOW)).toBe('future');
+  });
+
+  it('그 요일에 잡힌 루틴들', () => {
+    const routines = [
+      { id: 'a', weekdays: toMask(['mon', 'sat']) },
+      { id: 'b', weekdays: toMask(['tue']) },
+      { id: 'c', weekdays: toMask(['sat']) },
+    ];
+    expect(routinesOn(routines, new Date(2026, 8, 19)).map((r) => r.id)).toEqual(['a', 'c']);
+    expect(routinesOn(routines, new Date(2026, 8, 20))).toEqual([]);
+  });
+
+  it('그 날 한 운동들은 시작한 순서대로', () => {
+    const list = [
+      { id: 'late', startedAt: at(16, 19) },
+      { id: 'other', startedAt: at(15) },
+      { id: 'early', startedAt: at(16, 7) },
+    ];
+    expect(workoutsOn(list, new Date(2026, 8, 16)).map((w) => w.id)).toEqual(['early', 'late']);
+  });
+
+  it('지난 날 기록은 그날 정오에 시작한 것으로 둔다', () => {
+    expect(pastWorkoutStart(new Date(2026, 8, 15, 22, 30))).toBe(at(15, 12));
   });
 });
 
