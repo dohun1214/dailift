@@ -503,7 +503,8 @@
     "e1rmUnit": "{{unit}}",
     "chartA11y": "{{name}} estimated 1RM over 8 weeks, now {{value}}{{unit}}",
     "e1rmEmpty": "Your trend appears once you log weighted exercises.",
-    "stagnant": "<b>{{name}}</b> has stayed flat for the last {{count}} sessions. Try a different rep range?"
+    "stagnant": "<b>{{name}}</b> has stayed flat for the last {{count}} sessions. Try a different rep range?",
+    "detailLink": "{{name}} details"
   },
   "exerciseDetail": {
     "primary": "Primary",
@@ -512,15 +513,81 @@
     "steps": "How to",
     "stepA11y": "Step {{n}}, {{text}}",
     "record": "My records",
-    "e1rm": "Est. 1RM",
-    "bestSet": "{{unit}} · Best weight {{weight}} × {{reps}}",
     "noRecord": "No records yet. Your trend appears after you train this exercise.",
-    "chartA11y": "{{name}} estimated 1RM over the last {{count}} sessions, best {{value}}{{unit}}",
     "musclesA11y": "Primary: {{primary}}. Secondary: {{secondary}}",
     "none": "none",
     "notFound": "Exercise not found",
     "custom": "Custom exercises don't have instructions.",
-    "openHint": "Long press to see how to do it"
+    "openHint": "Long press to see how to do it",
+    "progress": {
+      "metricA11y": "Value to chart",
+      "periodA11y": "Period",
+      "metric": {
+        "weight": {
+          "max": "Top weight",
+          "e1rm": "Est. 1RM",
+          "volume": "Volume"
+        },
+        "reps": {
+          "max": "Top reps",
+          "e1rm": "Est. 1RM",
+          "volume": "Total reps"
+        },
+        "time": {
+          "max": "Longest",
+          "e1rm": "Est. 1RM",
+          "volume": "Total time"
+        }
+      },
+      "caption": {
+        "weight": {
+          "max": "Heaviest set of the day",
+          "e1rm": "One-rep max estimated from the day",
+          "volume": "Weight × reps added up for the day"
+        },
+        "reps": {
+          "max": "Most reps in one set that day",
+          "e1rm": "One-rep max estimated from the day",
+          "volume": "Reps from every set that day"
+        },
+        "time": {
+          "max": "Longest set of the day",
+          "e1rm": "One-rep max estimated from the day",
+          "volume": "Time from every set that day"
+        }
+      },
+      "period": {
+        "1m": "1M",
+        "3m": "3M",
+        "6m": "6M",
+        "all": "All"
+      },
+      "range": {
+        "1m": "Last month",
+        "3m": "Last 3 months",
+        "6m": "Last 6 months",
+        "all": "All time"
+      },
+      "count_one": "{{range}} · {{count}} session",
+      "count_other": "{{range}} · {{count}} sessions",
+      "ago": {
+        "1m": "{{delta}} vs 1 month ago",
+        "3m": "{{delta}} vs 3 months ago",
+        "6m": "{{delta}} vs 6 months ago",
+        "all": "{{delta}} since first record"
+      },
+      "sinceFirst": "{{delta}} since first record",
+      "same": "Same as first record",
+      "repsUnit": "reps",
+      "reps": "{{reps}} reps",
+      "needTwo": "Log this exercise twice or more\nto see your trend here.",
+      "emptyPeriod": "No records in this period.",
+      "recent": "Recent records",
+      "more": "Show earlier records",
+      "best": "Best",
+      "rowA11y": "{{date}}, {{sets}}{{best}}, view record",
+      "chartA11y": "{{name}} {{metric}} trend, {{count}} sessions, latest {{value}}"
+    }
   },
   "home": {
     "todayRoutine": "Today is {{name}} day",

@@ -485,7 +485,8 @@
     "e1rmUnit": "{{unit}}",
     "chartA11y": "{{name}} 추정 1RM 8주 추이, 지금 {{value}}{{unit}}",
     "e1rmEmpty": "무게를 기록한 종목이 생기면 추이가 보여요.",
-    "stagnant": "<b>{{name}}</b>{{particle}} 최근 {{count}}회 기록이 제자리예요. 렙 범위를 바꿔보는 건 어때요?"
+    "stagnant": "<b>{{name}}</b>{{particle}} 최근 {{count}}회 기록이 제자리예요. 렙 범위를 바꿔보는 건 어때요?",
+    "detailLink": "{{name}} 기록 자세히"
   },
   "exerciseDetail": {
     "primary": "주동근",
@@ -494,15 +495,80 @@
     "steps": "동작",
     "stepA11y": "{{n}}단계, {{text}}",
     "record": "내 기록",
-    "e1rm": "추정 1RM",
-    "bestSet": "{{unit}} · 최고 중량 {{weight}} × {{reps}}",
     "noRecord": "아직 기록이 없어요. 이 종목으로 운동하면 추이가 보여요.",
-    "chartA11y": "{{name}} 추정 1RM 최근 {{count}}회 추이, 최고 {{value}}{{unit}}",
     "musclesA11y": "주동근 {{primary}}, 협응근 {{secondary}}",
     "none": "없음",
     "notFound": "종목을 찾을 수 없어요",
     "custom": "직접 만든 종목이라 동작 설명이 없어요.",
-    "openHint": "길게 누르면 종목 설명을 봐요"
+    "openHint": "길게 누르면 종목 설명을 봐요",
+    "progress": {
+      "metricA11y": "그래프에 볼 값",
+      "periodA11y": "기간",
+      "metric": {
+        "weight": {
+          "max": "최고 무게",
+          "e1rm": "추정 1RM",
+          "volume": "볼륨"
+        },
+        "reps": {
+          "max": "최고 횟수",
+          "e1rm": "추정 1RM",
+          "volume": "총 횟수"
+        },
+        "time": {
+          "max": "최장 시간",
+          "e1rm": "추정 1RM",
+          "volume": "총 시간"
+        }
+      },
+      "caption": {
+        "weight": {
+          "max": "그날 가장 무거웠던 세트",
+          "e1rm": "그날 기록으로 계산한 1회 최대 무게",
+          "volume": "그날 무게 × 횟수를 모두 더한 값"
+        },
+        "reps": {
+          "max": "그날 가장 많이 한 세트",
+          "e1rm": "그날 기록으로 계산한 1회 최대 무게",
+          "volume": "그날 모든 세트의 횟수를 더한 값"
+        },
+        "time": {
+          "max": "그날 가장 오래 버틴 세트",
+          "e1rm": "그날 기록으로 계산한 1회 최대 무게",
+          "volume": "그날 모든 세트의 시간을 더한 값"
+        }
+      },
+      "period": {
+        "1m": "1개월",
+        "3m": "3개월",
+        "6m": "6개월",
+        "all": "전체"
+      },
+      "range": {
+        "1m": "최근 1개월",
+        "3m": "최근 3개월",
+        "6m": "최근 6개월",
+        "all": "전체"
+      },
+      "count_other": "{{range}} · {{count}}회",
+      "ago": {
+        "1m": "1개월 전보다 {{delta}}",
+        "3m": "3개월 전보다 {{delta}}",
+        "6m": "6개월 전보다 {{delta}}",
+        "all": "첫 기록보다 {{delta}}"
+      },
+      "sinceFirst": "첫 기록보다 {{delta}}",
+      "same": "첫 기록과 같아요",
+      "repsUnit": "회",
+      "reps": "{{reps}}회",
+      "needTwo": "기록이 두 번 이상 쌓이면\n여기에 변화 그래프가 그려져요.",
+      "emptyPeriod": "이 기간에는 기록이 없어요.",
+      "recent": "최근 기록",
+      "more": "이전 기록 더 보기",
+      "best": "최고",
+      "rowA11y": "{{date}}, {{sets}}{{best}}, 기록 보기",
+      "chartA11y": "{{name}} {{metric}} 추이, 기록 {{count}}회, 가장 최근 {{value}}"
+    }
   },
   "home": {
     "todayRoutine": "오늘은 {{name}} 하는 날",
