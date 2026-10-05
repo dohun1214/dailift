@@ -1,5 +1,5 @@
 import Constants from 'expo-constants';
-import { File, Paths } from 'expo-file-system';
+import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
 import { db } from '@/db/client';
@@ -18,9 +18,21 @@ function writeCache(name: string, content: string): File {
   return file;
 }
 
+/** 전에 만들어 둔 내보내기 파일을 지운다(다시 내보낼 때, 기기 데이터를 지울 때). */
+export function clearExportFiles() {
+  try {
+    for (const entry of new Directory(Paths.cache).list()) {
+      if (entry instanceof File && entry.name.startsWith('dailift-')) entry.delete();
+    }
+  } catch {
+    // 없으면 지울 것도 없다
+  }
+}
+
 /** 파일을 만들어 공유 시트를 연다. 공유할 수 없는 기기면 false */
 export async function exportData(kind: ExportKind, lang: AppLanguage, now = Date.now()) {
   if (!(await Sharing.isAvailableAsync())) return false;
+  clearExportFiles();
   const stamp = fileDate(now);
   let file: File;
   if (kind === 'csv') {

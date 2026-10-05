@@ -108,7 +108,11 @@ export function DaySheet({
     action();
   };
   const routineMeta = (r: DayRoutine) =>
-    t('home.meta', { count: r.exerciseCount, sets: r.setCount, minutes: r.minutes });
+    t('home.meta', {
+      count: r.exerciseCount,
+      sets: t('summary.setCount', { count: r.setCount }),
+      minutes: r.minutes,
+    });
 
   const routineCard = (r: DayRoutine, badge: string) => {
     const rows = items.filter((i) => i.routineId === r.id);

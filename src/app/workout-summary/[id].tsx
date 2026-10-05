@@ -5,7 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Camera, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, Linking, Pressable, Text, TextInput, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { RoutineUpdateCard } from '@/components/summary/routine-update-card';
 import { ActionSheet, AppText, Badge, Button, Screen, TopBar } from '@/components/ui';
@@ -94,8 +94,20 @@ export default function WorkoutSummaryScreen() {
     weekday: 'long',
   }).format(new Date(summary.workout.startedAt));
 
+  // 오늘 마친 운동에만 축하 문구를 쓰고, 지난 기록을 다시 볼 때는 담담하게.
+  const finishedToday =
+    new Date(summary.workout.endedAt ?? summary.workout.startedAt).toDateString() ===
+    new Date().toDateString();
+
   const addPhoto = async (source: PhotoSource) => {
     const path = await pickPhoto(source);
+    if (path === 'denied') {
+      Alert.alert(t('summary.cameraDeniedTitle'), t('summary.cameraDenied'), [
+        { text: t('common.close'), style: 'cancel' },
+        { text: t('summary.openSettings'), onPress: () => void Linking.openSettings() },
+      ]);
+      return;
+    }
     if (path) addWorkoutPhoto(db, summary.workout.id, path);
   };
   const confirmDeletePhoto = (photoId: string, path: string) =>
@@ -153,13 +165,13 @@ export default function WorkoutSummaryScreen() {
   ];
 
   return (
-    <Screen footer={<Button label={t('summary.done')} onPress={close} />}>
+    <Screen avoidKeyboard footer={<Button label={t('summary.done')} onPress={close} />}>
       <View style={styles.head}>
         <Text style={styles.date}>
           {t('summary.dateLine', { date, name: summary.workout.name })}
         </Text>
         <Text style={styles.headline} accessibilityRole="header">
-          {t('summary.headline')}
+          {t(finishedToday ? 'summary.headline' : 'summary.headlinePast')}
         </Text>
       </View>
 

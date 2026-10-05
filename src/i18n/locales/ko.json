@@ -173,7 +173,8 @@
         "reps": "최소 ≤ 최대, 1–100",
         "rest": "휴식은 0–900초",
         "increment": "0.25–50",
-        "plan": "세트 값을 확인해 주세요."
+        "plan": "세트 값을 확인해 주세요.",
+        "time": "최소 ≤ 최대, 5–600초"
       },
       "notFound": "루틴을 찾을 수 없어요",
       "min": "최소",
@@ -235,7 +236,9 @@
       "equipment": "기구",
       "nameRequired": "종목 이름을 입력하세요.",
       "primaryRequired": "주동근을 하나 이상 고르세요."
-    }
+    },
+    "pickerTitleReplace": "종목 변경",
+    "replaceConfirm": "이 종목으로 변경"
   },
   "workout": {
     "emptyName": "빈 운동",
@@ -310,7 +313,7 @@
       "addExercise": "종목 추가",
       "discard": "기록 없이 끝내기",
       "cancel": "취소",
-      "editExercises": "종목 순서 변경",
+      "editExercises": "종목 편집",
       "replaceThis": "다른 종목으로 변경",
       "removeThis": "이 종목 빼기",
       "exerciseA11y": "{{name}} 메뉴"
@@ -367,17 +370,17 @@
     },
     "edit": {
       "title": "종목 편집",
-      "hint": "끌어서 순서를 바꾸고, 휴지통으로 종목을 삭제해요.",
+      "hint": "끌어서 순서를 바꾸고, 휴지통으로 종목을 빼요.",
       "done": "완료",
-      "removeA11y": "{{name}} 삭제",
-      "deleteTitle": "{{name}} 종목을 삭제할까요?",
-      "delete": "삭제",
+      "removeA11y": "{{name}} 빼기",
+      "deleteTitle": "{{name}} 종목을 뺄까요?",
+      "delete": "빼기",
       "subtitle_other": "{{name}} · {{count}}종목",
       "deleteBody_other": "이미 기록한 {{count}}세트도 함께 지워져요.",
-      "deleted": "{{name}} 삭제했어요",
+      "deleted": "{{name}} 뺐어요",
       "undo": "되돌리기"
     },
-    "editHint": "종목을 꾹 누르면 순서를 바꾸거나 삭제할 수 있어요",
+    "editHint": "종목을 꾹 누르면 순서를 바꾸거나 뺄 수 있어요",
     "editHintClose": "안내 닫기",
     "stale": {
       "title": "아직 운동 중인가요?",
@@ -388,11 +391,12 @@
       "last": "마지막 기록 {{when}}",
       "started": "시작 {{when}}",
       "finish": "마지막 기록 시각에 마치기",
-      "resume": "이어서 하기",
+      "resume": "이어하기",
       "discard": "기록 없이 끝내기",
       "close": "닫기"
     },
-    "recoverDiscard": "그만두기"
+    "recoverDiscard": "그만두기",
+    "busyBody": "{{name}} 운동을 끝낸 뒤에 다른 운동을 시작할 수 있어요."
   },
   "summary": {
     "headline": "오늘도 해냈어요",
@@ -436,7 +440,11 @@
       "removed": "뺐어요",
       "button": "루틴 바꾸기",
       "done": "{{name}} 루틴을 바꿨어요"
-    }
+    },
+    "cameraDeniedTitle": "카메라를 쓸 수 없어요",
+    "cameraDenied": "설정에서 Dailift의 카메라 접근을 허용해 주세요.",
+    "openSettings": "설정 열기",
+    "headlinePast": "운동 기록"
   },
   "history": {
     "segHistory": "히스토리",
@@ -444,7 +452,7 @@
     "segExercises": "종목",
     "segA11y": "기록 보기 방식",
     "count_other": "운동 {{count}}회",
-    "meta": "{{minutes}}분 · {{sets}}세트 · {{volume}}",
+    "meta": "{{minutes}}분 · {{sets}} · {{volume}}",
     "prBadge": "PR {{count}}",
     "rowA11y": "{{date}}, {{name}}, {{meta}}",
     "rowHint": "요약을 봐요. 길게 누르면 수정하거나 지울 수 있어요.",
@@ -573,9 +581,9 @@
       },
       "count_other": "{{range}} · {{count}}회",
       "ago": {
-        "1m": "1개월 전보다 {{delta}}",
-        "3m": "3개월 전보다 {{delta}}",
-        "6m": "6개월 전보다 {{delta}}",
+        "1m": "이 기간 첫 기록보다 {{delta}}",
+        "3m": "이 기간 첫 기록보다 {{delta}}",
+        "6m": "이 기간 첫 기록보다 {{delta}}",
         "all": "첫 기록보다 {{delta}}"
       },
       "sinceFirst": "첫 기록보다 {{delta}}",
@@ -596,7 +604,7 @@
     "restDay": "오늘은 쉬는 날이에요",
     "inProgress": "{{name}} 운동 중이에요",
     "today": "오늘",
-    "meta_other": "{{count}}종목 · {{sets}}세트 · 약 {{minutes}}분",
+    "meta_other": "{{count}}종목 · {{sets}} · 약 {{minutes}}분",
     "more_other": "{{names}} 외 {{count}}",
     "start": "운동 시작",
     "resume": "운동 이어하기",
@@ -618,9 +626,6 @@
       "rest": "쉬는 날",
       "todayDone": "오늘, 운동함"
     },
-    "stripA11y": "이번 주",
-    "stripOtherA11y": "다른 주",
-    "stripHint": "좌우로 밀면 다른 주를 봐요",
     "dayHint": "그날 운동을 봐요",
     "doneTitle": "오늘 {{name}} 완료",
     "doneBadge": "완료",
@@ -634,7 +639,6 @@
     },
     "week": "이번 주",
     "weekTarget": " / {{target}}회",
-    "weekNoTarget": "회",
     "muscleTitle": "이번 주 부위별 세트",
     "muscleLink": "통계",
     "muscleA11y": "이번 주 부위별 세트, 통계 열기",
@@ -671,7 +675,11 @@
       "addMeta_other": "{{count}}종목 · {{sets}}세트",
       "addEmpty": "빈 운동으로 기록",
       "addEmptySub": "종목을 직접 추가해요"
-    }
+    },
+    "stripNext": "다음 주 보기",
+    "stripPrev": "지난 주 보기",
+    "weekNoTarget_other": "회",
+    "streakNoTarget": "주 목표를 정하면 보여요"
   },
   "relative": {
     "today": "오늘",

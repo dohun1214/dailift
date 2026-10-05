@@ -40,6 +40,7 @@ export function RestTimerBar() {
           <Pressable
             accessibilityRole="button"
             onPress={stop}
+            hitSlop={{ top: 4, bottom: 4 }}
             style={({ pressed }) => [styles.ok, pressed && styles.pressed]}
           >
             <Text style={styles.okText}>{t('workout.rest.ok')}</Text>
@@ -65,6 +66,7 @@ export function RestTimerBar() {
           accessibilityRole="button"
           accessibilityLabel={t('workout.rest.minusA11y')}
           onPress={() => adjust(-REST_STEP_SEC)}
+          hitSlop={{ top: 4, bottom: 4 }}
           style={({ pressed }) => [styles.small, pressed && styles.pressed]}
         >
           <Text style={styles.smallText}>{t('workout.rest.minus')}</Text>
@@ -73,6 +75,7 @@ export function RestTimerBar() {
           accessibilityRole="button"
           accessibilityLabel={t('workout.rest.plusA11y')}
           onPress={() => adjust(REST_STEP_SEC)}
+          hitSlop={{ top: 4, bottom: 4 }}
           style={({ pressed }) => [styles.small, pressed && styles.pressed]}
         >
           <Text style={styles.smallText}>{t('workout.rest.plus')}</Text>
@@ -80,6 +83,7 @@ export function RestTimerBar() {
         <Pressable
           accessibilityRole="button"
           onPress={stop}
+          hitSlop={{ top: 4, bottom: 4 }}
           style={({ pressed }) => [styles.skip, pressed && styles.pressed]}
         >
           <Text style={styles.skipText}>{t('workout.rest.skip')}</Text>

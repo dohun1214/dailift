@@ -373,6 +373,17 @@ export default function WorkoutScreen() {
     setUndo(null);
   };
 
+  // 종목을 뺀 직후 잠깐 보이는 되돌리기 (편집 모드와 카드 메뉴 어디서 빼든 같다)
+  const undoBar = undo ? (
+    <Snackbar
+      message={t('workout.edit.deleted', {
+        name: lang === 'ko' ? objectJosa(undo.name) : undo.name,
+      })}
+      actionLabel={t('workout.edit.undo')}
+      onAction={undoDelete}
+    />
+  ) : null;
+
   /** 기록한 세트가 있으면 한 번 확인하고, 없으면 바로 지운다. */
   const removeExercise = (id: string) => {
     const we = exercises.find((e) => e.id === id);
@@ -418,14 +429,23 @@ export default function WorkoutScreen() {
 
   /** 이 종목을 다른 종목으로 바꾼다(완료한 세트는 그대로 두고 남은 세트만 새 종목으로). */
   const replaceExercise = (id: string) => {
-    openExercisePicker((ids) => {
-      const [first] = ids;
-      if (!first) return;
-      const next = replaceWorkoutExercise(db, id, first, unit);
-      // 지금 종목이었거나 펼쳐 둔 카드였으면 새 종목도 그대로 펼쳐 둔다.
-      if (active?.id === id) setActiveId(next);
-      else setOpenIds((open) => (open.includes(id) ? [...open, next] : open));
-    });
+    openExercisePicker(
+      (ids) => {
+        const [first] = ids;
+        if (!first) return;
+        const next = replaceWorkoutExercise(db, id, first, unit);
+        // 지금 종목이었거나 펼쳐 둔 카드였으면 새 종목도 그대로 펼쳐 둔다.
+        if (active?.id === id) setActiveId(next);
+        else setOpenIds((open) => (open.includes(id) ? [...open, next] : open));
+      },
+      { single: true },
+    );
+  };
+
+  // 알림 · 잠금 화면에서 바로 열렸으면 돌아갈 화면이 없다 → 홈으로.
+  const leave = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
   };
 
   const ask = (next: Confirm) => {
@@ -436,7 +456,7 @@ export default function WorkoutScreen() {
     stopRest();
     setFinished(true);
     discardWorkout(db, currentWorkout.id);
-    router.back();
+    leave();
   };
   const complete = () => {
     // 마지막 세트를 마친 지 오래됐으면(끝내는 걸 잊었으면) 그 시각을 운동이 끝난 시각으로 친다.
@@ -535,15 +555,7 @@ export default function WorkoutScreen() {
           />
         </ScrollView>
         <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
-          {undo ? (
-            <Snackbar
-              message={t('workout.edit.deleted', {
-                name: lang === 'ko' ? objectJosa(undo.name) : undo.name,
-              })}
-              actionLabel={t('workout.edit.undo')}
-              onAction={undoDelete}
-            />
-          ) : null}
+          {undoBar}
           <Button
             label={t('workout.addExercise')}
             variant="secondary"
@@ -561,11 +573,7 @@ export default function WorkoutScreen() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       {keepAwake ? <KeepScreenOn /> : null}
       <View style={styles.header}>
-        <IconButton
-          icon={ChevronDown}
-          label={t('workout.collapse')}
-          onPress={() => router.back()}
-        />
+        <IconButton icon={ChevronDown} label={t('workout.collapse')} onPress={leave} />
         <View style={styles.titleWrap} accessible accessibilityRole="header">
           <Text style={styles.title} numberOfLines={1}>
             {currentWorkout.name}
@@ -722,6 +730,7 @@ export default function WorkoutScreen() {
           />
         ) : (
           <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
+            {undoBar}
             <RestTimerBar />
             <Button label={t('workout.finish')} onPress={finish} />
           </View>

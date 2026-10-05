@@ -40,8 +40,16 @@ export default function RoutinesScreen() {
   const [menuFor, setMenuFor] = useState<RoutineSummary | null>(null);
   const [deleteFor, setDeleteFor] = useState<RoutineSummary | null>(null);
 
+  // 다른 운동이 진행 중일 때 시작을 누르면 그 운동의 이름을 담아 알린다.
+  const [busyWith, setBusyWith] = useState<string | null>(null);
+
   const start = (r: RoutineSummary) => {
-    if (!getActiveWorkout(db)) {
+    const active = getActiveWorkout(db);
+    if (active && active.routineId !== r.id) {
+      setBusyWith(active.name);
+      return;
+    }
+    if (!active) {
       startWorkout(db, {
         routineId: r.id,
         name: r.name,
@@ -143,6 +151,18 @@ export default function RoutinesScreen() {
             destructive: true,
           },
         ]}
+      />
+      <ConfirmDialog
+        visible={busyWith !== null}
+        title={t('workout.recoverTitle')}
+        body={t('workout.busyBody', { name: busyWith ?? '' })}
+        cancelLabel={t('common.close')}
+        confirmLabel={t('workout.resume')}
+        onCancel={() => setBusyWith(null)}
+        onConfirm={() => {
+          setBusyWith(null);
+          router.push('/workout');
+        }}
       />
       <ConfirmDialog
         visible={deleteFor !== null}

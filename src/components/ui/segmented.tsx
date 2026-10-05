@@ -45,6 +45,7 @@ function Segment({
       accessibilityRole="tab"
       accessibilityState={{ selected }}
       onPress={onPress}
+      hitSlop={{ top: 2, bottom: 2 }}
       style={styles.segment}
     >
       <Text style={styles.label} numberOfLines={1}>

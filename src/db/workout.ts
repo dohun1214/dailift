@@ -458,8 +458,9 @@ export function addExercisesToWorkout(
       (exerciseId): PlanItem => ({
         exerciseId,
         targetSets: 3,
-        repMin: 8,
-        repMax: 12,
+        // 시간으로 재는 종목은 30–60초
+        repMin: infos.get(exerciseId)?.type === 'time' ? 30 : 8,
+        repMax: infos.get(exerciseId)?.type === 'time' ? 60 : 12,
         restSec: opts.restSec ?? (infos.get(exerciseId)?.type === 'weight_reps' ? 90 : 60),
         increment: unit === 'lb' ? 5 : 2.5,
         incrementUnit: unit,

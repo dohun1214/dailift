@@ -81,12 +81,7 @@ export function SetRow({
         </Pressable>
       )}
     >
-      <View
-        style={styles.row}
-        accessible={false}
-        accessibilityActions={[{ name: 'delete', label: t('workout.removeSet') }]}
-        onAccessibilityAction={(e) => e.nativeEvent.actionName === 'delete' && onDelete()}
-      >
+      <View style={styles.row}>
         <Pressable
           disabled={!onLabelPress}
           onPress={onLabelPress}
@@ -149,6 +144,9 @@ export function SetRow({
           accessibilityState={{ checked: completed }}
           accessibilityLabel={completed ? t('workout.completed') : t('workout.completeSet')}
           accessibilityHint={setName}
+          // 화면 낭독기에서는 밀어서 지울 수 없으니 완료 칸의 동작으로 세트를 지운다.
+          accessibilityActions={[{ name: 'delete', label: t('workout.removeSet') }]}
+          onAccessibilityAction={(e) => e.nativeEvent.actionName === 'delete' && onDelete()}
           onPress={onToggle}
           style={styles.check}
         >

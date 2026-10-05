@@ -92,11 +92,19 @@ export default function RoutineEditScreen() {
     );
   };
 
+  const isTimeExercise = (exerciseId: string) => catalog.byId.get(exerciseId)?.type === 'time';
+
   const addExercises = () => {
     openExercisePicker((ids) => {
       const rests = defaultRestFor(db, ids, useSettings.getState().defaultRestSec);
       const added = ids.map((exerciseId) =>
-        newDraftItem(newId(), exerciseId, weightUnit, rests.get(exerciseId)),
+        newDraftItem(
+          newId(),
+          exerciseId,
+          weightUnit,
+          rests.get(exerciseId),
+          isTimeExercise(exerciseId),
+        ),
       );
       setError(null);
       setDraft((d) => (d ? { ...d, items: [...d.items, ...added] } : d));
@@ -104,11 +112,11 @@ export default function RoutineEditScreen() {
   };
 
   const save = () => {
-    const problem = validateDraft(draft);
+    const problem = validateDraft(draft, isTimeExercise);
     if (problem) {
       setError(problem);
       if (problem === 'itemInvalid') {
-        const bad = draft.items.find((i) => itemIssue(i) !== null);
+        const bad = draft.items.find((i) => itemIssue(i, isTimeExercise(i.exerciseId)) !== null);
         if (bad) setExpandedKey(bad.key);
       }
       return;
@@ -180,9 +188,9 @@ export default function RoutineEditScreen() {
   };
 
   const renderFields = (item: DraftItem) => {
-    const issue = itemIssue(item);
     const type = catalog.byId.get(item.exerciseId)?.type ?? 'weight_reps';
     const isTime = type === 'time';
+    const issue = itemIssue(item, isTime);
     const rest = (
       <NumberField
         label={t('routines.edit.rest')}
@@ -226,7 +234,7 @@ export default function RoutineEditScreen() {
               max={item.repMax}
               minLabel={t('routines.edit.min')}
               maxLabel={t('routines.edit.max')}
-              invalid={issue === 'reps'}
+              invalid={issue === 'reps' || issue === 'time'}
               onChange={(repMin, repMax) => updateItem(item.key, { repMin, repMax })}
             />
           </View>

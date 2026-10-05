@@ -50,6 +50,16 @@ export function resolveSetTargets(
   return out;
 }
 
+/** 추천값과 다르게 정한 부위가 하나라도 있는지 (값을 추천값으로 되돌려 놓았으면 아니다) */
+export function hasCustomTargets(
+  experience: Experience | null,
+  custom: Partial<SetTargets> | null | undefined,
+): boolean {
+  const recommended = recommendedSetTargets(experience);
+  const resolved = resolveSetTargets(experience, custom);
+  return TARGET_GROUPS.some((g) => resolved[g] !== recommended[g]);
+}
+
 /**
  * 막대에 쓰는 단계.
  * none: 아직 0세트 · low: 목표의 절반 미만(많이 부족) · mid: 절반 이상(하는 중) · done: 목표를 채움.

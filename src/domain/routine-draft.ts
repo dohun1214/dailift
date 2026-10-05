@@ -31,6 +31,8 @@ export type RoutineDraft = {
 export const LIMITS = {
   sets: { min: 1, max: 20 },
   reps: { min: 1, max: 100 },
+  /** 시간으로 재는 종목(플랭크 등)의 초 범위 */
+  time: { min: 5, max: 600 },
   restSec: { min: 0, max: 900 },
   increment: { min: 0.25, max: 50 },
   nameMax: 40,
@@ -38,16 +40,20 @@ export const LIMITS = {
 
 export type DraftError = 'nameRequired' | 'noExercises' | 'itemInvalid';
 
-export function validateDraft(draft: RoutineDraft): DraftError | null {
+/** `isTime`: 그 종목이 시간으로 재는 종목인지 (없으면 모두 횟수 종목으로 본다) */
+export function validateDraft(
+  draft: RoutineDraft,
+  isTime: (exerciseId: string) => boolean = () => false,
+): DraftError | null {
   if (!draft.name.trim()) return 'nameRequired';
   if (draft.items.length === 0) return 'noExercises';
-  if (draft.items.some((i) => itemIssue(i) !== null)) return 'itemInvalid';
+  if (draft.items.some((i) => itemIssue(i, isTime(i.exerciseId)) !== null)) return 'itemInvalid';
   return null;
 }
 
-export type ItemIssue = 'sets' | 'reps' | 'rest' | 'increment' | 'plan';
+export type ItemIssue = 'sets' | 'reps' | 'time' | 'rest' | 'increment' | 'plan';
 
-export function itemIssue(i: DraftItem): ItemIssue | null {
+export function itemIssue(i: DraftItem, isTime = false): ItemIssue | null {
   const inRange = (v: number, r: { min: number; max: number }) =>
     Number.isFinite(v) && v >= r.min && v <= r.max;
   if (i.plan) {
@@ -57,14 +63,15 @@ export function itemIssue(i: DraftItem): ItemIssue | null {
     return null;
   }
   if (!Number.isInteger(i.targetSets) || !inRange(i.targetSets, LIMITS.sets)) return 'sets';
+  const range = isTime ? LIMITS.time : LIMITS.reps;
   if (
     !Number.isInteger(i.repMin) ||
     !Number.isInteger(i.repMax) ||
-    !inRange(i.repMin, LIMITS.reps) ||
-    !inRange(i.repMax, LIMITS.reps) ||
+    !inRange(i.repMin, range) ||
+    !inRange(i.repMax, range) ||
     i.repMin > i.repMax
   )
-    return 'reps';
+    return isTime ? 'time' : 'reps';
   if (!Number.isInteger(i.restSec) || !inRange(i.restSec, LIMITS.restSec)) return 'rest';
   if (!inRange(i.increment, LIMITS.increment)) return 'increment';
   return null;
@@ -91,14 +98,16 @@ export function newDraftItem(
   exerciseId: string,
   unit: WeightUnit,
   restSec = 90,
+  /** 시간으로 재는 종목이면 30–60초로 시작한다 */
+  isTime = false,
 ): DraftItem {
   return {
     key,
     rowId: null,
     exerciseId,
     targetSets: 3,
-    repMin: 8,
-    repMax: 12,
+    repMin: isTime ? 30 : 8,
+    repMax: isTime ? 60 : 12,
     restSec,
     increment: unit === 'lb' ? 5 : 2.5,
     incrementUnit: unit,

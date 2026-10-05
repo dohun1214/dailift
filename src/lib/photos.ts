@@ -14,14 +14,14 @@ export type PhotoSource = 'camera' | 'library';
 
 /**
  * 사진을 고르거나 찍어서 앱 폴더(documentDirectory/photos)에 복사하고 상대 경로를 돌려준다.
- * 취소하거나 권한이 없으면 null. 원본 사진은 건드리지 않는다.
+ * 취소하면 null, 카메라 권한이 없으면 'denied'. 원본 사진은 건드리지 않는다.
+ * 앨범에서 고를 때는 시스템 사진 선택 창을 쓰므로 사진 전체 접근 권한을 묻지 않는다.
  */
-export async function pickPhoto(source: PhotoSource): Promise<string | null> {
-  const permission =
-    source === 'camera'
-      ? await ImagePicker.requestCameraPermissionsAsync()
-      : await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permission.granted) return null;
+export async function pickPhoto(source: PhotoSource): Promise<string | 'denied' | null> {
+  if (source === 'camera') {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) return 'denied';
+  }
 
   const options: ImagePicker.ImagePickerOptions = {
     mediaTypes: ['images'],

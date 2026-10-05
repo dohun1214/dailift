@@ -20,6 +20,7 @@ import {
 } from '@/components/ui';
 import type { WeightUnit } from '@/db/schema';
 import { BAR_OPTIONS } from '@/domain/plates';
+import { hasCustomTargets } from '@/domain/set-targets';
 import { signOut } from '@/lib/auth';
 import { openLegal, openSupportMail } from '@/lib/links';
 import { hideRestLive } from '@/lib/rest-live';
@@ -42,6 +43,7 @@ export default function MeScreen() {
   const { theme } = useUnistyles();
   const s = useSettings();
   const bodyType = useProfile((p) => p.bodyType);
+  const experience = useProfile((p) => p.experience);
   const setBodyType = useProfile((p) => p.setBodyType);
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [targetsOpen, setTargetsOpen] = useState(false);
@@ -223,7 +225,7 @@ export default function MeScreen() {
           <ListRow
             label={t('settings.setTargets')}
             value={t(
-              Object.keys(s.setTargets).length > 0
+              hasCustomTargets(experience, s.setTargets)
                 ? 'settings.setTargetsCustom'
                 : 'settings.setTargetsDefault',
             )}

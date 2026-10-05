@@ -68,9 +68,15 @@ export function BottomSheet({ visible, title, subtitle, onClose, closeLabel, chi
       statusBarTranslucent
     >
       <Animated.View style={[styles.backdrop, { opacity: motion.backdropOpacity }]}>
-        <Pressable style={styles.fill} onPress={onClose} accessibilityLabel={closeLabel} />
+        <Pressable
+          style={styles.fill}
+          disabled={!visible}
+          onPress={onClose}
+          accessibilityLabel={closeLabel}
+        />
       </Animated.View>
-      <View style={styles.wrap} pointerEvents="box-none">
+      {/* 내려가는 동안에는 눌리지 않는다(같은 버튼이 두 번 눌리지 않게) */}
+      <View style={styles.wrap} pointerEvents={visible ? 'box-none' : 'none'}>
         <Animated.View
           onLayout={motion.onLayout}
           style={[

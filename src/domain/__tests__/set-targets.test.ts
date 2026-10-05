@@ -1,5 +1,6 @@
 import {
   clampSetTarget,
+  hasCustomTargets,
   recommendedSetTargets,
   resolveSetTargets,
   targetLevel,
@@ -77,5 +78,14 @@ describe('targetProgress', () => {
     expect(targetProgress(0, 10)).toBe(0);
     expect(targetProgress(5, 10)).toBe(0.5);
     expect(targetProgress(14, 10)).toBe(1);
+  });
+});
+
+describe('hasCustomTargets', () => {
+  it('추천값과 다른 부위가 있을 때만 직접 설정으로 본다', () => {
+    expect(hasCustomTargets('under6m', {})).toBe(false);
+    expect(hasCustomTargets('under6m', { chest: 12 })).toBe(true);
+    // 값을 바꿨다가 추천값으로 되돌려 놓은 경우
+    expect(hasCustomTargets('under6m', { chest: 8 })).toBe(false);
   });
 });

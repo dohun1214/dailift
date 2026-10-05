@@ -10,11 +10,18 @@ import type { MuscleGroup } from '@/db/schema';
 import { type CatalogExercise, useExerciseCatalog } from '@/db/use-exercise-catalog';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { matchesSearch } from '@/lib/hangul';
-import { deliverPickedExercises, openExerciseCreator } from '@/stores/exercise-picker';
+import {
+  deliverPickedExercises,
+  openExerciseCreator,
+  pickerIsSingle,
+} from '@/stores/exercise-picker';
 
 const GROUPS: readonly MuscleGroup[] = ['chest', 'back', 'shoulders', 'legs', 'arms', 'core'];
 
-/** 종목 검색: 초성 검색, 부위 필터, 다중 선택. 행을 누르면 선택(상세로 가지 않음). */
+/**
+ * 종목 검색: 초성 검색, 부위 필터. 행을 누르면 선택(상세로 가지 않음).
+ * 추가할 때는 여러 개, 종목을 바꿀 때는 하나만 고른다.
+ */
 export default function ExercisePickerScreen() {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
@@ -23,6 +30,8 @@ export default function ExercisePickerScreen() {
   const [query, setQuery] = useState('');
   const [group, setGroup] = useState<MuscleGroup | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
+  // 화면이 열릴 때 정해진다
+  const [single] = useState(pickerIsSingle);
 
   const filter = useMemo(
     () => (e: CatalogExercise) =>
@@ -33,7 +42,7 @@ export default function ExercisePickerScreen() {
   const custom = catalog.custom.filter(filter);
 
   const toggle = (id: string) =>
-    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : single ? [id] : [...s, id]));
 
   const meta = (e: CatalogExercise) =>
     [
@@ -50,7 +59,7 @@ export default function ExercisePickerScreen() {
 
   const create = () => {
     openExerciseCreator((id) => {
-      setSelected((s) => [...s, id]);
+      setSelected((s) => (single ? [id] : [...s, id]));
     });
   };
 
@@ -65,7 +74,7 @@ export default function ExercisePickerScreen() {
           return (
             <Pressable
               key={e.id}
-              accessibilityRole="checkbox"
+              accessibilityRole={single ? 'radio' : 'checkbox'}
               accessibilityState={{ checked: on }}
               accessibilityLabel={`${e.name}, ${meta(e)}`}
               onPress={() => toggle(e.id)}
@@ -90,13 +99,21 @@ export default function ExercisePickerScreen() {
 
   return (
     <Screen
-      header={<TopBar title={t('exercises.pickerTitle')} leading="close" />}
+      avoidKeyboard
+      header={
+        <TopBar
+          title={t(single ? 'exercises.pickerTitleReplace' : 'exercises.pickerTitle')}
+          leading="close"
+        />
+      }
       footer={
         <Button
           label={
-            selected.length
-              ? t('exercises.add', { count: selected.length })
-              : t('exercises.addNone')
+            single
+              ? t('exercises.replaceConfirm')
+              : selected.length
+                ? t('exercises.add', { count: selected.length })
+                : t('exercises.addNone')
           }
           disabled={selected.length === 0}
           onPress={confirm}
