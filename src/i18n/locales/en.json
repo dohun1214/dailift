@@ -518,7 +518,9 @@
       "keepAdding": "Keep editing",
       "discardTitle": "Leave without saving?",
       "discardBody_one": "The {{count}} checked set won't be saved.",
-      "discardBody_other": "The {{count}} checked sets won't be saved."
+      "discardBody_other": "The {{count}} checked sets won't be saved.",
+      "checkAll": "Check all sets",
+      "uncheckAll": "Uncheck all"
     }
   },
   "stats": {
