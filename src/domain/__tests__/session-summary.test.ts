@@ -84,6 +84,26 @@ describe('sessionPrs', () => {
   });
 });
 
+describe('sessionPrs (lb)', () => {
+  it('같은 lb 무게를 다시 들면 신기록이 아니다', () => {
+    const lb = (weight: number, reps: number): SummarySet => ({
+      exerciseId: 'bench',
+      kind: 'working',
+      weight,
+      reps,
+      unit: 'lb',
+      completed: true,
+    });
+    // 145lb = 65.77kg. 반올림한 66kg으로 견주면 같은 무게가 넘은 것처럼 보인다.
+    const kg = 145 / 2.2046226218;
+    const bests = new Map([['bench', { weightKg: kg, e1rmKg: kg * (1 + 8 / 30) }]]);
+    expect(sessionPrs([lb(145, 8)], bests, 'lb')).toEqual([]);
+    expect(sessionPrs([lb(150, 8)], bests, 'lb')).toEqual([
+      { exerciseId: 'bench', kind: 'weight', weight: 150, reps: 8, unit: 'lb' },
+    ]);
+  });
+});
+
 describe('groupSetsByWeight', () => {
   const r = (
     weight: number | null,

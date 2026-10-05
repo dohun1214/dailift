@@ -1,6 +1,8 @@
 /** 세션 요약 계산: 통계, 부위 자극 단계, PR 목록. 모두 순수 함수. */
 import type { MuscleRole, SetKind, WeightUnit } from '@/db/schema';
 
+import { toKg } from '@/lib/number';
+
 import { type Best, convertWeight, epley1RM } from './strength';
 
 export type SummarySet = {
@@ -123,11 +125,12 @@ export function sessionPrs(
     const best = bests.get(id);
     const list = byExercise.get(id) ?? [];
     if (!best) continue;
-    const toKg = (s: SummarySet) => convertWeight(s.weight ?? 0, s.unit, 'kg');
+    // 지난 최고와 같은 정확한 kg 값으로 견준다(반올림하면 lb 기록이 같은 무게에서도 넘은 것처럼 보인다).
+    const kgOf = (s: SummarySet) => toKg(s.weight ?? 0, s.unit);
     const heaviest = [...list].sort(
-      (a, b) => toKg(b) - toKg(a) || (b.reps ?? 0) - (a.reps ?? 0),
+      (a, b) => kgOf(b) - kgOf(a) || (b.reps ?? 0) - (a.reps ?? 0),
     )[0];
-    if (heaviest && toKg(heaviest) > best.weightKg + eps) {
+    if (heaviest && kgOf(heaviest) > best.weightKg + eps) {
       out.push({
         exerciseId: id,
         kind: 'weight',
@@ -137,7 +140,7 @@ export function sessionPrs(
       });
       continue;
     }
-    const topE1rm = Math.max(0, ...list.map((s) => epley1RM(toKg(s), s.reps ?? 0) ?? 0));
+    const topE1rm = Math.max(0, ...list.map((s) => epley1RM(kgOf(s), s.reps ?? 0) ?? 0));
     if (topE1rm > best.e1rmKg + eps) {
       const shown = unit === 'kg' ? topE1rm : topE1rm * 2.2046226218;
       out.push({ exerciseId: id, kind: 'e1rm', e1rm: Math.round(shown * 10) / 10, unit });
