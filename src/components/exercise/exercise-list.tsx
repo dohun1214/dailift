@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import { Chip, SearchField } from '@/components/ui';
+import { Chip } from '@/components/ui';
 import type { MuscleGroup } from '@/db/schema';
 import { type CatalogExercise, useExerciseCatalog } from '@/db/use-exercise-catalog';
 import { useExerciseRecords } from '@/db/use-exercise-records';
@@ -13,7 +13,10 @@ import { type ExerciseSummary, summarizeExercises } from '@/domain/exercise-prog
 import { formatClock } from '@/domain/rest-timer';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { matchesSearch } from '@/lib/hangul';
+import { openExerciseCreator } from '@/stores/exercise-picker';
 import { useSettings } from '@/stores/settings';
+
+import { ExerciseSearchRow, NoExerciseCard } from './exercise-search';
 
 const GROUPS: readonly MuscleGroup[] = ['chest', 'back', 'shoulders', 'legs', 'arms', 'core'];
 const fmt = (n: number) => String(Math.round(n * 100) / 100);
@@ -131,18 +134,14 @@ export function ExerciseListView() {
     );
 
   const searching = query.trim().length > 0;
+  // 만든 종목이 목록에 보이도록 검색을 푼다.
+  const create = (name: string | null = null) => openExerciseCreator(() => setQuery(''), name);
+  const none = done.length === 0 && other.length === 0;
   const noRecords = ready && summaries.size === 0;
 
   return (
     <>
-      <SearchField
-        label={t('exercises.search')}
-        placeholder={t('exercises.searchPlaceholder')}
-        value={query}
-        onChangeText={setQuery}
-        onClear={() => setQuery('')}
-        clearLabel={t('exerciseList.clear')}
-      />
+      <ExerciseSearchRow query={query} onChangeQuery={setQuery} onCreate={() => create()} />
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -187,9 +186,8 @@ export function ExerciseListView() {
         </>
       )}
 
-      {done.length === 0 && other.length === 0 ? (
-        <Text style={styles.empty}>{t('exercises.empty')}</Text>
-      ) : null}
+      {none && searching ? <NoExerciseCard query={query} onCreate={create} /> : null}
+      {none && !searching ? <Text style={styles.empty}>{t('exercises.empty')}</Text> : null}
     </>
   );
 }

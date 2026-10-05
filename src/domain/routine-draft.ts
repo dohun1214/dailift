@@ -36,6 +36,8 @@ export const LIMITS = {
   restSec: { min: 0, max: 900 },
   increment: { min: 0.25, max: 50 },
   nameMax: 40,
+  /** 한 사람이 가질 수 있는 루틴 수 */
+  routines: 20,
 } as const;
 
 export type DraftError = 'nameRequired' | 'noExercises' | 'itemInvalid';

@@ -1,15 +1,17 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { Copy } from 'lucide-react-native';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
-import { Badge, Button, Screen, TopBar } from '@/components/ui';
+import { Badge, Button, NoticeDialog, Screen, TopBar } from '@/components/ui';
 import { BASE_EXERCISES, baseExerciseId } from '@/data/exercises';
 import { findTemplate } from '@/data/templates';
 import { db } from '@/db/client';
-import { copyTemplate } from '@/db/routines';
+import { canAddRoutines, copyTemplate } from '@/db/routines';
 import { recommendTemplate } from '@/domain/profile';
+import { LIMITS } from '@/domain/routine-draft';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { useProfile } from '@/stores/profile';
 import { useSettings } from '@/stores/settings';
@@ -25,6 +27,7 @@ export default function TemplatePreviewScreen() {
   const weightUnit = useSettings((s) => s.weightUnit);
   const experience = useProfile((s) => s.experience);
   const daysPerWeek = useProfile((s) => s.daysPerWeek);
+  const [full, setFull] = useState(false);
 
   if (!template) {
     return (
@@ -38,6 +41,7 @@ export default function TemplatePreviewScreen() {
   const name = lang === 'ko' ? template.ko : template.en;
 
   const onCopy = () => {
+    if (!canAddRoutines(db, template.routines.length)) return setFull(true);
     copyTemplate(db, template.key, { lang, weightUnit });
     router.back();
   };
@@ -76,6 +80,13 @@ export default function TemplatePreviewScreen() {
           })}
         </View>
       ))}
+      <NoticeDialog
+        visible={full}
+        title={t('routines.limitTitle', { max: LIMITS.routines })}
+        body={t('routines.limitBody')}
+        okLabel={t('common.ok')}
+        onClose={() => setFull(false)}
+      />
     </Screen>
   );
 }

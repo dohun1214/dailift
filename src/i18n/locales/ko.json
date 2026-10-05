@@ -10,7 +10,8 @@
     "comingSoon": "준비 중이에요",
     "back": "뒤로",
     "close": "닫기",
-    "save": "저장"
+    "save": "저장",
+    "ok": "확인"
   },
   "welcome": {
     "tagline": "운동과 식단을\n한곳에 기록해요.",
@@ -195,7 +196,9 @@
     "delete": "삭제",
     "deleteTitle": "{{name}} 루틴을 삭제할까요?",
     "deleteBody": "지난 운동 기록은 그대로 남아요.",
-    "deleteA11y": "{{name}} 삭제"
+    "deleteA11y": "{{name}} 삭제",
+    "limitTitle": "루틴은 {{max}}개까지 만들 수 있어요",
+    "limitBody": "안 쓰는 루틴을 지우면 새로 만들 수 있어요."
   },
   "exercises": {
     "pickerTitle": "종목 추가",
@@ -244,7 +247,11 @@
       "nameTaken": "같은 이름의 종목이 이미 있어요."
     },
     "pickerTitleReplace": "종목 변경",
-    "replaceConfirm": "이 종목으로 변경"
+    "replaceConfirm": "이 종목으로 변경",
+    "createShort": "만들기",
+    "noMatchTitle": "'{{query}}'에 맞는 종목이 없어요",
+    "noMatchBody": "찾는 종목이 없으면 직접 만들 수 있어요.",
+    "createNamed": "'{{name}}' 종목 만들기"
   },
   "workout": {
     "emptyName": "빈 운동",

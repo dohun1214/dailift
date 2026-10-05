@@ -7,7 +7,7 @@ import { BASE_EXERCISES, baseExerciseId } from '@/data/exercises';
 import { ROUTINE_TEMPLATES } from '@/data/templates';
 import { toMask } from '@/lib/weekdays';
 
-import { copyTemplate, duplicateRoutine } from '../routines';
+import { canAddRoutines, copyTemplate, duplicateRoutine, routineCount } from '../routines';
 import * as schema from '../schema';
 import { seedReferenceData } from '../seed';
 
@@ -148,5 +148,28 @@ describe('duplicateRoutine', () => {
       .all();
     expect(copied).toHaveLength(5);
     expect(copied.find((c) => c.exerciseId === first.exerciseId)?.setPlan).toBe(plan);
+  });
+});
+
+describe('루틴 개수 제한', () => {
+  it('지운 루틴은 세지 않고, 제한(20개)을 넘기면 더 만들 수 없다', () => {
+    const db = createTestDb();
+    expect(routineCount(db)).toBe(0);
+    copyTemplate(db, 'push_pull_legs', { lang: 'ko', weightUnit: 'kg' }, makeId);
+    const perCopy = routineCount(db);
+    expect(perCopy).toBeGreaterThan(0);
+    while (routineCount(db) + perCopy <= 20) {
+      copyTemplate(db, 'push_pull_legs', { lang: 'ko', weightUnit: 'kg' }, makeId);
+    }
+    expect(canAddRoutines(db, perCopy)).toBe(false);
+    expect(canAddRoutines(db, 20 - routineCount(db))).toBe(true);
+    expect(canAddRoutines(db, 21 - routineCount(db))).toBe(false);
+
+    const first = db.select().from(schema.routines).all()[0];
+    db.update(schema.routines)
+      .set({ deletedAt: 1 })
+      .where(eq(schema.routines.id, first?.id ?? ''))
+      .run();
+    expect(canAddRoutines(db, 21 - (routineCount(db) + 1))).toBe(true);
   });
 });

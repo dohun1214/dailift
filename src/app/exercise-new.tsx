@@ -10,7 +10,7 @@ import { db } from '@/db/client';
 import { createCustomExercise, customNameTaken } from '@/db/routine-editor';
 import type { Equipment, ExerciseType } from '@/db/schema';
 import { useAppLanguage } from '@/i18n/use-app-language';
-import { deliverCreatedExercise } from '@/stores/exercise-picker';
+import { creatorName, deliverCreatedExercise } from '@/stores/exercise-picker';
 
 const TYPES: readonly ExerciseType[] = ['weight_reps', 'bodyweight_reps', 'time'];
 const EQUIPMENT: readonly Equipment[] = [
@@ -27,7 +27,7 @@ const EQUIPMENT: readonly Equipment[] = [
 export default function ExerciseNewScreen() {
   const { t } = useTranslation();
   const lang = useAppLanguage();
-  const [name, setName] = useState('');
+  const [name, setName] = useState(creatorName);
   const [type, setType] = useState<ExerciseType>('weight_reps');
   const [primary, setPrimary] = useState<string[]>([]);
   const [secondary, setSecondary] = useState<string[]>([]);

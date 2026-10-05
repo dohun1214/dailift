@@ -10,7 +10,8 @@
     "comingSoon": "Coming soon",
     "back": "Back",
     "close": "Close",
-    "save": "Save"
+    "save": "Save",
+    "ok": "OK"
   },
   "welcome": {
     "tagline": "Log your workouts and meals\nin one place.",
@@ -201,7 +202,9 @@
     "delete": "Delete",
     "deleteTitle": "Delete {{name}}?",
     "deleteBody": "Your past workouts stay as they are.",
-    "deleteA11y": "Delete {{name}}"
+    "deleteA11y": "Delete {{name}}",
+    "limitTitle": "You can have up to {{max}} routines",
+    "limitBody": "Delete routines you don't use to make room."
   },
   "exercises": {
     "pickerTitle": "Add exercises",
@@ -251,7 +254,11 @@
       "nameTaken": "An exercise with this name already exists."
     },
     "pickerTitleReplace": "Replace exercise",
-    "replaceConfirm": "Use this exercise"
+    "replaceConfirm": "Use this exercise",
+    "createShort": "New",
+    "noMatchTitle": "No exercises match '{{query}}'",
+    "noMatchBody": "Can't find it? Create your own.",
+    "createNamed": "Create '{{name}}'"
   },
   "workout": {
     "emptyName": "Quick workout",

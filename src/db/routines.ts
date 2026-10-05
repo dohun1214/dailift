@@ -1,7 +1,8 @@
-import { and, asc, eq, gt, isNull, max, sql } from 'drizzle-orm';
+import { and, asc, count, eq, gt, isNull, max, sql } from 'drizzle-orm';
 
 import { baseExerciseId } from '@/data/exercises';
 import { findTemplate } from '@/data/templates';
+import { LIMITS } from '@/domain/routine-draft';
 import type { AppLanguage } from '@/i18n/resolve-language';
 import { newId } from '@/lib/id';
 import { toMask } from '@/lib/weekdays';
@@ -15,6 +16,20 @@ type IdFn = () => string;
 export function defaultIncrement(unit: WeightUnit): number {
   return unit === 'lb' ? 5 : 2.5;
 }
+
+/** 지금 있는 루틴 수(지운 것 제외) */
+export function routineCount(db: AppDatabase): number {
+  const [row] = db
+    .select({ n: count() })
+    .from(schema.routines)
+    .where(isNull(schema.routines.deletedAt))
+    .all();
+  return row?.n ?? 0;
+}
+
+/** 루틴을 `adding`개 더 만들 수 있는지 (개수 제한) */
+export const canAddRoutines = (db: AppDatabase, adding = 1): boolean =>
+  routineCount(db) + adding <= LIMITS.routines;
 
 /**
  * 추천 루틴을 묶음째 내 루틴으로 복사한다. 원본(템플릿)은 코드에 있어서 바뀌지 않는다.
