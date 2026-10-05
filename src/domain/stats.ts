@@ -77,14 +77,6 @@ export function groupBalance(
   return out;
 }
 
-export type BalanceState = 'low' | 'ok' | 'high';
-
-export function balanceState(value: number, range: { min: number; max: number }): BalanceState {
-  if (value < range.min) return 'low';
-  if (value > range.max) return 'high';
-  return 'ok';
-}
-
 /** 세션별 최고 추정 1RM (표시 단위), 오래된 순 */
 export function sessionBestE1rm(
   sets: readonly StatSet[],

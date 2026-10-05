@@ -1,30 +1,52 @@
+import { Check } from 'lucide-react-native';
 import { Text, View } from 'react-native';
-import { StyleSheet } from 'react-native-unistyles';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import { balanceState } from '@/domain/stats';
+import { targetLevel, targetProgress } from '@/domain/set-targets';
 
 type Props = {
   name: string;
   value: number;
-  range: { min: number; max: number };
+  /** 이 부위의 주간 목표 세트 */
+  target: number;
   a11yLabel: string;
 };
 
-/** 부위 밸런스 한 줄: 이름 · 게이지(권장 구간 띠) · 세트 수. 범위를 벗어나면(미달·초과 모두) 주황 */
-export function BalanceGauge({ name, value, range, a11yLabel }: Props) {
-  const scale = range.max * 1.25;
-  const ok = balanceState(value, range) === 'ok';
-  const pct = (n: number) => `${Math.min(100, Math.max(0, (n / scale) * 100))}%` as const;
+/**
+ * 부위 밸런스 한 줄: 이름 · 막대 · 세트 / 목표. 막대는 목표를 채우면 꽉 찬다.
+ * 0세트는 빈 막대, 목표의 절반 미만은 주황, 절반 이상은 회색, 다 채우면 진한 색 + 체크.
+ */
+export function BalanceGauge({ name, value, target, a11yLabel }: Props) {
+  const { theme } = useUnistyles();
+  const level = targetLevel(value, target);
   const shown = Number.isInteger(value) ? String(value) : value.toFixed(1);
 
   return (
     <View style={styles.row} accessible accessibilityLabel={a11yLabel}>
-      <Text style={styles.name}>{name}</Text>
+      <Text style={[styles.name, level === 'none' && styles.muted]}>{name}</Text>
       <View style={styles.track}>
-        <View style={[styles.band, { left: pct(range.min), width: pct(range.max - range.min) }]} />
-        <View style={[styles.fill, ok ? styles.fillOk : styles.fillWarm, { width: pct(value) }]} />
+        {level !== 'none' ? (
+          <View
+            style={[
+              styles.fill,
+              level === 'low' && styles.fillLow,
+              level === 'mid' && styles.fillMid,
+              { width: `${targetProgress(value, target) * 100}%` },
+            ]}
+          />
+        ) : null}
       </View>
-      <Text style={[styles.value, !ok && styles.valueWarm]}>{shown}</Text>
+      <Text style={styles.numbers} numberOfLines={1}>
+        <Text
+          style={[styles.value, level === 'none' && styles.muted, level === 'low' && styles.warm]}
+        >
+          {shown}
+        </Text>
+        <Text style={styles.target}>{` / ${target}`}</Text>
+      </Text>
+      <View style={styles.check}>
+        {level === 'done' ? <Check size={14} color={theme.colors.text} strokeWidth={2.6} /> : null}
+      </View>
     </View>
   );
 }
@@ -39,6 +61,8 @@ const styles = StyleSheet.create((theme) => ({
     fontFamily: theme.fonts.medium,
     color: theme.colors.text,
   },
+  muted: { color: theme.colors.text2 },
+  warm: { color: theme.colors.warm },
   track: {
     flex: 1,
     height: 12,
@@ -46,13 +70,11 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: theme.colors.track,
     overflow: 'hidden',
   },
-  band: { position: 'absolute', top: 0, bottom: 0, backgroundColor: theme.colors.band },
-  fill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 6 },
-  fillOk: { backgroundColor: theme.colors.accent },
-  fillWarm: { backgroundColor: theme.colors.warmFill },
+  fill: { height: 12, borderRadius: 6, backgroundColor: theme.colors.accent },
+  fillLow: { backgroundColor: theme.colors.warmFill },
+  fillMid: { backgroundColor: theme.colors.text2 },
+  numbers: { width: 56, textAlign: 'right' },
   value: {
-    width: 30,
-    textAlign: 'right',
     fontSize: 15,
     lineHeight: 20,
     includeFontPadding: false,
@@ -60,5 +82,13 @@ const styles = StyleSheet.create((theme) => ({
     fontVariant: ['tabular-nums'],
     color: theme.colors.text,
   },
-  valueWarm: { color: theme.colors.warm },
+  target: {
+    fontSize: 12,
+    lineHeight: 20,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.numMedium,
+    fontVariant: ['tabular-nums'],
+    color: theme.colors.text2,
+  },
+  check: { width: 14, alignItems: 'center', marginLeft: -6 },
 }));
