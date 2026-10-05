@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 
 import * as schema from './schema';
 import type { AppDatabase } from './seed';
@@ -34,7 +34,9 @@ export function wipeUserData(db: AppDatabase): string[] {
       schema.bodyMetrics,
       schema.syncState,
     ]) {
-      tx.delete(table).run();
+      // 조건 없이 통째로 지우면 SQLite가 '변경 알림'을 보내지 않아 열려 있는 화면이 옛 기록을 그대로 보여 준다.
+      // 항상 참인 조건을 붙여 한 줄씩 지우게 한다.
+      tx.delete(table).where(sql`1 = 1`).run();
     }
     return photos.map((p) => p.path);
   });

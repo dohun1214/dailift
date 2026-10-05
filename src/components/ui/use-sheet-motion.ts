@@ -3,6 +3,12 @@ import { Animated, Easing, type LayoutChangeEvent, useWindowDimensions } from 'r
 
 const OPEN_MS = 260;
 const CLOSE_MS = 200;
+/**
+ * 창이 다 내려가서 화면에서 떨어질 때까지 걸리는 시간(여유 포함).
+ * 카메라 · 사진 선택 · 시스템 알림 같은 기기 화면은 이 뒤에 띄워야 한다 —
+ * iOS는 닫히는 창 위에 띄운 화면을 창과 함께 닫아 버리고, 그 뒤로 앱이 눌리지 않게 된다.
+ */
+export const SHEET_CLOSED_MS = CLOSE_MS + 250;
 
 /**
  * 아래에서 올라오는 창의 움직임: 열릴 때 바닥에서 밀려 올라오고 배경이 어두워지며,

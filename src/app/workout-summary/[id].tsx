@@ -12,7 +12,16 @@ import {
 } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Linking, Pressable, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  Keyboard,
+  Linking,
+  Pressable,
+  type ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { RoutineUpdateCard } from '@/components/summary/routine-update-card';
 import {
@@ -70,6 +79,18 @@ export default function WorkoutSummaryScreen() {
   const goneRef = useRef(false);
   const noteRef = useRef(note);
   noteRef.current = note;
+  // 메모를 누르면 키보드 위로 보이게 끌어올린다.
+  const scrollRef = useRef<ScrollView>(null);
+  const memoY = useRef(0);
+  const memoFocused = useRef(false);
+  const picking = useRef(false);
+  const showMemo = useCallback(() => {
+    if (memoFocused.current) scrollRef.current?.scrollTo({ y: memoY.current - 12, animated: true });
+  }, []);
+  useEffect(() => {
+    const sub = Keyboard.addListener('keyboardDidShow', showMemo);
+    return () => sub.remove();
+  }, [showMemo]);
 
   const { data: photos } = useLiveQuery(
     db
@@ -127,7 +148,18 @@ export default function WorkoutSummaryScreen() {
     new Date().toDateString();
 
   const addPhoto = async (source: PhotoSource) => {
-    const path = await pickPhoto(source);
+    // 선택 창이 떠 있는 동안 한 번 더 열지 않는다.
+    if (picking.current) return;
+    picking.current = true;
+    let path: Awaited<ReturnType<typeof pickPhoto>>;
+    try {
+      path = await pickPhoto(source);
+    } catch (e) {
+      console.warn('[photo] pick failed', e);
+      return;
+    } finally {
+      picking.current = false;
+    }
     if (path === 'denied') {
       Alert.alert(t('summary.cameraDeniedTitle'), t('summary.cameraDenied'), [
         { text: t('common.close'), style: 'cancel' },
@@ -192,7 +224,11 @@ export default function WorkoutSummaryScreen() {
   ];
 
   return (
-    <Screen avoidKeyboard footer={<Button label={t('summary.done')} onPress={close} />}>
+    <Screen
+      avoidKeyboard
+      scrollRef={scrollRef}
+      footer={<Button label={t('summary.done')} onPress={close} />}
+    >
       <View style={styles.head}>
         <View style={styles.headText}>
           <Text style={styles.date}>
@@ -298,7 +334,12 @@ export default function WorkoutSummaryScreen() {
         </View>
       ) : null}
 
-      <View style={styles.memoCard}>
+      <View
+        style={styles.memoCard}
+        onLayout={(e) => {
+          memoY.current = e.nativeEvent.layout.y;
+        }}
+      >
         <Text style={styles.memoLabel} nativeID="memo-label">
           {t('summary.memo')}
         </Text>
@@ -312,6 +353,14 @@ export default function WorkoutSummaryScreen() {
           selectionColor={theme.colors.accentText}
           multiline
           maxLength={1000}
+          onFocus={() => {
+            memoFocused.current = true;
+            // 키보드가 이미 올라와 있을 때를 위해 한 번 더
+            setTimeout(showMemo, 350);
+          }}
+          onBlur={() => {
+            memoFocused.current = false;
+          }}
           style={styles.memo}
         />
       </View>
@@ -347,8 +396,16 @@ export default function WorkoutSummaryScreen() {
         cancelLabel={t('summary.photoCancel')}
         onClose={() => setPhotoSheet(false)}
         actions={[
-          { label: t('summary.photoCamera'), onPress: () => void addPhoto('camera') },
-          { label: t('summary.photoLibrary'), onPress: () => void addPhoto('library') },
+          {
+            label: t('summary.photoCamera'),
+            afterClose: true,
+            onPress: () => void addPhoto('camera'),
+          },
+          {
+            label: t('summary.photoLibrary'),
+            afterClose: true,
+            onPress: () => void addPhoto('library'),
+          },
         ]}
       />
       <WorkoutMenuSheet

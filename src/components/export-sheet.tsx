@@ -13,17 +13,14 @@ export function useExportSheet() {
   const [visible, setVisible] = useState(false);
 
   const run = (kind: ExportKind) => {
-    // 시트가 닫힌 뒤 공유 시트를 연다
-    setTimeout(() => {
-      exportData(kind, lang)
-        .then((ok) => {
-          if (!ok) Alert.alert(t('exportData.failedTitle'), t('exportData.unavailable'));
-        })
-        .catch((e) => {
-          console.warn('[export] failed', e);
-          Alert.alert(t('exportData.failedTitle'), t('exportData.failed'));
-        });
-    }, 250);
+    exportData(kind, lang)
+      .then((ok) => {
+        if (!ok) Alert.alert(t('exportData.failedTitle'), t('exportData.unavailable'));
+      })
+      .catch((e) => {
+        console.warn('[export] failed', e);
+        Alert.alert(t('exportData.failedTitle'), t('exportData.failed'));
+      });
   };
 
   const sheet = (
@@ -33,8 +30,8 @@ export function useExportSheet() {
       cancelLabel={t('settings.cancel')}
       onClose={() => setVisible(false)}
       actions={[
-        { label: t('exportData.csv'), onPress: () => run('csv') },
-        { label: t('exportData.json'), onPress: () => run('json') },
+        { label: t('exportData.csv'), afterClose: true, onPress: () => run('csv') },
+        { label: t('exportData.json'), afterClose: true, onPress: () => run('json') },
       ]}
     />
   );

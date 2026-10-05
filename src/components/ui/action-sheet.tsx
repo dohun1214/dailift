@@ -4,7 +4,7 @@ import { Animated, Modal, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import { useSheetMotion } from './use-sheet-motion';
+import { SHEET_CLOSED_MS, useSheetMotion } from './use-sheet-motion';
 
 export type SheetAction = {
   label: string;
@@ -12,6 +12,8 @@ export type SheetAction = {
   destructive?: boolean;
   /** 지금 고른 값이면 오른쪽에 체크 */
   selected?: boolean;
+  /** 창이 다 닫힌 뒤에 실행한다. 카메라 · 사진 선택 · 확인 창처럼 다른 창을 띄우는 동작에 쓴다 */
+  afterClose?: boolean;
 };
 
 type Props = {
@@ -68,7 +70,8 @@ export function ActionSheet({ visible, title, actions, cancelLabel, onClose }: P
                 accessibilityState={a.selected === undefined ? undefined : { selected: a.selected }}
                 onPress={() => {
                   onClose();
-                  a.onPress();
+                  if (a.afterClose) setTimeout(a.onPress, SHEET_CLOSED_MS);
+                  else a.onPress();
                 }}
                 style={({ pressed }) => [
                   styles.item,
