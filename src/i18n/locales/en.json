@@ -498,12 +498,12 @@
     "compare": "This week · last week",
     "pairA11y": "{{label}}: this week {{current}}, last week {{previous}}",
     "balance": "Muscle balance",
-    "recommended": "This week · target {{min}}–{{max}} sets",
-    "gaugeA11y": "{{name}} {{value}} sets, {{state}}",
+    "gaugeA11y": "{{name}}: {{value}} sets, target {{target}}, {{state}}",
     "state": {
-      "low": "below target",
-      "ok": "on target",
-      "high": "above target"
+      "none": "not started",
+      "low": "well short",
+      "mid": "in progress",
+      "done": "target reached"
     },
     "e1rm": "Estimated 1RM",
     "pickExercise": "Choose exercise",
@@ -512,7 +512,20 @@
     "chartA11y": "{{name}} estimated 1RM over 8 weeks, now {{value}}{{unit}}",
     "e1rmEmpty": "Your trend appears once you log weighted exercises.",
     "stagnant": "<b>{{name}}</b> has stayed flat for the last {{count}} sessions. Try a different rep range?",
-    "detailLink": "{{name}} details"
+    "detailLink": "{{name}} details",
+    "balanceSub": "This week · sets / target",
+    "targetEdit": "Targets",
+    "targetEditA11y": "Change target sets",
+    "balanceFoot": "A bar fills up and gets a check when you hit the target.",
+    "targets": {
+      "title": "Weekly target sets",
+      "sub": "Sets to do each week per muscle group. Starts from a recommendation based on your experience.",
+      "recommended": "Recommended {{value}}",
+      "reset": "Reset to recommended",
+      "done": "Done",
+      "incA11y": "Increase {{name}}",
+      "decA11y": "Decrease {{name}}"
+    }
   },
   "exerciseDetail": {
     "primary": "Primary",
@@ -646,7 +659,7 @@
     "muscleTitle": "Sets by muscle this week",
     "muscleLink": "Stats",
     "muscleA11y": "Sets by muscle this week, open stats",
-    "muscleRowA11y": "{{name}}: {{value}} sets",
+    "muscleRowA11y": "{{name}}: {{value}} sets, target {{target}}, {{state}}",
     "live": {
       "setNow": "Set {{set}}",
       "setNext": "Next: set {{set}}",
@@ -745,7 +758,10 @@
     "groupData": "Data",
     "sync": "Sync",
     "restOnLockScreen": "Rest timer on Lock Screen",
-    "restOnLockScreenSub": "Shows the time left even when you leave the app or lock your phone"
+    "restOnLockScreenSub": "Shows the time left even when you leave the app or lock your phone",
+    "setTargets": "Weekly target sets",
+    "setTargetsDefault": "Recommended",
+    "setTargetsCustom": "Custom"
   },
   "plates": {
     "title": "Plate calculator",

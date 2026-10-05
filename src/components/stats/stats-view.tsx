@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { ChevronDown, ChevronRight } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, Pencil } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
@@ -8,10 +8,9 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { ActionSheet } from '@/components/ui';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
 import { useStatsData } from '@/db/use-stats';
-import { weeklySetRange } from '@/domain/profile';
+import { resolveSetTargets, targetLevel } from '@/domain/set-targets';
 import {
   BALANCE_GROUPS,
-  balanceState,
   groupBalance,
   isStagnant,
   mostFrequentExercise,
@@ -26,6 +25,7 @@ import { useSettings } from '@/stores/settings';
 
 import { BalanceGauge } from './balance-gauge';
 import { LineChart } from './line-chart';
+import { SetTargetsSheet } from './set-targets-sheet';
 
 const WEEKS = 8;
 const fmt1 = (n: number) => (Math.round(n * 10) / 10).toFixed(1);
@@ -38,7 +38,9 @@ export function StatsView() {
   const locale = lang === 'ko' ? 'ko-KR' : 'en-US';
   const unit = useSettings((s) => s.weightUnit);
   const experience = useProfile((s) => s.experience);
-  const range = weeklySetRange(experience);
+  const customTargets = useSettings((s) => s.setTargets);
+  const targets = resolveSetTargets(experience, customTargets);
+  const [targetsOpen, setTargetsOpen] = useState(false);
   const catalog = useExerciseCatalog(lang);
   const { sets, musclesOf } = useStatsData();
   const [picked, setPicked] = useState<string | null>(null);
@@ -114,30 +116,45 @@ export function StatsView() {
           <Text style={styles.h2} accessibilityRole="header">
             {t('stats.balance')}
           </Text>
-          <Text style={styles.small}>{t('stats.recommended', range)}</Text>
+          <Text style={[styles.small, styles.flex]} numberOfLines={1}>
+            {t('stats.balanceSub')}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('stats.targetEditA11y')}
+            hitSlop={6}
+            onPress={() => setTargetsOpen(true)}
+            style={({ pressed }) => [styles.targetButton, pressed && styles.pressed]}
+          >
+            <Pencil size={14} color={theme.colors.text} strokeWidth={1.8} />
+            <Text style={styles.targetButtonText}>{t('stats.targetEdit')}</Text>
+          </Pressable>
         </View>
         {BALANCE_GROUPS.map((g) => {
           const value = balance.get(g) ?? 0;
           const name = t(`exercises.group.${g}`);
+          const target = targets[g as keyof typeof targets] ?? 0;
           return (
             <BalanceGauge
               key={g}
               name={name}
               value={value}
-              range={range}
+              target={target}
               a11yLabel={t('stats.gaugeA11y', {
                 name,
                 value,
-                state: t(`stats.state.${balanceState(value, range)}`),
+                target,
+                state: t(`stats.state.${targetLevel(value, target)}`),
               })}
             />
           );
         })}
+        <Text style={styles.balanceFoot}>{t('stats.balanceFoot')}</Text>
       </View>
 
       <View style={styles.e1rmCard}>
         <View style={styles.e1rmHead}>
-          <Text style={styles.h2} accessibilityRole="header">
+          <Text style={[styles.h2, styles.flex]} accessibilityRole="header">
             {t('stats.e1rm')}
           </Text>
           {weighted.length > 0 ? (
@@ -206,6 +223,8 @@ export function StatsView() {
         </View>
       ) : null}
 
+      <SetTargetsSheet visible={targetsOpen} onClose={() => setTargetsOpen(false)} />
+
       <ActionSheet
         visible={pickerOpen}
         title={t('stats.pickExercise')}
@@ -262,15 +281,43 @@ const styles = StyleSheet.create((theme) => ({
   },
   balanceCard: {
     paddingTop: 18,
-    paddingRight: 16,
+    paddingRight: 12,
     paddingBottom: 10,
     paddingLeft: 18,
     borderRadius: theme.radius.xl,
     backgroundColor: theme.colors.surface,
   },
-  balanceHead: { flexDirection: 'row', alignItems: 'baseline', gap: 8, paddingBottom: 6 },
+  balanceHead: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 8 },
+  flex: { flex: 1 },
+  targetButton: {
+    height: 36,
+    marginVertical: -8,
+    marginRight: -4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingLeft: 10,
+    paddingRight: 12,
+    borderRadius: 12,
+    backgroundColor: theme.colors.surface2,
+  },
+  targetButtonText: {
+    fontSize: 13,
+    lineHeight: 17,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.semibold,
+    color: theme.colors.text,
+  },
+  balanceFoot: {
+    paddingTop: 6,
+    paddingBottom: 4,
+    fontSize: 12,
+    lineHeight: 18,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.text2,
+  },
   h2: {
-    flex: 1,
     fontSize: 16,
     lineHeight: 21,
     includeFontPadding: false,

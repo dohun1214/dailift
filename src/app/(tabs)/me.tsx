@@ -7,6 +7,7 @@ import { Alert, Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { useExportSheet } from '@/components/export-sheet';
+import { SetTargetsSheet } from '@/components/stats/set-targets-sheet';
 import {
   ActionSheet,
   Button,
@@ -42,6 +43,7 @@ export default function MeScreen() {
   const bodyType = useProfile((p) => p.bodyType);
   const setBodyType = useProfile((p) => p.setBodyType);
   const [sheet, setSheet] = useState<Sheet | null>(null);
+  const [targetsOpen, setTargetsOpen] = useState(false);
   const exportSheet = useExportSheet();
   const account = accountInfo(useAuth((a) => a.session));
   const syncedAgo = (at: number) => {
@@ -199,6 +201,15 @@ export default function MeScreen() {
                 s.setDumbbellMode,
               )
             }
+          />
+          <ListRow
+            label={t('settings.setTargets')}
+            value={t(
+              Object.keys(s.setTargets).length > 0
+                ? 'settings.setTargetsCustom'
+                : 'settings.setTargetsDefault',
+            )}
+            onPress={() => setTargetsOpen(true)}
           />
           <ListRow
             label={t('settings.defaultRest')}
@@ -371,6 +382,7 @@ export default function MeScreen() {
         onClose={() => setSheet(null)}
       />
       {exportSheet.sheet}
+      <SetTargetsSheet visible={targetsOpen} onClose={() => setTargetsOpen(false)} />
     </Screen>
   );
 }

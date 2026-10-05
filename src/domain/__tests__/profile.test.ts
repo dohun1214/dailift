@@ -1,6 +1,6 @@
 import { parseDecimal } from '@/lib/number';
 
-import { proteinTargetGrams, recommendTemplate, weeklySetRange } from '../profile';
+import { proteinTargetGrams, recommendTemplate } from '../profile';
 
 describe('recommendTemplate', () => {
   it.each([
@@ -13,18 +13,6 @@ describe('recommendTemplate', () => {
     [{ experience: 'under6m', daysPerWeek: 2, goal: null }, 'full_body'],
   ] as const)('%j → %s', (answers, expected) => {
     expect(recommendTemplate(answers)).toBe(expected);
-  });
-});
-
-describe('weeklySetRange', () => {
-  it('경험이 많을수록 범위가 넓고 높다', () => {
-    expect(weeklySetRange('new')).toEqual({ min: 6, max: 12 });
-    expect(weeklySetRange('under6m')).toEqual({ min: 8, max: 16 });
-    expect(weeklySetRange('over1y')).toEqual({ min: 10, max: 20 });
-  });
-
-  it('답하지 않았으면 일반 권장 범위(10~20)', () => {
-    expect(weeklySetRange(null)).toEqual({ min: 10, max: 20 });
   });
 });
 

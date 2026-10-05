@@ -4,6 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { WeightUnit } from '@/db/schema';
 import { DEFAULT_PLATES } from '@/domain/plates';
+import { clampSetTarget, type SetTargets, type TargetGroup } from '@/domain/set-targets';
 import { defaultBarWeight } from '@/domain/strength';
 import { kvStorage } from '@/lib/kv-storage';
 import type { Accent, ThemePreference } from '@/theme/tokens';
@@ -41,6 +42,8 @@ type Data = {
   editHintSeen: boolean;
   /** 기록 상세의 '한 운동' 카드를 펼쳐 둘지 (마지막으로 누른 상태를 기억) */
   summaryExercisesOpen: boolean;
+  /** 직접 정한 부위별 주간 목표 세트. 없는 부위는 운동 경력에 맞춘 추천값을 쓴다 */
+  setTargets: Partial<SetTargets>;
 };
 
 type SettingsState = Data & {
@@ -57,6 +60,9 @@ type SettingsState = Data & {
   setRestOnLockScreen: (value: boolean) => void;
   markEditHintSeen: () => void;
   setSummaryExercisesOpen: (value: boolean) => void;
+  setSetTarget: (group: TargetGroup, value: number) => void;
+  /** 모든 부위를 추천값으로 */
+  resetSetTargets: () => void;
   /** 모든 데이터 삭제 때 처음 상태로 */
   reset: () => void;
 };
@@ -76,6 +82,7 @@ function defaults(): Data {
     restOnLockScreen: true,
     editHintSeen: false,
     summaryExercisesOpen: false,
+    setTargets: {},
   };
 }
 
@@ -98,6 +105,9 @@ export const useSettings = create<SettingsState>()(
       setRestOnLockScreen: (restOnLockScreen) => set({ restOnLockScreen }),
       markEditHintSeen: () => set({ editHintSeen: true }),
       setSummaryExercisesOpen: (summaryExercisesOpen) => set({ summaryExercisesOpen }),
+      setSetTarget: (group, value) =>
+        set((s) => ({ setTargets: { ...s.setTargets, [group]: clampSetTarget(value) } })),
+      resetSetTargets: () => set({ setTargets: {} }),
       reset: () => set(defaults()),
     }),
     {

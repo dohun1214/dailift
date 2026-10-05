@@ -1,19 +1,23 @@
-import { ChevronRight } from 'lucide-react-native';
+import { Check, ChevronRight } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
+import { targetLevel, targetProgress } from '@/domain/set-targets';
+
 type Props = {
-  /** 부위 이름과 이번 주 세트 수 (보여 줄 순서대로) */
-  rows: readonly { name: string; value: number }[];
+  /** 부위 이름, 이번 주 세트 수, 주간 목표 세트 (보여 줄 순서대로) */
+  rows: readonly { name: string; value: number; target: number }[];
   onPress: () => void;
 };
 
-/** 홈의 '이번 주 부위별 세트' 카드. 가장 많은 부위를 꽉 찬 막대로 삼는다. 누르면 통계로 간다. */
+/**
+ * 홈의 '이번 주 부위별 세트' 카드. 막대는 목표를 채우면 꽉 찬다.
+ * 0세트는 빈 막대, 목표의 절반 미만은 주황, 절반 이상은 회색, 다 채우면 진한 색 + 체크. 누르면 통계로 간다.
+ */
 export function MuscleSetsCard({ rows, onPress }: Props) {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
-  const top = Math.max(1, ...rows.map((r) => r.value));
 
   return (
     <Pressable
@@ -30,20 +34,51 @@ export function MuscleSetsCard({ rows, onPress }: Props) {
       <View style={styles.rows}>
         {rows.map((r) => {
           const shown = Number.isInteger(r.value) ? String(r.value) : r.value.toFixed(1);
+          const level = targetLevel(r.value, r.target);
           return (
             <View
               key={r.name}
               style={styles.row}
               accessible
-              accessibilityLabel={t('home.muscleRowA11y', { name: r.name, value: shown })}
+              accessibilityLabel={t('home.muscleRowA11y', {
+                name: r.name,
+                value: shown,
+                target: r.target,
+                state: t(`stats.state.${level}`),
+              })}
             >
-              <Text style={[styles.name, r.value === 0 && styles.muted]} numberOfLines={1}>
+              <Text style={[styles.name, level === 'none' && styles.muted]} numberOfLines={1}>
                 {r.name}
               </Text>
               <View style={styles.track}>
-                <View style={[styles.fill, { width: `${(r.value / top) * 100}%` }]} />
+                {level !== 'none' ? (
+                  <View
+                    style={[
+                      styles.fill,
+                      level === 'low' && styles.fillLow,
+                      level === 'mid' && styles.fillMid,
+                      { width: `${targetProgress(r.value, r.target) * 100}%` },
+                    ]}
+                  />
+                ) : null}
               </View>
-              <Text style={[styles.value, r.value === 0 && styles.muted]}>{shown}</Text>
+              <Text style={styles.numbers} numberOfLines={1}>
+                <Text
+                  style={[
+                    styles.value,
+                    level === 'none' && styles.muted,
+                    level === 'low' && styles.warm,
+                  ]}
+                >
+                  {shown}
+                </Text>
+                <Text style={styles.target}>{` / ${r.target}`}</Text>
+              </Text>
+              <View style={styles.check}>
+                {level === 'done' ? (
+                  <Check size={14} color={theme.colors.text} strokeWidth={2.6} />
+                ) : null}
+              </View>
             </View>
           );
         })}
@@ -56,7 +91,8 @@ const styles = StyleSheet.create((theme) => ({
   card: {
     gap: 14,
     paddingTop: 16,
-    paddingHorizontal: 16,
+    paddingLeft: 16,
+    paddingRight: 12,
     paddingBottom: 18,
     borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.surface,
@@ -97,14 +133,25 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: theme.colors.track,
   },
   fill: { height: 8, borderRadius: 4, backgroundColor: theme.colors.accent },
+  fillLow: { backgroundColor: theme.colors.warmFill },
+  fillMid: { backgroundColor: theme.colors.text2 },
+  warm: { color: theme.colors.warm },
+  numbers: { width: 50, textAlign: 'right' },
   value: {
-    width: 28,
-    textAlign: 'right',
     fontSize: 13,
     lineHeight: 17,
     includeFontPadding: false,
-    fontFamily: theme.fonts.numSemibold,
+    fontFamily: theme.fonts.numBold,
     fontVariant: ['tabular-nums'],
     color: theme.colors.text,
   },
+  target: {
+    fontSize: 11,
+    lineHeight: 17,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.numMedium,
+    fontVariant: ['tabular-nums'],
+    color: theme.colors.text2,
+  },
+  check: { width: 14, alignItems: 'center', marginLeft: -4 },
 }));

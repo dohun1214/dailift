@@ -480,12 +480,12 @@
     "compare": "이번 주 · 지난주",
     "pairA11y": "{{label}}: 이번 주 {{current}}, 지난주 {{previous}}",
     "balance": "부위 밸런스",
-    "recommended": "이번 주 · 권장 {{min}}–{{max}}세트",
-    "gaugeA11y": "{{name}} {{value}}세트, {{state}}",
+    "gaugeA11y": "{{name}} {{value}}세트, 목표 {{target}}세트, {{state}}",
     "state": {
-      "low": "권장보다 적어요",
-      "ok": "권장 범위",
-      "high": "권장보다 많아요"
+      "none": "아직 안 했어요",
+      "low": "많이 부족해요",
+      "mid": "채우는 중",
+      "done": "목표를 채웠어요"
     },
     "e1rm": "추정 1RM",
     "pickExercise": "종목 고르기",
@@ -494,7 +494,20 @@
     "chartA11y": "{{name}} 추정 1RM 8주 추이, 지금 {{value}}{{unit}}",
     "e1rmEmpty": "무게를 기록한 종목이 생기면 추이가 보여요.",
     "stagnant": "<b>{{name}}</b>{{particle}} 최근 {{count}}회 기록이 제자리예요. 렙 범위를 바꿔보는 건 어때요?",
-    "detailLink": "{{name}} 기록 자세히"
+    "detailLink": "{{name}} 기록 자세히",
+    "balanceSub": "이번 주 · 세트 / 목표",
+    "targetEdit": "목표",
+    "targetEditA11y": "목표 세트 바꾸기",
+    "balanceFoot": "목표를 채우면 막대가 꽉 차고 체크가 붙어요.",
+    "targets": {
+      "title": "주간 목표 세트",
+      "sub": "부위마다 일주일에 채울 세트 수예요. 운동 경력에 맞춘 추천값으로 시작해요.",
+      "recommended": "추천 {{value}}",
+      "reset": "추천값으로 되돌리기",
+      "done": "완료",
+      "incA11y": "{{name}} 늘리기",
+      "decA11y": "{{name}} 줄이기"
+    }
   },
   "exerciseDetail": {
     "primary": "주동근",
@@ -625,7 +638,7 @@
     "muscleTitle": "이번 주 부위별 세트",
     "muscleLink": "통계",
     "muscleA11y": "이번 주 부위별 세트, 통계 열기",
-    "muscleRowA11y": "{{name}} {{value}}세트",
+    "muscleRowA11y": "{{name}} {{value}}세트, 목표 {{target}}세트, {{state}}",
     "live": {
       "setNow": "{{set}}세트째",
       "setNext": "다음은 {{set}}세트",
@@ -720,7 +733,10 @@
     "groupData": "데이터",
     "sync": "동기화",
     "restOnLockScreen": "잠금 화면에 휴식 타이머",
-    "restOnLockScreenSub": "앱을 나가거나 화면을 꺼도 남은 휴식 시간을 보여 줘요"
+    "restOnLockScreenSub": "앱을 나가거나 화면을 꺼도 남은 휴식 시간을 보여 줘요",
+    "setTargets": "부위별 주간 목표 세트",
+    "setTargetsDefault": "추천값",
+    "setTargetsCustom": "직접 설정"
   },
   "plates": {
     "title": "원판 계산기",

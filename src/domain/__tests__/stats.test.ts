@@ -1,5 +1,4 @@
 import {
-  balanceState,
   DAY_MS,
   groupBalance,
   isStagnant,
@@ -75,9 +74,6 @@ describe('groupBalance', () => {
       musclesOf,
     );
     expect(Object.fromEntries(b)).toEqual({ chest: 2, back: 1, shoulders: 1, legs: 0, arms: 1 });
-    expect(balanceState(8, { min: 10, max: 20 })).toBe('low');
-    expect(balanceState(22, { min: 10, max: 20 })).toBe('high');
-    expect(balanceState(10, { min: 10, max: 20 })).toBe('ok');
   });
 });
 

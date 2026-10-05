@@ -39,6 +39,7 @@ import {
   workoutsThisWeek,
 } from '@/domain/home';
 import type { SummarySet } from '@/domain/session-summary';
+import { resolveSetTargets, type TargetGroup } from '@/domain/set-targets';
 import { BALANCE_GROUPS, groupBalance } from '@/domain/stats';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { useToday } from '@/lib/use-today';
@@ -60,6 +61,8 @@ export default function HomeScreen() {
   const locale = lang === 'ko' ? 'ko-KR' : 'en-US';
   const unit = useSettings((s) => s.weightUnit);
   const target = useProfile((s) => s.daysPerWeek);
+  const experience = useProfile((s) => s.experience);
+  const customTargets = useSettings((s) => s.setTargets);
   const catalog = useExerciseCatalog(lang);
   const sections = useRoutineSections();
   const { workout: active } = useActiveWorkout();
@@ -131,11 +134,13 @@ export default function HomeScreen() {
   const thisWeek = workoutsThisWeek(starts, now);
   const muscleRows = useMemo(() => {
     const balance = groupBalance(sets, now.getTime(), musclesOf);
+    const targets = resolveSetTargets(experience, customTargets);
     return BALANCE_GROUPS.map((g) => ({
       name: t(`exercises.group.${g}`),
       value: balance.get(g) ?? 0,
+      target: targets[g as TargetGroup] ?? 0,
     }));
-  }, [sets, now, musclesOf, t]);
+  }, [sets, now, musclesOf, t, experience, customTargets]);
   const streak = target ? streakWeeks(starts, target, now) : 0;
 
   const pr = useMemo(() => {
