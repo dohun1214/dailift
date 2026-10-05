@@ -49,30 +49,42 @@ export function WeekStrip({
   const { theme } = useUnistyles();
   /** 지금 보이는 위치(주 단위, 소수). 0이면 이번 주가 가운데 */
   const page = useSharedValue(weekOffset);
+  /** 가고 있는 주(정수). 넘어가는 도중에 또 밀면 여기서 이어서 센다 */
+  const target = useSharedValue(weekOffset);
   const start = useSharedValue(weekOffset);
+  const origin = useSharedValue(weekOffset);
   const width = useSharedValue(0);
+  /** 밀어서 넘긴 것까지 셈한 주. 화면의 주가 이것과 다르면 밖에서 바뀐 것이다 */
+  const expected = useRef(weekOffset);
   const shiftRef = useRef(onShift);
   shiftRef.current = onShift;
 
   // 밀어서 넘긴 게 아닌데 주가 바뀌면(홈을 떠났다 돌아옴, 접근성 동작) 그 주로 옮긴다.
   // biome-ignore lint/correctness/useExhaustiveDependencies: 주가 바뀔 때만 맞춘다
   useEffect(() => {
-    if (Math.round(page.value) !== weekOffset)
-      page.value = withTiming(weekOffset, { duration: 200 });
+    if (expected.current === weekOffset) return;
+    expected.current = weekOffset;
+    target.value = weekOffset;
+    page.value = withTiming(weekOffset, { duration: 200 });
   }, [weekOffset]);
 
   const pan = useMemo(() => {
-    const shift = (dir: -1 | 1) => shiftRef.current(dir);
+    const shift = (dir: -1 | 1) => {
+      expected.current += dir;
+      shiftRef.current(dir);
+    };
     return Gesture.Pan()
       .activeOffsetX([-16, 16])
       .failOffsetY([-14, 14])
       .onBegin(() => {
-        start.value = Math.round(page.value);
+        // 넘어가는 도중이면 보이는 자리에서 그대로 잡고, 가던 주를 기준으로 삼는다.
+        start.value = page.value;
+        origin.value = target.value;
       })
       .onUpdate((e) => {
         if (width.value <= 0) return;
-        const lower = Math.max(minOffset, start.value - 1);
-        const upper = Math.min(maxOffset, start.value + 1);
+        const lower = Math.max(minOffset, origin.value - 1);
+        const upper = Math.min(maxOffset, origin.value + 1);
         const raw = start.value - e.translationX / width.value;
         // 더 넘길 주가 없으면 조금만 끌려온다
         page.value =
@@ -86,12 +98,14 @@ export function WeekStrip({
         const next = e.translationX < -SWIPE || e.velocityX < -FLING;
         const prev = e.translationX > SWIPE || e.velocityX > FLING;
         const dir: -1 | 0 | 1 =
-          next && start.value < maxOffset ? 1 : prev && start.value > minOffset ? -1 : 0;
-        page.value = withTiming(start.value + dir, { duration: 200 }, (finished) => {
-          if (finished && dir !== 0) scheduleOnRN(shift, dir);
+          next && origin.value < maxOffset ? 1 : prev && origin.value > minOffset ? -1 : 0;
+        target.value = origin.value + dir;
+        // 다 넘어가기 전에 또 밀어서 끊겨도 넘긴 것은 넘긴 것으로 센다.
+        page.value = withTiming(target.value, { duration: 200 }, () => {
+          if (dir !== 0) scheduleOnRN(shift, dir);
         });
       });
-  }, [minOffset, maxOffset, page, start, width]);
+  }, [minOffset, maxOffset, page, start, origin, target, width]);
 
   const slide = useAnimatedStyle(() => ({
     transform: [{ translateX: -page.value * width.value }],
@@ -99,9 +113,14 @@ export function WeekStrip({
 
   const canPrev = weekOffset > minOffset;
   const canNext = weekOffset < maxOffset;
-  const offsets = [weekOffset - 1, weekOffset, weekOffset + 1].filter(
-    (o) => o >= minOffset && o <= maxOffset,
-  );
+  const weekActions = [
+    ...(canNext ? [{ name: 'nextWeek', label: t('home.stripNext') }] : []),
+    ...(canPrev ? [{ name: 'prevWeek', label: t('home.stripPrev') }] : []),
+  ];
+  // 빠르게 두 번 밀어도 빈칸이 보이지 않게 두 주씩 옆에 그려 둔다.
+  const offsets = [-2, -1, 0, 1, 2]
+    .map((d) => weekOffset + d)
+    .filter((o) => o >= minOffset && o <= maxOffset);
 
   return (
     <GestureDetector gesture={pan}>
@@ -109,16 +128,6 @@ export function WeekStrip({
         style={styles.clip}
         onLayout={(e) => {
           width.value = e.nativeEvent.layout.width;
-        }}
-        accessibilityLabel={t(weekOffset === 0 ? 'home.stripA11y' : 'home.stripOtherA11y')}
-        accessibilityHint={t('home.stripHint')}
-        accessibilityActions={[
-          ...(canNext ? [{ name: 'increment' as const }] : []),
-          ...(canPrev ? [{ name: 'decrement' as const }] : []),
-        ]}
-        onAccessibilityAction={(e) => {
-          if (e.nativeEvent.actionName === 'increment' && canNext) onShift(1);
-          if (e.nativeEvent.actionName === 'decrement' && canPrev) onShift(-1);
         }}
       >
         <Animated.View style={[styles.track, slide]}>
@@ -151,6 +160,12 @@ export function WeekStrip({
                       ),
                     })}
                     accessibilityHint={t('home.dayHint')}
+                    // 화면 낭독기에서는 밀 수 없으니 날짜 칸의 동작으로 주를 넘긴다.
+                    accessibilityActions={weekActions}
+                    onAccessibilityAction={(e) => {
+                      if (e.nativeEvent.actionName === 'nextWeek' && canNext) onShift(1);
+                      if (e.nativeEvent.actionName === 'prevWeek' && canPrev) onShift(-1);
+                    }}
                     onPress={() => onDayPress(d)}
                   >
                     {picked ? <View style={styles.ring} pointerEvents="none" /> : null}

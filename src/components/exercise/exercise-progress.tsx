@@ -227,6 +227,7 @@ export function ExerciseProgress({ exerciseId, name, type }: Props) {
               accessibilityRole="tab"
               accessibilityState={{ selected: m === metric }}
               onPress={() => setMetric(m)}
+              hitSlop={{ top: 4, bottom: 4 }}
               style={[styles.metric, m === metric && styles.metricOn]}
             >
               <Text
@@ -295,6 +296,7 @@ export function ExerciseProgress({ exerciseId, name, type }: Props) {
                   setPeriod(p);
                   setSelectedId(null);
                 }}
+                hitSlop={{ top: 4, bottom: 4 }}
                 style={[styles.period, p === period && styles.periodOn]}
               >
                 <Text style={[styles.periodText, p === period && styles.periodTextOn]}>

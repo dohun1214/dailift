@@ -49,7 +49,7 @@ export default function LogScreen() {
   const meta = (i: HistoryItem) =>
     t('history.meta', {
       minutes: i.minutes,
-      sets: i.sets,
+      sets: t('summary.setCount', { count: i.sets }),
       volume: `${i.volume.toLocaleString(locale)}${unit}`,
     });
 
@@ -158,7 +158,8 @@ export default function LogScreen() {
                 {
                   label: t('history.actions.delete'),
                   destructive: true,
-                  onPress: () => confirmDelete(selected),
+                  // 창이 다 내려간 뒤에 확인 창을 띄운다(iOS는 닫히는 창 위에 띄우면 같이 사라진다).
+                  onPress: () => setTimeout(() => confirmDelete(selected), 350),
                 },
               ]
             : []

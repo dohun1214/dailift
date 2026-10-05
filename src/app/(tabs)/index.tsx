@@ -12,7 +12,7 @@ import { LiveWorkoutCard } from '@/components/home/live-workout-card';
 import { MuscleSetsCard } from '@/components/home/muscle-sets-card';
 import { type PickRoutine, RoutinePickSheet } from '@/components/home/routine-pick-sheet';
 import { WeekStrip } from '@/components/home/week-strip';
-import { Badge, Button, Screen } from '@/components/ui';
+import { Badge, Button, ConfirmDialog, Screen } from '@/components/ui';
 import { db } from '@/db/client';
 import { completedWorkoutsQuery } from '@/db/history';
 import * as schema from '@/db/schema';
@@ -180,10 +180,20 @@ export default function HomeScreen() {
       id: r.id,
       name: r.name,
       today: r.id === today?.id,
-      meta: t('home.meta', { count: r.exerciseCount, sets: r.setCount, minutes: r.minutes }),
+      meta: t('home.meta', {
+        count: r.exerciseCount,
+        sets: t('summary.setCount', { count: r.setCount }),
+        minutes: r.minutes,
+      }),
     }));
 
+  // 다른 운동이 진행 중일 때 시작을 누르면 그 운동의 이름을 담아 알린다.
+  const [busyWith, setBusyWith] = useState<string | null>(null);
   const start = (routineId: string | null, name: string) => {
+    if (active && active.routineId !== routineId) {
+      setBusyWith(active.name);
+      return;
+    }
     if (!active)
       startWorkout(db, {
         routineId,
@@ -288,7 +298,7 @@ export default function HomeScreen() {
               <Text style={styles.metaText}>
                 {t('history.meta', {
                   minutes: doneToday.minutes,
-                  sets: doneToday.sets,
+                  sets: t('summary.setCount', { count: doneToday.sets }),
                   volume: `${doneToday.volume.toLocaleString(locale)}${unit}`,
                 })}
               </Text>
@@ -321,7 +331,7 @@ export default function HomeScreen() {
               <Text style={styles.metaText}>
                 {t('home.meta', {
                   count: todayItems.length,
-                  sets: totalSets,
+                  sets: t('summary.setCount', { count: totalSets }),
                   minutes: today.minutes,
                 })}
               </Text>
@@ -365,17 +375,31 @@ export default function HomeScreen() {
             <Text style={styles.statValue}>
               {thisWeek}
               <Text style={styles.statSmall}>
-                {target ? t('home.weekTarget', { target }) : t('home.weekNoTarget')}
+                {target
+                  ? t('home.weekTarget', { target })
+                  : t('home.weekNoTarget', { count: thisWeek })}
               </Text>
             </Text>
           </View>
-          <View style={styles.stat} accessible>
-            <Text style={styles.statLabel}>{t('home.streak')}</Text>
-            <Text style={styles.statValue}>
-              {streak}
-              <Text style={styles.statSmall}>{t('home.streakUnit')}</Text>
-            </Text>
-          </View>
+          {target ? (
+            <View style={styles.stat} accessible>
+              <Text style={styles.statLabel}>{t('home.streak')}</Text>
+              <Text style={styles.statValue}>
+                {streak}
+                <Text style={styles.statSmall}>{t('home.streakUnit')}</Text>
+              </Text>
+            </View>
+          ) : (
+            // 주 목표가 없으면 연속 기록을 셀 수 없다 → 정하러 가는 길을 보여 준다.
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push({ pathname: '/onboarding', params: { redo: '1' } })}
+              style={({ pressed }) => [styles.stat, pressed && styles.pressed]}
+            >
+              <Text style={styles.statLabel}>{t('home.streak')}</Text>
+              <Text style={styles.statHint}>{t('home.streakNoTarget')}</Text>
+            </Pressable>
+          )}
         </View>
 
         <MuscleSetsCard
@@ -418,7 +442,7 @@ export default function HomeScreen() {
         workoutMeta={(i: HistoryItem) =>
           t('history.meta', {
             minutes: i.minutes,
-            sets: i.sets,
+            sets: t('summary.setCount', { count: i.sets }),
             volume: `${i.volume.toLocaleString(locale)}${unit}`,
           })
         }
@@ -439,6 +463,18 @@ export default function HomeScreen() {
         onPick={(r) => start(r.id, r.name)}
         onEmpty={() => start(null, t('workout.emptyName'))}
         onClose={() => setPicking(false)}
+      />
+      <ConfirmDialog
+        visible={busyWith !== null}
+        title={t('workout.recoverTitle')}
+        body={t('workout.busyBody', { name: busyWith ?? '' })}
+        cancelLabel={t('common.close')}
+        confirmLabel={t('workout.resume')}
+        onCancel={() => setBusyWith(null)}
+        onConfirm={() => {
+          setBusyWith(null);
+          router.push('/workout');
+        }}
       />
     </Screen>
   );
@@ -518,6 +554,14 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.text,
   },
   statSmall: { fontSize: 14, fontFamily: theme.fonts.medium, color: theme.colors.text2 },
+  statHint: {
+    minHeight: 31,
+    fontSize: 13,
+    lineHeight: 18,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.medium,
+    color: theme.colors.text,
+  },
   prRow: {
     flexDirection: 'row',
     alignItems: 'center',

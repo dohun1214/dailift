@@ -9,11 +9,17 @@ type CreateHandler = (exerciseId: string) => void;
 
 let onPick: PickHandler | null = null;
 let onCreate: CreateHandler | null = null;
+let single = false;
 
-export function openExercisePicker(handler: PickHandler) {
+/** `single`: 하나만 고른다(종목 바꾸기). 아니면 여러 개를 골라 추가한다. */
+export function openExercisePicker(handler: PickHandler, options: { single?: boolean } = {}) {
   onPick = handler;
+  single = options.single === true;
   router.push('/exercise-picker');
 }
+
+/** 지금 열린 종목 검색이 하나만 고르는 화면인지 */
+export const pickerIsSingle = () => single;
 
 export function deliverPickedExercises(ids: string[]) {
   const handler = onPick;

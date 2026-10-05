@@ -177,7 +177,8 @@
         "reps": "Min ≤ max, 1–100",
         "rest": "Rest: 0–900 s",
         "increment": "0.25–50",
-        "plan": "Check the set values."
+        "plan": "Check the set values.",
+        "time": "Min ≤ max, 5–600 sec"
       },
       "notFound": "Routine not found",
       "min": "minimum",
@@ -242,7 +243,9 @@
       "equipment": "Equipment",
       "nameRequired": "Enter an exercise name.",
       "primaryRequired": "Pick at least one primary muscle."
-    }
+    },
+    "pickerTitleReplace": "Replace exercise",
+    "replaceConfirm": "Use this exercise"
   },
   "workout": {
     "emptyName": "Quick workout",
@@ -320,7 +323,7 @@
       "addExercise": "Add exercises",
       "discard": "End without saving",
       "cancel": "Cancel",
-      "editExercises": "Reorder exercises",
+      "editExercises": "Edit exercises",
       "replaceThis": "Swap for another exercise",
       "removeThis": "Remove this exercise",
       "exerciseA11y": "{{name}} menu"
@@ -349,7 +352,7 @@
         "working": "Working set",
         "warmup": "Warm-up set",
         "drop": "Drop set",
-        "failure": "Failure set"
+        "failure": "To failure"
       },
       "rpe": "Enter RPE",
       "rpeTitle": "RPE (effort, 10 = max)",
@@ -378,19 +381,19 @@
     },
     "edit": {
       "title": "Edit exercises",
-      "hint": "Drag to reorder. Tap the trash to delete an exercise.",
+      "hint": "Drag to reorder. Tap the trash to remove an exercise.",
       "done": "Done",
-      "removeA11y": "Delete {{name}}",
-      "deleteTitle": "Delete {{name}}?",
-      "delete": "Delete",
+      "removeA11y": "Remove {{name}}",
+      "deleteTitle": "Remove {{name}}?",
+      "delete": "Remove",
       "subtitle_one": "{{name}} · {{count}} exercise",
       "subtitle_other": "{{name}} · {{count}} exercises",
       "deleteBody_one": "The {{count}} set you logged will be deleted too.",
       "deleteBody_other": "The {{count}} sets you logged will be deleted too.",
-      "deleted": "Deleted {{name}}",
+      "deleted": "Removed {{name}}",
       "undo": "Undo"
     },
-    "editHint": "Press and hold an exercise to reorder or delete it",
+    "editHint": "Press and hold an exercise to reorder or remove it",
     "editHintClose": "Dismiss tip",
     "stale": {
       "title": "Still working out?",
@@ -407,7 +410,8 @@
       "discard": "End without saving",
       "close": "Close"
     },
-    "recoverDiscard": "Quit"
+    "recoverDiscard": "Quit",
+    "busyBody": "Finish {{name}} before starting another workout."
   },
   "summary": {
     "headline": "Another one done",
@@ -453,7 +457,11 @@
       "removed": "removed",
       "button": "Update routine",
       "done": "{{name}} updated"
-    }
+    },
+    "cameraDeniedTitle": "Can't use the camera",
+    "cameraDenied": "Allow camera access for Dailift in Settings.",
+    "openSettings": "Open Settings",
+    "headlinePast": "Workout record"
   },
   "history": {
     "segHistory": "History",
@@ -462,7 +470,7 @@
     "segA11y": "Log view",
     "count_one": "{{count}} workout",
     "count_other": "{{count}} workouts",
-    "meta": "{{minutes}} min · {{sets}} sets · {{volume}}",
+    "meta": "{{minutes}} min · {{sets}} · {{volume}}",
     "prBadge": "PR {{count}}",
     "rowA11y": "{{date}}, {{name}}, {{meta}}",
     "rowHint": "Opens the summary. Long press to edit or delete.",
@@ -483,7 +491,7 @@
       "emptyBody": "Delete this workout?",
       "keep": "Keep editing",
       "delete": "Delete",
-      "addTitle": "Add record",
+      "addTitle": "Log past workout",
       "save": "Save",
       "saveButton": "Save record",
       "duration": "Duration",
@@ -507,7 +515,7 @@
     },
     "e1rm": "Estimated 1RM",
     "pickExercise": "Choose exercise",
-    "e1rmAgo": "{{unit}} · {{value}} {{weeks}} weeks ago",
+    "e1rmAgo": "{{unit}} · {{value}} {{weeks}} wk ago",
     "e1rmUnit": "{{unit}}",
     "chartA11y": "{{name}} estimated 1RM over 8 weeks, now {{value}}{{unit}}",
     "e1rmEmpty": "Your trend appears once you log weighted exercises.",
@@ -584,17 +592,17 @@
         "all": "All"
       },
       "range": {
-        "1m": "Last month",
-        "3m": "Last 3 months",
-        "6m": "Last 6 months",
+        "1m": "Past month",
+        "3m": "Past 3 months",
+        "6m": "Past 6 months",
         "all": "All time"
       },
       "count_one": "{{range}} · {{count}} session",
       "count_other": "{{range}} · {{count}} sessions",
       "ago": {
-        "1m": "{{delta}} vs 1 month ago",
-        "3m": "{{delta}} vs 3 months ago",
-        "6m": "{{delta}} vs 6 months ago",
+        "1m": "{{delta}} since first record this period",
+        "3m": "{{delta}} since first record this period",
+        "6m": "{{delta}} since first record this period",
         "all": "{{delta}} since first record"
       },
       "sinceFirst": "{{delta}} since first record",
@@ -615,8 +623,8 @@
     "restDay": "Rest day today",
     "inProgress": "{{name}} in progress",
     "today": "Today",
-    "meta_one": "{{count}} exercise · {{sets}} sets · ~{{minutes}} min",
-    "meta_other": "{{count}} exercises · {{sets}} sets · ~{{minutes}} min",
+    "meta_one": "{{count}} exercise · {{sets}} · ~{{minutes}} min",
+    "meta_other": "{{count}} exercises · {{sets}} · ~{{minutes}} min",
     "more_one": "{{names}} + {{count}} more",
     "more_other": "{{names}} + {{count}} more",
     "start": "Start workout",
@@ -639,9 +647,6 @@
       "rest": "rest",
       "todayDone": "today, workout done"
     },
-    "stripA11y": "This week",
-    "stripOtherA11y": "Another week",
-    "stripHint": "Swipe left or right to change weeks",
     "dayHint": "Shows that day",
     "doneTitle": "{{name}} done today",
     "doneBadge": "Done",
@@ -655,7 +660,6 @@
     },
     "week": "This week",
     "weekTarget": " / {{target}}",
-    "weekNoTarget": " workouts",
     "muscleTitle": "Sets by muscle this week",
     "muscleLink": "Stats",
     "muscleA11y": "Sets by muscle this week, open stats",
@@ -694,7 +698,12 @@
       "addMeta_other": "{{count}} exercises · {{sets}} sets",
       "addEmpty": "Log without a routine",
       "addEmptySub": "Add exercises yourself"
-    }
+    },
+    "stripNext": "Show next week",
+    "stripPrev": "Show previous week",
+    "weekNoTarget_one": " workout",
+    "weekNoTarget_other": " workouts",
+    "streakNoTarget": "Set a weekly goal to see it"
   },
   "relative": {
     "today": "today",
