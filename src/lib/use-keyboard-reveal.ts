@@ -12,6 +12,8 @@ type Host = {
   measureInWindow: (cb: Rect) => void;
   measureLayout: (relativeTo: unknown, onSuccess: Rect, onFail?: () => void) => void;
 };
+/** 스크롤 내용이 담긴 안쪽 뷰(실제로는 있지만 타입 선언에는 없다) */
+type Scroll = ScrollView & Partial<Host> & { getInnerViewRef?: () => unknown };
 
 const reveals = new Set<() => void>();
 
@@ -31,7 +33,7 @@ export function useKeyboardReveal(scrollRef: RefObject<ScrollView | null>, enabl
   const reveal = useCallback(() => {
     // 다른 화면에 가려져 있으면 그 화면의 입력칸이다.
     if (!navigation.isFocused()) return;
-    const scroll = scrollRef.current as (ScrollView & Partial<Host>) | null;
+    const scroll = scrollRef.current as Scroll | null;
     const input = TextInput.State.currentlyFocusedInput() as Partial<Host> | null;
     const content = scroll?.getInnerViewRef?.();
     if (!scroll?.measureInWindow || !input?.measureInWindow || !input.measureLayout || !content)
