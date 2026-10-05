@@ -11,7 +11,9 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { db } from '@/db/client';
 import { SYNCED_TABLES } from '@/db/schema';
+import { hasUserData, wipeUserData } from '@/db/wipe';
 import { kvStorage } from '@/lib/kv-storage';
+import { removePhotoFile } from '@/lib/photos';
 import { useAuth } from '@/stores/auth';
 
 import { pendingCount, resetForAccount, syncOnce } from './engine';
@@ -24,6 +26,8 @@ type SyncStatus = 'idle' | 'syncing' | 'error';
 type SyncState = {
   status: SyncStatus;
   lastSyncedAt: number | null;
+  /** 이 기기의 기록이 지금 로그인한 계정이 아닌 다른 계정의 것이다. 사용자가 정할 때까지 동기화를 멈춘다 */
+  otherAccount: boolean;
   setStatus: (status: SyncStatus) => void;
   done: (at: number) => void;
   reset: () => void;
@@ -34,9 +38,10 @@ export const useSync = create<SyncState>()(
     (set) => ({
       status: 'idle',
       lastSyncedAt: null,
+      otherAccount: false,
       setStatus: (status) => set({ status }),
       done: (at) => set({ status: 'idle', lastSyncedAt: at }),
-      reset: () => set({ status: 'idle', lastSyncedAt: null }),
+      reset: () => set({ status: 'idle', lastSyncedAt: null, otherAccount: false }),
     }),
     {
       name: 'sync',
@@ -47,7 +52,10 @@ export const useSync = create<SyncState>()(
   ),
 );
 
-/** 마지막으로 동기화한 계정. 다른 계정으로 로그인하면 기기 기록을 전부 새 계정에 올린다. */
+/**
+ * 마지막으로 동기화한 계정. 아직 없으면(게스트로 쓰던 기기) 기기 기록을 전부 새 계정에 올린다.
+ * 다른 계정이면 기기의 행이 그 계정 것이라 올릴 수 없다(행 id가 서버에서 그 계정 소유) → 사용자에게 묻는다.
+ */
 const ACCOUNT_KEY = 'sync-account';
 const CHANGE_DELAY_MS = 8_000;
 
@@ -56,10 +64,16 @@ let again = false;
 let timer: ReturnType<typeof setTimeout> | null = null;
 
 async function run(userId: string) {
-  if (Storage.getItemSync(ACCOUNT_KEY) !== userId) {
+  const last = Storage.getItemSync(ACCOUNT_KEY);
+  if (last !== userId) {
+    if (last && hasUserData(db)) {
+      useSync.setState({ status: 'idle', otherAccount: true });
+      return;
+    }
     resetForAccount(db);
     Storage.setItemSync(ACCOUNT_KEY, userId);
   }
+  if (useSync.getState().otherAccount) useSync.setState({ otherAccount: false });
   useSync.getState().setStatus('syncing');
   try {
     // 새 사진 파일을 먼저 올리고 → 행 동기화 → 받은 사진 내려받기·지운 사진 정리
@@ -92,6 +106,19 @@ export function syncNow(): Promise<void> {
   return running;
 }
 
+/** 돌고 있는 동기화가 끝날 때까지 기다린다(기록을 지우기 전에). */
+export const syncIdle = (): Promise<void> => running ?? Promise.resolve();
+
+/** 다른 계정의 기록이 남은 기기에서: 기기 기록을 지우고 지금 계정의 기록을 받는다. */
+export function replaceWithCurrentAccount(): Promise<void> {
+  const userId = useAuth.getState().session?.user.id;
+  if (!userId) return Promise.resolve();
+  for (const path of wipeUserData(db)) removePhotoFile(path);
+  Storage.setItemSync(ACCOUNT_KEY, userId);
+  useSync.setState({ otherAccount: false, lastSyncedAt: null });
+  return syncNow();
+}
+
 /** 아직 서버에 안 보낸 행 수 */
 export const unsyncedCount = () => pendingCount(db);
 
@@ -120,6 +147,7 @@ export function startSync() {
   useAuth.subscribe((s) => {
     const user = s.session?.user.id ?? null;
     if (user && user !== lastUser) void syncNow();
+    if (!user && useSync.getState().otherAccount) useSync.setState({ otherAccount: false });
     lastUser = user;
   });
   AppState.addEventListener('change', (state) => {

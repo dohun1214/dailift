@@ -31,8 +31,12 @@ Deno.serve(async (req) => {
     .eq('user_id', data.user.id)
     .maybeSingle();
   if (apple?.refresh_token) {
-    const cfg = await loadAppleConfig(admin);
-    if (cfg) await revokeToken(cfg, apple.refresh_token);
+    try {
+      const cfg = await loadAppleConfig(admin);
+      if (cfg) await revokeToken(cfg, apple.refresh_token);
+    } catch (e) {
+      console.error('apple revoke failed', e instanceof Error ? e.message : e);
+    }
   }
 
   // 사진 파일은 cascade로 지워지지 않으므로 먼저 지운다(workout-photos/<user>/…).

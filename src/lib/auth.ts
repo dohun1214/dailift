@@ -89,7 +89,8 @@ async function saveAppleToken(code: string) {
 }
 
 export async function signOut() {
-  await supabase.auth.signOut();
+  // 이 기기에서만 로그아웃한다(같은 계정의 다른 기기는 그대로).
+  await supabase.auth.signOut({ scope: 'local' });
   if (googleConfigured()) await GoogleSignin.signOut().catch(() => null);
 }
 

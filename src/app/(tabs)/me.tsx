@@ -27,7 +27,8 @@ import { wipeDevice } from '@/lib/wipe-device';
 import { accountInfo, useAuth } from '@/stores/auth';
 import { useProfile } from '@/stores/profile';
 import { useSettings } from '@/stores/settings';
-import { syncNow, useSync } from '@/sync/manager';
+import { syncIdle, syncNow, useSync } from '@/sync/manager';
+import { wipeServerData } from '@/sync/server-wipe';
 import { ACCENTS, type Accent, themes } from '@/theme/tokens';
 
 const REST_OPTIONS = [30, 45, 60, 90, 120, 150, 180, 240];
@@ -44,6 +45,7 @@ export default function MeScreen() {
   const setBodyType = useProfile((p) => p.setBodyType);
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [targetsOpen, setTargetsOpen] = useState(false);
+  const [wiping, setWiping] = useState(false);
   const exportSheet = useExportSheet();
   const account = accountInfo(useAuth((a) => a.session));
   const syncedAgo = (at: number) => {
@@ -124,19 +126,35 @@ export default function MeScreen() {
       },
     ]);
 
+  const wipeAll = async () => {
+    const userId = useAuth.getState().session?.user.id;
+    if (userId) {
+      // 로그인한 계정은 서버 기록부터 지운다. 못 지우면(오프라인 등) 기기 기록도 그대로 둔다.
+      setWiping(true);
+      try {
+        await syncIdle();
+        await wipeServerData(userId);
+      } catch (e) {
+        console.warn('[sync] server wipe failed', e);
+        setWiping(false);
+        Alert.alert(t('auth.delete.failedTitle'), t('auth.delete.failed'));
+        return;
+      }
+    }
+    wipeDevice();
+    if (userId) signOut().catch((e) => console.warn('[auth] sign-out failed', e));
+    router.replace('/welcome');
+  };
+
   const confirmWipe = () =>
-    Alert.alert(t('settings.wipeTitle'), t('settings.wipeBody'), [
-      { text: t('settings.cancel'), style: 'cancel' },
-      {
-        text: t('settings.wipeConfirm'),
-        style: 'destructive',
-        onPress: () => {
-          wipeDevice();
-          if (account) signOut().catch((e) => console.warn('[auth] sign-out failed', e));
-          router.replace('/welcome');
-        },
-      },
-    ]);
+    Alert.alert(
+      t('settings.wipeTitle'),
+      t(account ? 'settings.wipeBodyAccount' : 'settings.wipeBody'),
+      [
+        { text: t('settings.cancel'), style: 'cancel' },
+        { text: t('settings.wipeConfirm'), style: 'destructive', onPress: () => void wipeAll() },
+      ],
+    );
 
   return (
     <Screen inTabs>
@@ -367,10 +385,13 @@ export default function MeScreen() {
 
         <Pressable
           accessibilityRole="button"
+          disabled={wiping}
           onPress={confirmWipe}
           style={({ pressed }) => [styles.wipe, pressed && styles.pressed]}
         >
-          <Text style={styles.wipeText}>{t('settings.wipe')}</Text>
+          <Text style={styles.wipeText}>
+            {t(wiping ? 'auth.delete.deleting' : 'settings.wipe')}
+          </Text>
         </Pressable>
       </View>
 
