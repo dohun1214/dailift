@@ -61,6 +61,7 @@ import {
   moveWorkoutExercise,
   replaceWorkoutExercise,
   restoreWorkoutExercise,
+  routineHasExercise,
   setCompleted,
   setWorkoutExerciseRest,
   updateSet,
@@ -482,6 +483,11 @@ export default function WorkoutScreen() {
   };
 
   const restTarget = exercises.find((e) => e.id === restFor);
+  // 루틴에 없는 종목(운동 중에 추가한 종목)에는 '루틴에도 저장'을 보이지 않는다.
+  const restInRoutine =
+    !!restTarget &&
+    !!currentWorkout.routineId &&
+    routineHasExercise(db, currentWorkout.routineId, restTarget.exerciseId);
   const routineName = currentWorkout.routineId ? currentWorkout.name : null;
 
   const dialogs = (
@@ -790,7 +796,7 @@ export default function WorkoutScreen() {
         visible={restFor !== null && restTarget !== undefined}
         name={restTarget ? nameOf(restTarget) : ''}
         value={restTarget?.restSec ?? 0}
-        routineName={routineName}
+        routineName={restInRoutine ? routineName : null}
         formatDuration={formatDuration}
         onClose={() => setRestFor(null)}
         onSave={(restSec, saveToRoutine) => {

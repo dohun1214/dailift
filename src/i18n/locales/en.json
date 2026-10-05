@@ -21,7 +21,8 @@
     "agreeTerms": "I agree to the Terms of Service and Privacy Policy",
     "agreeAge": "I'm 14 or older",
     "termsLink": "Terms of Service",
-    "privacyLink": "Privacy Policy"
+    "privacyLink": "Privacy Policy",
+    "agreeHint": "Agree to both items above to get started."
   },
   "onboarding": {
     "progress": "{{step}} / {{total}}",
@@ -177,7 +178,11 @@
         "reps": "Min ≤ max, 1–100",
         "rest": "Rest: 0–900 s",
         "increment": "0.25–50",
-        "plan": "Check the set values.",
+        "plan": {
+          "noWorking": "Keep at least one working set.",
+          "tooMany": "You can add up to 20 sets.",
+          "value": "Use weight up to 2000, reps up to 100, time up to 3600 sec."
+        },
         "time": "Min ≤ max, 5–600 sec"
       },
       "notFound": "Routine not found",
@@ -242,7 +247,8 @@
       "secondary": "Secondary muscles",
       "equipment": "Equipment",
       "nameRequired": "Enter an exercise name.",
-      "primaryRequired": "Pick at least one primary muscle."
+      "primaryRequired": "Pick at least one primary muscle.",
+      "nameTaken": "An exercise with this name already exists."
     },
     "pickerTitleReplace": "Replace exercise",
     "replaceConfirm": "Use this exercise"
@@ -317,19 +323,19 @@
     "keepGoing": "Keep going",
     "emptyTitle": "No sets recorded",
     "emptyBody": "End without saving?",
-    "discard": "End",
+    "discard": "Discard",
     "menu": {
       "title": "Workout menu",
       "addExercise": "Add exercises",
-      "discard": "End without saving",
+      "discard": "Discard workout",
       "cancel": "Cancel",
       "editExercises": "Edit exercises",
       "replaceThis": "Swap for another exercise",
       "removeThis": "Remove this exercise",
       "exerciseA11y": "{{name}} menu"
     },
-    "discardTitle": "End without saving?",
-    "discardBody": "This workout won't be saved.",
+    "discardTitle": "Discard this workout?",
+    "discardBody": "Everything you logged in this workout will be erased. This can't be undone.",
     "recoverTitle": "You have a workout in progress",
     "recoverBody": "{{name}} · {{elapsed}} in",
     "resume": "Resume",
@@ -407,11 +413,16 @@
       "started": "Started {{when}}",
       "finish": "Finish at last set",
       "resume": "Keep going",
-      "discard": "End without saving",
+      "discard": "Discard workout",
       "close": "Close"
     },
-    "recoverDiscard": "Quit",
-    "busyBody": "Finish {{name}} before starting another workout."
+    "recoverDiscard": "Discard",
+    "busyBody": "Finish {{name}} before starting another workout.",
+    "eraseTitle": "Discard this workout?",
+    "eraseBody_one": "The {{count}} set you completed in {{name}} will be erased. This can't be undone.",
+    "eraseBody_other": "The {{count}} sets you completed in {{name}} will be erased. This can't be undone.",
+    "eraseBodyEmpty": "{{name}} will be erased. This can't be undone.",
+    "eraseCancel": "Cancel"
   },
   "summary": {
     "headline": "Another one done",
@@ -461,7 +472,8 @@
     "cameraDeniedTitle": "Can't use the camera",
     "cameraDenied": "Allow camera access for Dailift in Settings.",
     "openSettings": "Open Settings",
-    "headlinePast": "Workout record"
+    "headlinePast": "Workout record",
+    "menuA11y": "Record menu"
   },
   "history": {
     "segHistory": "History",
@@ -492,12 +504,21 @@
       "keep": "Keep editing",
       "delete": "Delete",
       "addTitle": "Log past workout",
-      "save": "Save",
       "saveButton": "Save record",
       "duration": "Duration",
       "minutes": "min",
-      "addHint": "Filled in from the routine. Check only the sets you did — unchecked sets aren't saved.",
-      "addSub": "{{date}} · {{name}}"
+      "addHint": "Sets are filled in from your last record. Only the sets you check are saved.",
+      "addSub": "{{date}} · {{name}}",
+      "uncheckedTitle": "Some sets are unchecked",
+      "uncheckedBody_one": "The {{count}} unchecked set won't be saved.",
+      "uncheckedBody_other": "The {{count}} unchecked sets won't be saved.",
+      "noneTitle": "No sets checked",
+      "noneBody": "Check at least one set to save. If you leave, this workout won't be saved.",
+      "leave": "Leave",
+      "keepAdding": "Keep editing",
+      "discardTitle": "Leave without saving?",
+      "discardBody_one": "The {{count}} checked set won't be saved.",
+      "discardBody_other": "The {{count}} checked sets won't be saved."
     }
   },
   "stats": {
@@ -616,7 +637,15 @@
       "best": "Best",
       "rowA11y": "{{date}}, {{sets}}{{best}}, view record",
       "chartA11y": "{{name}} {{metric}} trend, {{count}} sessions, latest {{value}}"
-    }
+    },
+    "menuA11y": "Exercise menu",
+    "rename": "Rename",
+    "delete": "Delete exercise",
+    "renameHint": "Past records show the new name too.",
+    "deleteTitle": "Delete {{name}}?",
+    "deleteBody": "It disappears from the exercise list and your routines. Past records stay.",
+    "deleteConfirm": "Delete",
+    "cancel": "Cancel"
   },
   "home": {
     "todayRoutine": "Today is {{name}} day",
@@ -637,7 +666,6 @@
     "streak": "Streak",
     "streakValue": "{{count}}",
     "streakUnit": " wk",
-    "prRecent": "{{name}} {{value}}",
     "prA11y": "Latest personal record: {{name}} {{value}}, {{when}}",
     "dayA11y": "{{date}}, {{state}}",
     "state": {
@@ -703,7 +731,9 @@
     "stripPrev": "Show previous week",
     "weekNoTarget_one": " workout",
     "weekNoTarget_other": " workouts",
-    "streakNoTarget": "Set a weekly goal to see it"
+    "streakNoTarget": "Set a weekly goal to see it",
+    "weekRangeSame": "{{start}} – {{day}}",
+    "weekRange": "{{start}} – {{end}}"
   },
   "relative": {
     "today": "today",

@@ -1,5 +1,14 @@
-import { type ReactNode, useEffect, useMemo, useRef } from 'react';
-import { Animated, Modal, PanResponder, Pressable, Text, View } from 'react-native';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Animated,
+  Keyboard,
+  Modal,
+  PanResponder,
+  Platform,
+  Pressable,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native-unistyles';
 
@@ -13,6 +22,8 @@ type Props = {
   onClose: () => void;
   closeLabel: string;
   children: ReactNode;
+  /** 안에 글자 입력칸이 있으면 true: 키보드가 올라온 만큼 창을 위로 올린다 */
+  avoidKeyboard?: boolean;
 };
 
 /** 이만큼 끌어내리거나 이 속도로 튕기면 닫는다 */
@@ -23,7 +34,15 @@ const CLOSE_VELOCITY = 0.8;
  * 아래에서 올라오는 시트: 손잡이 · 제목 · 내용. 열릴 때 바닥에서 밀려 올라오고, 닫힐 때 내려간다.
  * 바깥(어두운 부분)을 누르거나, 손잡이 · 제목 부분을 잡고 아래로 쓸어내리면 닫힌다.
  */
-export function BottomSheet({ visible, title, subtitle, onClose, closeLabel, children }: Props) {
+export function BottomSheet({
+  visible,
+  title,
+  subtitle,
+  onClose,
+  closeLabel,
+  children,
+  avoidKeyboard = false,
+}: Props) {
   const insets = useSafeAreaInsets();
   const drag = useRef(new Animated.Value(0)).current;
   const closeRef = useRef(onClose);
@@ -32,6 +51,24 @@ export function BottomSheet({ visible, title, subtitle, onClose, closeLabel, chi
   // 내려가는 동안에는 닫히기 직전 내용을 그대로 보여 준다(부모가 내용을 먼저 비워도 줄어들지 않게).
   const shown = useRef({ title, subtitle, children });
   if (visible) shown.current = { title, subtitle, children };
+
+  // 키보드 높이만큼 창을 올린다(창은 Modal 안이라 화면의 키보드 처리가 닿지 않는다).
+  const [keyboard, setKeyboard] = useState(0);
+  useEffect(() => {
+    if (!avoidKeyboard) return;
+    const show = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => setKeyboard(e.endCoordinates.height),
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboard(0),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, [avoidKeyboard]);
 
   // 다시 열릴 때는 제자리에서 시작한다.
   useEffect(() => {
@@ -82,7 +119,8 @@ export function BottomSheet({ visible, title, subtitle, onClose, closeLabel, chi
           style={[
             styles.sheet,
             {
-              paddingBottom: insets.bottom + 28,
+              paddingBottom: keyboard > 0 ? 16 : insets.bottom + 28,
+              marginBottom: keyboard,
               transform: [{ translateY: Animated.add(drag, motion.translateY) }],
             },
           ]}

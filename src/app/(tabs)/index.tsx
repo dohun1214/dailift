@@ -2,7 +2,7 @@ import { and, asc, eq, isNull } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { router, useFocusEffect } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
@@ -11,6 +11,7 @@ import { type DayRoutine, DaySheet } from '@/components/home/day-sheet';
 import { LiveWorkoutCard } from '@/components/home/live-workout-card';
 import { MuscleSetsCard } from '@/components/home/muscle-sets-card';
 import { type PickRoutine, RoutinePickSheet } from '@/components/home/routine-pick-sheet';
+import { WeekRange } from '@/components/home/week-range';
 import { WeekStrip } from '@/components/home/week-strip';
 import { Badge, Button, ConfirmDialog, Screen } from '@/components/ui';
 import { db } from '@/db/client';
@@ -73,11 +74,14 @@ export default function HomeScreen() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [openDay, setOpenDay] = useState<Date | null>(null);
   // 다른 주를 보다가 홈을 떠나면 이번 주로 되돌린다(돌아오는 단추가 없으므로).
+  // 지난 날 기록을 추가하러 갔다 오는 동안에는 보던 주를 그대로 둔다(여러 날을 이어서 채울 수 있게).
+  const keepWeek = useRef(false);
   useFocusEffect(
     useCallback(
       () => () => {
-        setWeekOffset(0);
         setOpenDay(null);
+        if (keepWeek.current) keepWeek.current = false;
+        else setWeekOffset(0);
       },
       [],
     ),
@@ -241,6 +245,7 @@ export default function HomeScreen() {
       startedAt: pastWorkoutStart(shownDay),
       minutes: routine?.minutes || EMPTY_PAST_MINUTES,
     });
+    keepWeek.current = true;
     router.push({ pathname: '/workout-edit/[id]', params: { id, added: '1' } });
   };
 
@@ -266,6 +271,16 @@ export default function HomeScreen() {
           ? t('relative.twoDays')
           : t('relative.daysAgo', { count: ago });
 
+  // 다른 주를 볼 때 보여 줄 날짜 범위: "9월 7일 – 13일", 달이 바뀌면 "9월 28일 – 10월 4일"
+  const shownWeek = weekStrip(now, masks, starts, weekOffset);
+  const weekFrom = shownWeek[0]?.date ?? now;
+  const weekTo = shownWeek[shownWeek.length - 1]?.date ?? now;
+  const monthDay = new Intl.DateTimeFormat(locale, { month: 'long', day: 'numeric' });
+  const weekRange =
+    weekFrom.getMonth() === weekTo.getMonth()
+      ? t('home.weekRangeSame', { start: monthDay.format(weekFrom), day: weekTo.getDate() })
+      : t('home.weekRange', { start: monthDay.format(weekFrom), end: monthDay.format(weekTo) });
+
   return (
     <Screen inTabs>
       <View style={styles.page}>
@@ -276,6 +291,7 @@ export default function HomeScreen() {
           </Text>
         </View>
 
+        <WeekRange label={weekOffset === 0 ? null : weekRange} />
         <WeekStrip
           daysFor={(offset) => weekStrip(now, masks, starts, offset)}
           dateFormat={dayFmt}
@@ -420,9 +436,12 @@ export default function HomeScreen() {
               <Badge label="PR" kind="pr" />
             </View>
             <View style={styles.prBody}>
-              <Text style={styles.prText} numberOfLines={1}>
-                {t('home.prRecent', { name: prName, value: prValue })}
-              </Text>
+              <View style={styles.prLine}>
+                <Text style={[styles.prText, styles.prName]} numberOfLines={1}>
+                  {prName}
+                </Text>
+                <Text style={styles.prText}>{prValue}</Text>
+              </View>
               <Text style={styles.prWhen}>{prWhen}</Text>
             </View>
             <ChevronRight size={18} color={theme.colors.text2} strokeWidth={1.8} />
@@ -572,6 +591,9 @@ const styles = StyleSheet.create((theme) => ({
   },
   pressed: { opacity: 0.7 },
   prBody: { flex: 1, gap: 2 },
+  // 이름이 길면 이름만 줄이고 기록 값은 끝까지 보여 준다.
+  prLine: { flexDirection: 'row', gap: 5 },
+  prName: { flexShrink: 1 },
   prText: {
     fontSize: 15,
     lineHeight: 20,

@@ -190,6 +190,56 @@ export function createCustomExercise(
   return id;
 }
 
+/** 같은 이름의 직접 만든 종목이 이미 있는지 (대소문자 · 앞뒤 공백 무시, `exceptId`는 자기 자신) */
+export function customNameTaken(db: AppDatabase, name: string, exceptId?: string): boolean {
+  const wanted = name.trim().toLowerCase();
+  if (!wanted) return false;
+  return db
+    .select({ id: schema.exercises.id, name: schema.exercises.name })
+    .from(schema.exercises)
+    .where(and(eq(schema.exercises.isCustom, 1), isNull(schema.exercises.deletedAt)))
+    .all()
+    .some((e) => e.id !== exceptId && (e.name ?? '').trim().toLowerCase() === wanted);
+}
+
+/** 직접 만든 종목의 이름을 바꾼다. 지난 기록에도 바뀐 이름으로 보인다. */
+export function renameCustomExercise(
+  db: AppDatabase,
+  exerciseId: string,
+  name: string,
+): 'ok' | 'empty' | 'duplicate' {
+  const next = name.trim();
+  if (!next) return 'empty';
+  if (customNameTaken(db, next, exerciseId)) return 'duplicate';
+  db.update(schema.exercises)
+    .set({ name: next, dirty: 1 })
+    .where(and(eq(schema.exercises.id, exerciseId), eq(schema.exercises.isCustom, 1)))
+    .run();
+  return 'ok';
+}
+
+/**
+ * 직접 만든 종목을 지운다. 종목 목록과 루틴에서 빠지고, 지난 운동 기록은 그대로 남는다
+ * (종목 행은 지워진 것으로 표시만 해서 기록의 이름 · 부위를 계속 보여 준다).
+ */
+export function deleteCustomExercise(db: AppDatabase, exerciseId: string, now = Date.now()) {
+  db.transaction((tx) => {
+    tx.update(schema.exercises)
+      .set({ deletedAt: now, dirty: 1 })
+      .where(and(eq(schema.exercises.id, exerciseId), eq(schema.exercises.isCustom, 1)))
+      .run();
+    tx.update(schema.routineExercises)
+      .set({ deletedAt: now, dirty: 1 })
+      .where(
+        and(
+          eq(schema.routineExercises.exerciseId, exerciseId),
+          isNull(schema.routineExercises.deletedAt),
+        ),
+      )
+      .run();
+  });
+}
+
 /** 종목 id 목록 → 휴식 기본값(설정값, 없으면 맨몸·시간 종목 60초·나머지 90초) */
 export function defaultRestFor(
   db: AppDatabase,

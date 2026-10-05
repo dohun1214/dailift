@@ -74,6 +74,7 @@ export default function Welcome() {
             ]}
           />
           <ConsentCheck label={t('welcome.agreeAge')} checked={age} onChange={setAge} />
+          {agreed ? null : <Text style={styles.agreeHint}>{t('welcome.agreeHint')}</Text>}
         </View>
       </View>
     </View>
@@ -104,6 +105,15 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.text2,
   },
   actions: { gap: 10 },
+  agreeHint: {
+    paddingTop: 6,
+    paddingLeft: 4,
+    fontSize: 12,
+    lineHeight: 18,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.text2,
+  },
   note: {
     marginBottom: 8,
     textAlign: 'center',

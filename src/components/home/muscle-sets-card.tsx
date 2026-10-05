@@ -16,7 +16,9 @@ type Props = {
  * 0세트는 빈 막대, 목표의 절반 미만은 주황, 절반 이상은 회색, 다 채우면 진한 색 + 체크. 누르면 통계로 간다.
  */
 export function MuscleSetsCard({ rows, onPress }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // 영어 부위 이름(Shoulders 등)은 한글보다 길다.
+  const nameWidth = i18n.language.startsWith('ko') ? 34 : 70;
   const { theme } = useUnistyles();
 
   return (
@@ -47,7 +49,10 @@ export function MuscleSetsCard({ rows, onPress }: Props) {
                 state: t(`stats.state.${level}`),
               })}
             >
-              <Text style={[styles.name, level === 'none' && styles.muted]} numberOfLines={1}>
+              <Text
+                style={[styles.name, { width: nameWidth }, level === 'none' && styles.muted]}
+                numberOfLines={1}
+              >
                 {r.name}
               </Text>
               <View style={styles.track}>

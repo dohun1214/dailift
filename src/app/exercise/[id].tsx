@@ -1,20 +1,34 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react-native';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 import type { ExtendedBodyPart, Slug } from 'react-native-body-highlighter';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { ExerciseProgress } from '@/components/exercise/exercise-progress';
-import { AppText, BodyFigure, Screen, TopBar } from '@/components/ui';
-import { LEVEL_OPACITY } from '@/components/workout';
+import {
+  AppText,
+  BodyFigure,
+  BottomSheet,
+  Button,
+  ConfirmDialog,
+  IconButton,
+  Screen,
+  TextField,
+  TopBar,
+} from '@/components/ui';
+import { LEVEL_OPACITY, WorkoutMenuSheet } from '@/components/workout';
 import { guideFor } from '@/data/exercise-guides';
 import { MUSCLES } from '@/data/muscles';
 import { db } from '@/db/client';
+import { deleteCustomExercise, renameCustomExercise } from '@/db/routine-editor';
 import * as schema from '@/db/schema';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
 import { useAppLanguage } from '@/i18n/use-app-language';
+import { object as objectJosa } from '@/lib/josa';
 import { useProfile } from '@/stores/profile';
 import { withAlpha } from '@/theme/color';
 
@@ -39,6 +53,12 @@ export default function ExerciseDetailScreen() {
   const exerciseId = id ?? '';
   const catalog = useExerciseCatalog(lang);
   const info = catalog.byId.get(exerciseId);
+  // 직접 만든 종목만: 오른쪽 위 메뉴(이름 변경 · 삭제)
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [draftName, setDraftName] = useState('');
+  const [nameError, setNameError] = useState<'empty' | 'duplicate' | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: muscleRows } = useLiveQuery(
     db
@@ -86,11 +106,33 @@ export default function ExerciseDetailScreen() {
       }
     }
   }
+  const editable = info.isCustom && !info.deleted;
+  const saveName = () => {
+    const result = renameCustomExercise(db, exerciseId, draftName);
+    if (result === 'ok') setRenaming(false);
+    else setNameError(result);
+  };
+
   const guide = guideFor(exerciseId);
   const steps = guide ? guide[lang] : [];
 
   return (
-    <Screen header={<TopBar title={info.name} />}>
+    <Screen
+      header={
+        <TopBar
+          title={info.name}
+          trailing={
+            editable ? (
+              <IconButton
+                icon={MoreHorizontal}
+                label={t('exerciseDetail.menuA11y')}
+                onPress={() => setMenuOpen(true)}
+              />
+            ) : undefined
+          }
+        />
+      }
+    >
       <View style={[styles.card, styles.first]}>
         <View style={styles.muscleRow}>
           <View
@@ -142,6 +184,78 @@ export default function ExerciseDetailScreen() {
           <Text style={styles.muted}>{t('exerciseDetail.custom')}</Text>
         )}
       </View>
+      <WorkoutMenuSheet
+        visible={menuOpen}
+        title={info.name}
+        cancelLabel={t('exerciseDetail.cancel')}
+        onClose={() => setMenuOpen(false)}
+        items={[
+          {
+            label: t('exerciseDetail.rename'),
+            icon: Pencil,
+            onPress: () => {
+              setDraftName(info.name);
+              setNameError(null);
+              setRenaming(true);
+            },
+          },
+          {
+            label: t('exerciseDetail.delete'),
+            icon: Trash2,
+            destructive: true,
+            onPress: () => setDeleting(true),
+          },
+        ]}
+      />
+      <BottomSheet
+        visible={renaming}
+        title={t('exerciseDetail.rename')}
+        closeLabel={t('exerciseDetail.cancel')}
+        onClose={() => setRenaming(false)}
+        avoidKeyboard
+      >
+        <View style={styles.renameField}>
+          <TextField
+            label={t('exercises.new.name')}
+            value={draftName}
+            maxLength={40}
+            autoFocus
+            returnKeyType="done"
+            onSubmitEditing={saveName}
+            error={
+              nameError === 'empty'
+                ? t('exercises.new.nameRequired')
+                : nameError === 'duplicate'
+                  ? t('exercises.new.nameTaken')
+                  : undefined
+            }
+            onChangeText={(v) => {
+              setNameError(null);
+              setDraftName(v);
+            }}
+          />
+        </View>
+        <AppText variant="caption" tone="secondary">
+          {t('exerciseDetail.renameHint')}
+        </AppText>
+        <Button label={t('common.save')} onPress={saveName} />
+      </BottomSheet>
+      <ConfirmDialog
+        visible={deleting}
+        title={t('exerciseDetail.deleteTitle', {
+          name: lang === 'ko' ? objectJosa(info.name) : info.name,
+        })}
+        body={t('exerciseDetail.deleteBody')}
+        cancelLabel={t('exerciseDetail.cancel')}
+        confirmLabel={t('exerciseDetail.deleteConfirm')}
+        destructive
+        onCancel={() => setDeleting(false)}
+        onConfirm={() => {
+          setDeleting(false);
+          deleteCustomExercise(db, exerciseId);
+          router.back();
+        }}
+      />
     </Screen>
   );
 }
@@ -170,6 +284,13 @@ function TagGroup({
 }
 
 const styles = StyleSheet.create((theme) => ({
+  // 창 바탕과 입력칸이 같은 색이라 카드 위에 올린다(종목 만들기와 같은 모양).
+  renameField: {
+    flexDirection: 'row',
+    padding: 14,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.surface,
+  },
   first: { marginTop: 8 },
   card: {
     gap: 12,
