@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Text, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
+import { ExerciseListView } from '@/components/exercise/exercise-list';
 import { HistoryRow } from '@/components/history/history-row';
 import { StatsView } from '@/components/stats/stats-view';
 import { ActionSheet, Screen, Segmented } from '@/components/ui';
@@ -16,11 +17,11 @@ import { useAppLanguage } from '@/i18n/use-app-language';
 import { removePhotoFile } from '@/lib/photos';
 import { useSettings } from '@/stores/settings';
 
-type View_ = 'history' | 'stats';
+type View_ = 'history' | 'stats' | 'exercises';
 /** 목록 한 줄에 이름을 보여 줄 종목 수 (나머지는 '외 N') */
 const NAMES_SHOWN = 2;
 
-/** 기록 탭: 히스토리 | 통계 세그먼트. 통계는 #10에서 채운다. */
+/** 기록 탭: 히스토리 | 통계 | 종목 세그먼트 */
 export default function LogScreen() {
   const { t } = useTranslation();
   const lang = useAppLanguage();
@@ -81,12 +82,14 @@ export default function LogScreen() {
         options={[
           { value: 'history', label: t('history.segHistory') },
           { value: 'stats', label: t('history.segStats') },
+          { value: 'exercises', label: t('history.segExercises') },
         ]}
         value={view}
         onChange={setView}
       />
 
       {view === 'stats' ? <StatsView /> : null}
+      {view === 'exercises' ? <ExerciseListView /> : null}
 
       {view === 'history' && ready && months.length === 0 ? (
         <Text style={styles.empty}>{t('history.empty')}</Text>

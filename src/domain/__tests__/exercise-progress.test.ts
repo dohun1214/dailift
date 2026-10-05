@@ -8,6 +8,7 @@ import {
   type ProgressSet,
   progressAxis,
   progressPoints,
+  summarizeExercises,
   timePositions,
 } from '../exercise-progress';
 
@@ -184,5 +185,37 @@ describe('timePositions', () => {
   it('하루뿐이면 가운데', () => {
     expect(timePositions([5])).toEqual([0.5]);
     expect(timePositions([5, 5])).toEqual([0.5, 0.5]);
+  });
+});
+
+describe('summarizeExercises', () => {
+  const types = { bench: 'weight_reps', pull: 'bodyweight_reps', plank: 'time' } as const;
+  const typeOf = (id: string) => types[id as keyof typeof types];
+  const summaries = summarizeExercises(
+    [
+      { ...set('a', 10, 60, 10), exerciseId: 'bench' },
+      { ...set('b', 3, 62.5, 8), exerciseId: 'bench' },
+      { ...set('b', 3, null, 9), exerciseId: 'pull' },
+      { ...set('a', 10, null, null, 90), exerciseId: 'plank' },
+      { ...set('a', 10, 50, 10), exerciseId: 'gone' },
+      { ...set('a', 10, null, 10), exerciseId: 'bench' },
+    ],
+    typeOf,
+    'kg',
+  );
+
+  it('종목마다 기록한 날 수, 마지막 날, 가장 좋은 날', () => {
+    const bench = summaries.get('bench');
+    expect(bench?.count).toBe(2);
+    expect(bench?.lastAt).toBe(NOW - 3 * DAY);
+    expect(bench?.best.max).toBe(62.5);
+    expect(bench?.best.maxReps).toBe(8);
+    expect(summaries.get('pull')?.best.max).toBe(9);
+    expect(summaries.get('plank')?.best.max).toBe(90);
+  });
+
+  it('종류를 모르는 종목은 빠진다', () => {
+    expect(summaries.has('gone')).toBe(false);
+    expect(summaries.size).toBe(3);
   });
 });

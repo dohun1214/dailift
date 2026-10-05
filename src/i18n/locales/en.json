@@ -458,6 +458,7 @@
   "history": {
     "segHistory": "History",
     "segStats": "Stats",
+    "segExercises": "Exercises",
     "segA11y": "Log view",
     "count_one": "{{count}} workout",
     "count_other": "{{count}} workouts",
@@ -803,5 +804,22 @@
     "min": "{{m}} min",
     "sec": "{{s}} sec",
     "minSec": "{{m}} min {{s}} sec"
+  },
+  "exerciseList": {
+    "done": "Trained",
+    "doneNote_one": "Most recent · {{count}}",
+    "doneNote_other": "Most recent · {{count}}",
+    "other": "Other exercises",
+    "all": "All exercises",
+    "results": "Results",
+    "resultsNote_one": "{{count}}",
+    "resultsNote_other": "{{count}}",
+    "sessions_one": "{{count}} session",
+    "sessions_other": "{{count}} sessions",
+    "none": "No exercises logged yet. They'll show up here, most recent first, once you log a workout.",
+    "rowA11y": "{{name}}, {{sub}}{{record}}",
+    "recordA11y": ", best {{best}}, {{count}}",
+    "rowHint": "Shows instructions and your records",
+    "clear": "Clear"
   }
 }

@@ -213,3 +213,30 @@ export function timePositions(startedAts: readonly number[]): number[] {
   const span = (startedAts[startedAts.length - 1] ?? first) - first;
   return startedAts.map((at) => (span > 0 ? (at - first) / span : 0.5));
 }
+
+/** 종목 목록 한 줄에 쓰는 요약: 기록한 날 수, 마지막으로 한 날, 가장 좋은 날 */
+export type ExerciseSummary = { count: number; lastAt: number; best: ProgressSession };
+
+/** 종목별 요약. 종류를 모르는 종목(지워진 종목)과 값이 없는 종목은 빠진다 */
+export function summarizeExercises(
+  sets: readonly (ProgressSet & { exerciseId: string })[],
+  typeOf: (exerciseId: string) => ExerciseType | undefined,
+  unit: WeightUnit,
+): Map<string, ExerciseSummary> {
+  const byExercise = new Map<string, ProgressSet[]>();
+  for (const s of sets) {
+    const list = byExercise.get(s.exerciseId);
+    if (list) list.push(s);
+    else byExercise.set(s.exerciseId, [s]);
+  }
+  const out = new Map<string, ExerciseSummary>();
+  for (const [exerciseId, list] of byExercise) {
+    const type = typeOf(exerciseId);
+    if (!type) continue;
+    const sessions = exerciseSessions(list, type, unit);
+    const best = bestSession(sessions);
+    const last = sessions[sessions.length - 1];
+    if (best && last) out.set(exerciseId, { count: sessions.length, lastAt: last.startedAt, best });
+  }
+  return out;
+}
