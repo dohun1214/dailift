@@ -26,6 +26,7 @@ import {
   type ProgressSet,
   progressAxis,
   progressPoints,
+  timePositions,
 } from '@/domain/exercise-progress';
 import { formatClock } from '@/domain/rest-timer';
 import { groupSetsByWeight } from '@/domain/session-summary';
@@ -186,12 +187,17 @@ export function ExerciseProgress({ exerciseId, name, type }: Props) {
     sub = unitLabel ? `${unitLabel} · ${date}` : date;
   }
 
-  const marks = monthMarks(points.map((p) => p.session.startedAt)).map((index) => ({
-    index,
-    label: new Date(points[index]?.session.startedAt ?? 0).toLocaleDateString(locale, {
-      month: 'short',
-    }),
-  }));
+  const startedAts = points.map((p) => p.session.startedAt);
+  const marks = monthMarks(startedAts).map((index) => {
+    const d = new Date(startedAts[index] ?? 0);
+    return {
+      index,
+      label: d.toLocaleDateString(locale, {
+        year: d.getFullYear() === thisYear ? undefined : '2-digit',
+        month: 'short',
+      }),
+    };
+  });
   const recent = [...sessions].reverse();
   const metricName = t(`exerciseDetail.progress.metric.${kind}.${metric}`);
 
@@ -246,6 +252,7 @@ export function ExerciseProgress({ exerciseId, name, type }: Props) {
         {points.length >= 2 ? (
           <ProgressChart
             values={points.map((p) => p.value)}
+            positions={timePositions(startedAts)}
             axis={progressAxis(
               points.map((p) => p.value),
               kind === 'time' ? 'time' : kind === 'reps' ? 'integer' : 'decimal',

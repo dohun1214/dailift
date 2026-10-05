@@ -8,6 +8,8 @@ import type { Axis } from '@/domain/exercise-progress';
 type Props = {
   /** 운동한 날마다의 값 (오래된 순) */
   values: readonly number[];
+  /** 점마다 가로 위치(0–1). 운동한 날짜 간격을 그대로 보여 준다 */
+  positions: readonly number[];
   axis: Axis;
   tickLabel: (value: number) => string;
   /** 가로축에 적을 표시 (달이 바뀌는 점) */
@@ -25,11 +27,12 @@ const LEFT = 5;
 const GUTTER = 46;
 /** 점이 이보다 많으면 작은 점은 그리지 않는다 */
 const MAX_DOTS = 40;
-const MARK_GAP = 34;
+const MARK_GAP = 44;
 
 /** 종목 기록 추이: 오른쪽 눈금, 아래 달 표시, 점을 누르면 그날을 고른다. 시안 높이 132 */
 export function ProgressChart({
   values,
+  positions,
   axis,
   tickLabel,
   marks,
@@ -41,7 +44,7 @@ export function ProgressChart({
   const [width, setWidth] = useState(0);
   const n = values.length;
   const right = width - GUTTER;
-  const x = (i: number) => (n <= 1 ? (LEFT + right) / 2 : LEFT + (i / (n - 1)) * (right - LEFT));
+  const x = (i: number) => LEFT + (positions[i] ?? 0.5) * (right - LEFT);
   const y = (v: number) => BOTTOM - ((v - axis.min) / (axis.max - axis.min)) * (BOTTOM - TOP);
   const hot = selected ?? n - 1;
 
@@ -134,7 +137,7 @@ export function ProgressChart({
               key={m.index}
               style={[
                 styles.mark,
-                m.index === 0 ? { left: m.x - 3 } : { left: m.x - 24, textAlign: 'center' },
+                m.index === 0 ? { left: m.x - 3 } : { left: m.x - 32, textAlign: 'center' },
               ]}
               numberOfLines={1}
             >
@@ -169,7 +172,7 @@ const styles = StyleSheet.create((theme) => ({
   mark: {
     position: 'absolute',
     top: BOTTOM + 14,
-    width: 48,
+    width: 64,
     fontSize: 10,
     lineHeight: 14,
     includeFontPadding: false,
