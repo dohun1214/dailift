@@ -141,6 +141,7 @@ export function duplicateRoutine(
             increment: e.increment,
             incrementUnit: e.incrementUnit,
             note: e.note,
+            setPlan: e.setPlan,
           })),
         )
         .run();

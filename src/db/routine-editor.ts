@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray, isNull, max, notInArray } from 'drizzle-orm';
 
-import type { DraftItem, RoutineDraft } from '@/domain/routine-draft';
+import { type DraftItem, LIMITS, type RoutineDraft } from '@/domain/routine-draft';
 import { parseSetPlan, rangeFromPlan, serializeSetPlan } from '@/domain/set-plan';
 import { newId } from '@/lib/id';
 
@@ -101,13 +101,14 @@ export function saveRoutineDraft(
       .run();
 
     draft.items.forEach((item, position) => {
+      const reps = savedRepRange(item);
       const values = {
         exerciseId: item.exerciseId,
         position,
         // 세트별로 정한 종목은 목록 · 예상 시간 계산이 맞도록 본 세트 수를 같이 적어 둔다.
         targetSets: item.plan ? rangeFromPlan(item.plan, false).targetSets : item.targetSets,
-        repMin: item.repMin,
-        repMax: item.repMax,
+        repMin: reps.min,
+        repMax: reps.max,
         restSec: item.restSec,
         increment: item.increment,
         incrementUnit: item.incrementUnit,
@@ -202,4 +203,19 @@ export function defaultRestFor(
     .where(inArray(schema.exercises.id, [...ids]))
     .all();
   return new Map(rows.map((r) => [r.id, restSec ?? (r.type === 'weight_reps' ? 90 : 60)]));
+}
+
+/**
+ * 저장할 횟수 범위. 세트별로 정한 종목은 그 세트들의 값에서 가져오고(목록에 옛 범위가 남지 않게),
+ * 값이 없으면 화면에 있던 범위를, 그것도 비어 있으면 기본 범위를 쓴다.
+ */
+function savedRepRange(item: DraftItem): { min: number; max: number } {
+  const ok = (v: number) => Number.isInteger(v) && v >= LIMITS.reps.min;
+  const fallback = {
+    min: ok(item.repMin) ? item.repMin : 8,
+    max: ok(item.repMax) ? item.repMax : Math.max(12, ok(item.repMin) ? item.repMin : 12),
+  };
+  if (!item.plan) return fallback;
+  const range = rangeFromPlan(item.plan, false).range ?? rangeFromPlan(item.plan, true).range;
+  return range ?? fallback;
 }

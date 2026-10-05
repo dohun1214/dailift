@@ -20,6 +20,7 @@ import {
 } from '@/domain/stats';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { topicParticle } from '@/lib/josa';
+import { useToday } from '@/lib/use-today';
 import { useProfile } from '@/stores/profile';
 import { useSettings } from '@/stores/settings';
 
@@ -45,8 +46,8 @@ export function StatsView() {
   const { sets, musclesOf } = useStatsData();
   const [picked, setPicked] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  // 화면을 여는 시점 기준(렌더마다 바뀌지 않게)
-  const [now] = useState(() => Date.now());
+  // 화면에 다시 들어오거나 앱이 앞으로 올 때 새로 잡는다(운동을 마치고 돌아오면 이번 주에 반영).
+  const now = useToday().getTime();
 
   const progress = weeklyProgress(sets, now, unit);
   const balance = groupBalance(sets, now, musclesOf);

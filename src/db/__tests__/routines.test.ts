@@ -116,6 +116,21 @@ describe('duplicateRoutine', () => {
       .all();
     if (!push) throw new Error('no routine');
 
+    // 세트별로 정해 둔 종목도 그대로 복사된다
+    const plan =
+      '{"unit":"kg","sets":[{"kind":"working","weight":60,"reps":8,"durationSec":null}]}';
+    const [first] = db
+      .select()
+      .from(schema.routineExercises)
+      .where(eq(schema.routineExercises.routineId, push.id))
+      .orderBy(asc(schema.routineExercises.position))
+      .all();
+    if (!first) throw new Error('no exercise');
+    db.update(schema.routineExercises)
+      .set({ setPlan: plan })
+      .where(eq(schema.routineExercises.id, first.id))
+      .run();
+
     const copyId = duplicateRoutine(db, push.id, 'Push A 복사본', makeId);
     const ordered = db
       .select()
@@ -132,5 +147,6 @@ describe('duplicateRoutine', () => {
       .where(eq(schema.routineExercises.routineId, copyId))
       .all();
     expect(copied).toHaveLength(5);
+    expect(copied.find((c) => c.exerciseId === first.exerciseId)?.setPlan).toBe(plan);
   });
 });
