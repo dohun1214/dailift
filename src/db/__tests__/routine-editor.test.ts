@@ -8,9 +8,12 @@ import { newDraftItem } from '@/domain/routine-draft';
 
 import {
   createCustomExercise,
+  customNameTaken,
+  deleteCustomExercise,
   deleteRoutine,
   emptyRoutineDraft,
   loadRoutineDraft,
+  renameCustomExercise,
   saveRoutineDraft,
 } from '../routine-editor';
 import { copyTemplate } from '../routines';
@@ -152,5 +155,43 @@ describe('createCustomExercise', () => {
     expect(() =>
       createCustomExercise(db, { ...base, name: '플랭크2', primary: [] }, makeId),
     ).toThrow();
+  });
+});
+
+describe('직접 만든 종목 이름 변경 · 삭제', () => {
+  const make = (db: ReturnType<typeof createTestDb>, name: string) =>
+    createCustomExercise(
+      db,
+      { name, type: 'weight_reps', equipment: 'cable', primary: ['chest'], secondary: [] },
+      makeId,
+    );
+
+  it('같은 이름은 쓸 수 없고(대소문자 · 공백 무시) 자기 이름은 그대로 둘 수 있다', () => {
+    const db = createTestDb();
+    const a = make(db, 'Cable Fly');
+    const b = make(db, '케틀벨 스윙');
+    expect(customNameTaken(db, ' cable fly ')).toBe(true);
+    expect(renameCustomExercise(db, b, 'CABLE FLY')).toBe('duplicate');
+    expect(renameCustomExercise(db, b, '  ')).toBe('empty');
+    expect(renameCustomExercise(db, a, 'Cable Fly')).toBe('ok');
+    expect(renameCustomExercise(db, b, ' 스윙 ')).toBe('ok');
+    expect(db.select().from(schema.exercises).where(eq(schema.exercises.id, b)).get()?.name).toBe(
+      '스윙',
+    );
+  });
+
+  it('지우면 종목과 루틴의 줄만 지워진 것으로 표시되고 이름은 다시 쓸 수 있다', () => {
+    const db = createTestDb();
+    const id = make(db, '케틀벨 스윙');
+    const draft = emptyRoutineDraft();
+    draft.name = 'R';
+    draft.items = [newDraftItem('k1', id, 'kg'), newDraftItem('k2', baseExerciseId('squat'), 'kg')];
+    const routineId = saveRoutineDraft(db, draft, makeId);
+
+    deleteCustomExercise(db, id, 5000);
+    const ex = db.select().from(schema.exercises).where(eq(schema.exercises.id, id)).get();
+    expect(ex).toMatchObject({ deletedAt: 5000, dirty: 1, name: '케틀벨 스윙' });
+    expect(liveItems(db, routineId).map((i) => i.exerciseId)).toEqual([baseExerciseId('squat')]);
+    expect(customNameTaken(db, '케틀벨 스윙')).toBe(false);
   });
 });

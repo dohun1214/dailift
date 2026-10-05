@@ -28,7 +28,7 @@ import {
   type RoutineDraft,
   validateDraft,
 } from '@/domain/routine-draft';
-import { planFromRange, planSummary, rangeFromPlan } from '@/domain/set-plan';
+import { planFromRange, planIssue, planSummary, rangeFromPlan } from '@/domain/set-plan';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { newId } from '@/lib/id';
 import { hasDay, toggleDay, WEEKDAYS } from '@/lib/weekdays';
@@ -250,7 +250,13 @@ export default function RoutineEditScreen() {
             onChange={(plan) => updateItem(item.key, { plan })}
           />
         ) : null}
-        {issue ? <Text style={styles.error}>{t(`routines.edit.errors.${issue}`)}</Text> : null}
+        {issue ? (
+          <Text style={styles.error}>
+            {issue === 'plan' && item.plan
+              ? t(`routines.edit.errors.plan.${planIssue(item.plan) ?? 'value'}`)
+              : t(`routines.edit.errors.${issue === 'plan' ? 'itemInvalid' : issue}`)}
+          </Text>
+        ) : null}
       </View>
     );
   };

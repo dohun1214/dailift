@@ -1,16 +1,33 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Image } from 'expo-image';
-import { router, useLocalSearchParams } from 'expo-router';
-import { Camera, ChevronDown, ChevronUp } from 'lucide-react-native';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import {
+  Camera,
+  ChevronDown,
+  ChevronUp,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from 'lucide-react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Linking, Pressable, Text, TextInput, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { RoutineUpdateCard } from '@/components/summary/routine-update-card';
-import { ActionSheet, AppText, Badge, Button, Screen, TopBar } from '@/components/ui';
-import { MuscleMapCard } from '@/components/workout';
+import {
+  ActionSheet,
+  AppText,
+  Badge,
+  Button,
+  ConfirmDialog,
+  IconButton,
+  Screen,
+  TopBar,
+} from '@/components/ui';
+import { MuscleMapCard, WorkoutMenuSheet } from '@/components/workout';
 import { db } from '@/db/client';
+import { deleteWorkout } from '@/db/history';
 import * as schema from '@/db/schema';
 import { addWorkoutPhoto, deleteWorkoutPhoto, loadSummary, setWorkoutNote } from '@/db/summary';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
@@ -40,9 +57,17 @@ export default function WorkoutSummaryScreen() {
   const exercisesOpen = useSettings((s) => s.summaryExercisesOpen);
   const setExercisesOpen = useSettings((s) => s.setSummaryExercisesOpen);
   const catalog = useExerciseCatalog(lang);
-  const data = useMemo(() => loadSummary(db, id ?? ''), [id]);
+  // 기록을 수정하고 돌아오면 다시 읽는다.
+  const [rev, setRev] = useState(0);
+  useFocusEffect(useCallback(() => setRev((r) => r + 1), []));
+  // biome-ignore lint/correctness/useExhaustiveDependencies: rev가 바뀌면 다시 읽는다
+  const data = useMemo(() => loadSummary(db, id ?? ''), [id, rev]);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [gone, setGone] = useState(false);
   const [note, setNote] = useState(data?.workout.note ?? '');
   const [photoSheet, setPhotoSheet] = useState(false);
+  const goneRef = useRef(false);
   const noteRef = useRef(note);
   noteRef.current = note;
 
@@ -64,13 +89,15 @@ export default function WorkoutSummaryScreen() {
   }, [note, data]);
   useEffect(
     () => () => {
-      if (data) setWorkoutNote(db, data.workout.id, noteRef.current);
+      if (data && !goneRef.current) setWorkoutNote(db, data.workout.id, noteRef.current);
     },
     [data],
   );
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
+  // 지운 직후에는 닫히는 동안 빈 화면만 둔다.
+  if (gone) return <View style={styles.gone} />;
   if (!data) {
     return (
       <Screen header={<TopBar leading="close" onLeadingPress={close} />}>
@@ -167,12 +194,19 @@ export default function WorkoutSummaryScreen() {
   return (
     <Screen avoidKeyboard footer={<Button label={t('summary.done')} onPress={close} />}>
       <View style={styles.head}>
-        <Text style={styles.date}>
-          {t('summary.dateLine', { date, name: summary.workout.name })}
-        </Text>
-        <Text style={styles.headline} accessibilityRole="header">
-          {t(finishedToday ? 'summary.headline' : 'summary.headlinePast')}
-        </Text>
+        <View style={styles.headText}>
+          <Text style={styles.date}>
+            {t('summary.dateLine', { date, name: summary.workout.name })}
+          </Text>
+          <Text style={styles.headline} accessibilityRole="header">
+            {t(finishedToday ? 'summary.headline' : 'summary.headlinePast')}
+          </Text>
+        </View>
+        <IconButton
+          icon={MoreHorizontal}
+          label={t('summary.menuA11y')}
+          onPress={() => setMenuOpen(true)}
+        />
       </View>
 
       <View style={styles.stats}>
@@ -317,12 +351,57 @@ export default function WorkoutSummaryScreen() {
           { label: t('summary.photoLibrary'), onPress: () => void addPhoto('library') },
         ]}
       />
+      <WorkoutMenuSheet
+        visible={menuOpen}
+        title={t('summary.dateLine', { date, name: summary.workout.name })}
+        cancelLabel={t('history.actions.cancel')}
+        onClose={() => setMenuOpen(false)}
+        items={[
+          {
+            label: t('history.actions.edit'),
+            icon: Pencil,
+            onPress: () =>
+              router.push({ pathname: '/workout-edit/[id]', params: { id: summary.workout.id } }),
+          },
+          {
+            label: t('history.actions.delete'),
+            icon: Trash2,
+            destructive: true,
+            onPress: () => setDeleting(true),
+          },
+        ]}
+      />
+      <ConfirmDialog
+        visible={deleting}
+        title={t('history.deleteTitle')}
+        body={t('history.deleteBody')}
+        cancelLabel={t('history.actions.cancel')}
+        confirmLabel={t('history.deleteConfirm')}
+        destructive
+        onCancel={() => setDeleting(false)}
+        onConfirm={() => {
+          setDeleting(false);
+          goneRef.current = true;
+          setGone(true);
+          for (const path of deleteWorkout(db, summary.workout.id)) removePhotoFile(path);
+          close();
+        }}
+      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create((theme) => ({
-  head: { gap: 4, marginTop: 16, paddingHorizontal: 4, paddingBottom: 8 },
+  head: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginTop: 16,
+    paddingLeft: 4,
+    paddingBottom: 8,
+  },
+  headText: { flex: 1, gap: 4 },
+  gone: { flex: 1, backgroundColor: theme.colors.bg },
   date: {
     fontSize: 13,
     lineHeight: 17,

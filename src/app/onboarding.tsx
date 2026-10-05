@@ -16,7 +16,7 @@ import {
   HEIGHT_CM_RANGE,
   WEIGHT_RANGE,
 } from '@/domain/profile';
-import { parseDecimal } from '@/lib/number';
+import { LB_PER_KG, parseDecimal, toKg } from '@/lib/number';
 import { useProfile } from '@/stores/profile';
 import { useSettings } from '@/stores/settings';
 
@@ -38,7 +38,13 @@ export default function Onboarding() {
   const [days, setDays] = useState<DaysPerWeek | null>(profile.daysPerWeek);
   const [goal, setGoal] = useState<Goal | null>(profile.goal);
   const [height, setHeight] = useState(profile.heightCm?.toString() ?? '');
-  const [weight, setWeight] = useState(profile.weight?.toString() ?? '');
+  // 저장해 둔 몸무게의 단위가 지금 단위와 다르면 바꿔서 보여 준다.
+  const [weight, setWeight] = useState(() => {
+    if (profile.weight === null) return '';
+    if (profile.weightUnit === weightUnit) return profile.weight.toString();
+    const kg = toKg(profile.weight, profile.weightUnit);
+    return String(Math.round((weightUnit === 'kg' ? kg : kg * LB_PER_KG) * 10) / 10);
+  });
   const [bodyType, setBodyType] = useState<BodyType>(profile.bodyType);
   const [errors, setErrors] = useState<{ height?: string; weight?: string }>({});
 
@@ -107,7 +113,8 @@ export default function Onboarding() {
           <Text style={styles.progress}>{t('onboarding.progress', { step, total: TOTAL })}</Text>
           <Pressable
             accessibilityRole="button"
-            onPress={() => finish(false)}
+            // 다시 정하는 중에 건너뛰면 아무것도 바꾸지 않고 나간다.
+            onPress={() => (redo ? leave() : finish(false))}
             style={({ pressed }) => [styles.skip, pressed && styles.pressed]}
           >
             <Text style={styles.skipLabel}>{t('onboarding.skip')}</Text>

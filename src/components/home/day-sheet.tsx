@@ -417,7 +417,8 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.text,
   },
   cardMeta: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 0,
     textAlign: 'right',
     fontSize: 12,
     lineHeight: 16,

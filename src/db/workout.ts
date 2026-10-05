@@ -41,6 +41,8 @@ export function lastSessions(
   exerciseId: string,
   limit: number,
   excludeWorkoutId?: string,
+  /** 이 시각 전에 시작한 운동만 (지난 날의 기록을 채울 때 그날 이후 기록을 빼기 위해) */
+  startedBefore?: number,
 ): PastSession[] {
   const rows = db
     .select({
@@ -68,6 +70,7 @@ export function lastSessions(
         isNotNull(schema.sets.completedAt),
         ne(schema.sets.kind, 'warmup'),
         excludeWorkoutId ? ne(schema.workouts.id, excludeWorkoutId) : undefined,
+        startedBefore !== undefined ? lt(schema.workouts.startedAt, startedBefore) : undefined,
       ),
     )
     .orderBy(desc(schema.workouts.startedAt), asc(schema.sets.position))
@@ -201,6 +204,8 @@ type PlannedSet = {
 /**
  * 종목 하나의 시작 세트(프리필)를 만든다. 세트별 계획이 있으면 그대로, 없으면 지난 기록과 증량 제안으로 무게·횟수를 채우고,
  * withWarmup이면 바벨 무게×횟수 종목에 워밍업 세트를 앞에 붙인다. 프리필은 완료 전까지 기록이 아니다.
+ * `recordedBefore`를 주면 지난 날의 기록을 적는 것이다: 그 시각 전 마지막 기록의 값을 그대로 쓰고 증량 제안은 하지 않는다
+ * (실제로 들지 않은 무게가 기록으로 남지 않게).
  */
 export function planSets(
   db: AppDatabase,
@@ -209,11 +214,15 @@ export function planSets(
   unit: WeightUnit,
   withWarmup: boolean,
   bar = defaultBarWeight(unit),
+  recordedBefore?: number,
 ): PlannedSet[] {
   // 세트별로 정해 둔 종목은 적어 둔 그대로(워밍업도 적어 둔 것만)
   const plan = parseSetPlan(item.setPlan);
   if (plan) return planInUnit(plan, unit).sets.map((s) => ({ ...s }));
-  const history = lastSessions(db, item.exerciseId, 2);
+  const history =
+    recordedBefore === undefined
+      ? lastSessions(db, item.exerciseId, 2)
+      : lastSessions(db, item.exerciseId, 1, undefined, recordedBefore);
   const inUnit = history.map((s) =>
     s.sets.map((x) => ({
       ...x,
@@ -221,7 +230,10 @@ export function planSets(
     })),
   );
   const increment = convertWeight(item.increment, item.incrementUnit, unit) || item.increment;
-  const suggestion = suggestNext(inUnit, { repMin: item.repMin, repMax: item.repMax, increment });
+  const suggestion =
+    recordedBefore === undefined
+      ? suggestNext(inUnit, { repMin: item.repMin, repMax: item.repMax, increment })
+      : null;
   const last = inUnit[0] ?? [];
   const isTime = info?.type === 'time';
 
@@ -260,6 +272,7 @@ function insertExercises(
   makeId: IdFn,
   warmupGroups: Set<string>,
   bar = defaultBarWeight(unit),
+  recordedBefore?: number,
 ) {
   const infos = exerciseInfo(
     tx,
@@ -272,7 +285,7 @@ function insertExercises(
     const eligible = info?.equipment === 'barbell' && info.type === 'weight_reps' && !!group;
     const withWarmup = eligible && !warmupGroups.has(group);
     if (eligible) warmupGroups.add(group);
-    const planned = planSets(tx, item, info, unit, withWarmup, bar);
+    const planned = planSets(tx, item, info, unit, withWarmup, bar, recordedBefore);
     const weId = makeId();
     tx.insert(schema.workoutExercises)
       .values({
@@ -405,6 +418,7 @@ export function addPastWorkout(
       makeId,
       new Set(),
       opts.barWeight ?? defaultBarWeight(opts.weightUnit),
+      opts.startedAt,
     );
     // 지난 기록에는 자동 워밍업 줄을 넣지 않는다(본세트만 채워 둔다).
     const exerciseIds = tx
@@ -814,6 +828,24 @@ export function restoreWorkoutExercise(
  * 종목별 휴식 시간 바꾸기. saveToRoutine이면 이 운동을 시작한 루틴의 같은 종목에도 저장해
  * 다음 운동부터 적용된다(루틴 없이 시작한 운동이면 무시).
  */
+/** 이 루틴에 그 종목이 들어 있는지 (운동 중에 따로 추가한 종목은 루틴에 저장할 수 없다) */
+export function routineHasExercise(db: AppDatabase, routineId: string, exerciseId: string) {
+  return (
+    db
+      .select({ id: schema.routineExercises.id })
+      .from(schema.routineExercises)
+      .where(
+        and(
+          eq(schema.routineExercises.routineId, routineId),
+          eq(schema.routineExercises.exerciseId, exerciseId),
+          isNull(schema.routineExercises.deletedAt),
+        ),
+      )
+      .limit(1)
+      .all().length > 0
+  );
+}
+
 export function setWorkoutExerciseRest(
   db: AppDatabase,
   workoutExerciseId: string,

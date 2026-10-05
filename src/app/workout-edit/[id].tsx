@@ -3,20 +3,12 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { usePreventRemove } from 'expo-router/react-navigation';
 import { Clock, Plus } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import { Button, Screen, TextButton, TopBar } from '@/components/ui';
+import { Button, ConfirmDialog, Screen, TextButton, TopBar } from '@/components/ui';
 import { ActiveExerciseCard, SetRow } from '@/components/workout';
 import { db } from '@/db/client';
 import { addRecordedSet, cleanupRecordedWorkout, deleteWorkout } from '@/db/history';
@@ -32,15 +24,28 @@ import {
   updateSet,
 } from '@/db/workout';
 import { useAppLanguage } from '@/i18n/use-app-language';
+import { clearPendingAdd, markPendingAdd } from '@/lib/pending-add';
 import { removePhotoFile } from '@/lib/photos';
 import { openExercisePicker } from '@/stores/exercise-picker';
 import { useSettings, workoutDefaults } from '@/stores/settings';
 
+/** 나가려 할 때 띄우는 확인 창 */
+type Ask =
+  /** 수정: 체크 안 한 세트가 있다(나가면 그 세트는 저장되지 않는다) */
+  | 'unchecked'
+  /** 수정: 체크한 세트가 하나도 없다(기록을 지울지) */
+  | 'empty'
+  /** 추가: 체크 없이 저장을 눌렀다 */
+  | 'none'
+  /** 추가: 체크한 세트가 있는데 닫으려 한다 */
+  | 'discard';
+
 /**
  * 지난 운동 기록 수정. 바꾸는 즉시 저장되고, 나갈 때 완료 해제된 세트·빈 종목을 정리한다.
+ * 닫기(X)는 없고 '완료'로 나간다. 체크 안 한 세트가 있으면 저장되지 않는다고 알리고,
  * 세트가 하나도 남지 않으면 기록을 지울지 묻는다.
  * `added=1`로 열면 지난 날에 새로 추가하는 기록이다: 운동 시간을 적을 수 있고,
- * 체크한 세트가 없이 나가면 묻지 않고 지운다(아무것도 추가하지 않은 것).
+ * '기록 저장'을 눌러야 남는다. 닫기(X)·뒤로 가기는 저장하지 않고 나가는 것이다.
  */
 export default function WorkoutEditScreen() {
   const { t } = useTranslation();
@@ -54,6 +59,11 @@ export default function WorkoutEditScreen() {
   const catalog = useExerciseCatalog(lang);
   const exercises = useWorkoutExercises(workoutId);
   const [leaving, setLeaving] = useState(false);
+  const [ask, setAsk] = useState<Ask | null>(null);
+  // 확인 창에서 고른 뒤에 이어서 할 이동(뒤로 가기 등)
+  const pending = useRef<(() => void) | null>(null);
+  // '기록 저장'으로 나가는 중이면 묻지 않는다
+  const saving = useRef(false);
   const [minutesText, setMinutesText] = useState<string | null>(null);
   const { data: rows } = useLiveQuery(
     db
@@ -69,32 +79,64 @@ export default function WorkoutEditScreen() {
     0,
   );
 
-  // 나갈 때 정리. 완료 세트가 없으면 지울지 먼저 묻는다.
-  usePreventRemove(!leaving && !!workout && doneCount === 0, ({ data }) => {
-    if (isNew) {
-      for (const path of deleteWorkout(db, workoutId)) removePhotoFile(path);
-      setLeaving(true);
-      navigation.dispatch(data.action);
+  const undoneCount = exercises.reduce(
+    (n, e) => n + e.sets.filter((s) => s.completedAt === null).length,
+    0,
+  );
+
+  const remove = () => {
+    for (const path of deleteWorkout(db, workoutId)) removePhotoFile(path);
+  };
+  /** 확인 창을 닫고, 막아 둔 이동을 이어서 한다 */
+  const proceed = () => {
+    setAsk(null);
+    setLeaving(true);
+    const go = pending.current ?? (() => router.back());
+    pending.current = null;
+    saving.current = true;
+    go();
+  };
+
+  // 나가려 할 때: 저장되지 않는 것이 있으면 먼저 알린다.
+  const mustAsk = isNew ? true : doneCount === 0 || undoneCount > 0;
+  usePreventRemove(!leaving && !!workout && mustAsk, ({ data }) => {
+    const go = () => navigation.dispatch(data.action);
+    if (saving.current) {
+      go();
       return;
     }
-    Alert.alert(t('history.edit.emptyTitle'), t('history.edit.emptyBody'), [
-      { text: t('history.edit.keep'), style: 'cancel' },
-      {
-        text: t('history.edit.delete'),
-        style: 'destructive',
-        onPress: () => {
-          for (const path of deleteWorkout(db, workoutId)) removePhotoFile(path);
-          setLeaving(true);
-          navigation.dispatch(data.action);
-        },
-      },
-    ]);
+    if (isNew && doneCount === 0) {
+      // 아무것도 체크하지 않고 닫으면 추가하지 않은 것이다.
+      remove();
+      setLeaving(true);
+      go();
+      return;
+    }
+    pending.current = go;
+    setAsk(isNew ? 'discard' : doneCount === 0 ? 'empty' : 'unchecked');
   });
 
   // 어떤 방법으로 나가든(완료·닫기·뒤로) 떠날 때 정리한다.
   useEffect(() => () => void cleanupRecordedWorkout(db, workoutId), [workoutId]);
 
+  // 추가하던 중에 앱이 꺼지면 다음에 켤 때 정리할 수 있게 적어 둔다.
+  useEffect(() => {
+    if (!isNew) return;
+    markPendingAdd(workoutId);
+    return () => clearPendingAdd();
+  }, [isNew, workoutId]);
+
   const finish = () => router.back();
+  /** 기록 저장(추가): 체크한 세트가 있어야 저장된다 */
+  const save = () => {
+    if (doneCount === 0) {
+      pending.current = null;
+      setAsk('none');
+      return;
+    }
+    saving.current = true;
+    router.back();
+  };
 
   const addExercises = () =>
     openExercisePicker((ids) => {
@@ -137,13 +179,10 @@ export default function WorkoutEditScreen() {
         header={
           <TopBar
             title={t(isNew ? 'history.edit.addTitle' : 'history.edit.title')}
-            leading="close"
+            leading={isNew ? 'close' : 'none'}
             onLeadingPress={finish}
             trailing={
-              <TextButton
-                label={t(isNew ? 'history.edit.save' : 'history.edit.done')}
-                onPress={finish}
-              />
+              isNew ? undefined : <TextButton label={t('history.edit.done')} onPress={finish} />
             }
           />
         }
@@ -238,9 +277,57 @@ export default function WorkoutEditScreen() {
           <Plus size={18} color={theme.colors.text} strokeWidth={1.8} />
           <Text style={styles.addText}>{t('history.edit.addExercise')}</Text>
         </Pressable>
-        {isNew ? <Button label={t('history.edit.saveButton')} onPress={finish} /> : null}
+        {isNew ? <Button label={t('history.edit.saveButton')} onPress={save} /> : null}
         <View style={styles.bottom} />
       </Screen>
+      <ConfirmDialog
+        visible={ask === 'unchecked'}
+        title={t('history.edit.uncheckedTitle')}
+        body={t('history.edit.uncheckedBody', { count: undoneCount })}
+        cancelLabel={t('history.edit.keep')}
+        confirmLabel={t('history.edit.done')}
+        onCancel={() => setAsk(null)}
+        onConfirm={proceed}
+      />
+      <ConfirmDialog
+        visible={ask === 'empty'}
+        title={t('history.edit.emptyTitle')}
+        body={t('history.edit.emptyBody')}
+        cancelLabel={t('history.edit.keep')}
+        confirmLabel={t('history.edit.delete')}
+        destructive
+        onCancel={() => setAsk(null)}
+        onConfirm={() => {
+          remove();
+          proceed();
+        }}
+      />
+      <ConfirmDialog
+        visible={ask === 'none'}
+        title={t('history.edit.noneTitle')}
+        body={t('history.edit.noneBody')}
+        cancelLabel={t('history.edit.leave')}
+        confirmLabel={t('history.edit.keepAdding')}
+        onCancel={() => {
+          remove();
+          proceed();
+        }}
+        onConfirm={() => setAsk(null)}
+        onDismiss={() => setAsk(null)}
+      />
+      <ConfirmDialog
+        visible={ask === 'discard'}
+        title={t('history.edit.discardTitle')}
+        body={t('history.edit.discardBody', { count: doneCount })}
+        cancelLabel={t('history.edit.keepAdding')}
+        confirmLabel={t('history.edit.leave')}
+        destructive
+        onCancel={() => setAsk(null)}
+        onConfirm={() => {
+          remove();
+          proceed();
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }

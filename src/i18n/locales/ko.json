@@ -21,7 +21,8 @@
     "agreeTerms": "이용약관과 개인정보 처리방침에 동의해요",
     "agreeAge": "만 14세 이상이에요",
     "termsLink": "이용약관",
-    "privacyLink": "개인정보 처리방침"
+    "privacyLink": "개인정보 처리방침",
+    "agreeHint": "위 두 항목에 동의하면 시작할 수 있어요."
   },
   "onboarding": {
     "progress": "{{step}} / {{total}}",
@@ -173,7 +174,11 @@
         "reps": "최소 ≤ 최대, 1–100",
         "rest": "휴식은 0–900초",
         "increment": "0.25–50",
-        "plan": "세트 값을 확인해 주세요.",
+        "plan": {
+          "noWorking": "본 세트가 하나는 있어야 해요.",
+          "tooMany": "세트는 20개까지 만들 수 있어요.",
+          "value": "무게는 2000 이하, 횟수는 100 이하, 시간은 3600초 이하로 적어 주세요."
+        },
         "time": "최소 ≤ 최대, 5–600초"
       },
       "notFound": "루틴을 찾을 수 없어요",
@@ -235,7 +240,8 @@
       "secondary": "협응근",
       "equipment": "기구",
       "nameRequired": "종목 이름을 입력하세요.",
-      "primaryRequired": "주동근을 하나 이상 고르세요."
+      "primaryRequired": "주동근을 하나 이상 고르세요.",
+      "nameTaken": "같은 이름의 종목이 이미 있어요."
     },
     "pickerTitleReplace": "종목 변경",
     "replaceConfirm": "이 종목으로 변경"
@@ -307,19 +313,19 @@
     "keepGoing": "계속 운동하기",
     "emptyTitle": "기록된 세트가 없어요",
     "emptyBody": "기록 없이 끝낼까요?",
-    "discard": "끝내기",
+    "discard": "기록 지우기",
     "menu": {
       "title": "운동 메뉴",
       "addExercise": "종목 추가",
-      "discard": "기록 없이 끝내기",
+      "discard": "기록 지우기",
       "cancel": "취소",
       "editExercises": "종목 편집",
       "replaceThis": "다른 종목으로 변경",
       "removeThis": "이 종목 빼기",
       "exerciseA11y": "{{name}} 메뉴"
     },
-    "discardTitle": "기록 없이 끝낼까요?",
-    "discardBody": "이번 운동 기록이 모두 사라져요.",
+    "discardTitle": "이 운동 기록을 지울까요?",
+    "discardBody": "이번 운동 기록이 모두 사라져요. 되돌릴 수 없어요.",
     "recoverTitle": "진행 중인 운동이 있어요",
     "recoverBody": "{{name}} · {{elapsed}} 진행",
     "resume": "이어하기",
@@ -392,11 +398,15 @@
       "started": "시작 {{when}}",
       "finish": "마지막 기록 시각에 마치기",
       "resume": "이어하기",
-      "discard": "기록 없이 끝내기",
+      "discard": "기록 지우기",
       "close": "닫기"
     },
-    "recoverDiscard": "그만두기",
-    "busyBody": "{{name}} 운동을 끝낸 뒤에 다른 운동을 시작할 수 있어요."
+    "recoverDiscard": "기록 지우기",
+    "busyBody": "{{name}} 운동을 끝낸 뒤에 다른 운동을 시작할 수 있어요.",
+    "eraseTitle": "이 운동 기록을 지울까요?",
+    "eraseBody_other": "{{name}}에서 완료한 {{count}}세트가 지워져요. 되돌릴 수 없어요.",
+    "eraseBodyEmpty": "{{name}} 운동이 지워져요. 되돌릴 수 없어요.",
+    "eraseCancel": "취소"
   },
   "summary": {
     "headline": "오늘도 해냈어요",
@@ -444,7 +454,8 @@
     "cameraDeniedTitle": "카메라를 쓸 수 없어요",
     "cameraDenied": "설정에서 Dailift의 카메라 접근을 허용해 주세요.",
     "openSettings": "설정 열기",
-    "headlinePast": "운동 기록"
+    "headlinePast": "운동 기록",
+    "menuA11y": "기록 메뉴"
   },
   "history": {
     "segHistory": "히스토리",
@@ -474,12 +485,19 @@
       "keep": "계속 수정",
       "delete": "지우기",
       "addTitle": "기록 추가",
-      "save": "저장",
       "saveButton": "기록 저장",
       "duration": "운동 시간",
       "minutes": "분",
-      "addHint": "루틴대로 채워 뒀어요. 실제로 한 세트만 체크하면 체크한 세트만 저장돼요.",
-      "addSub": "{{date}} · {{name}}"
+      "addHint": "루틴의 세트를 지난번 기록 값으로 채워 뒀어요. 체크한 세트만 저장돼요.",
+      "addSub": "{{date}} · {{name}}",
+      "uncheckedTitle": "체크 안 한 세트가 있어요",
+      "uncheckedBody_other": "체크 안 한 {{count}}세트는 저장되지 않아요.",
+      "noneTitle": "체크한 세트가 없어요",
+      "noneBody": "한 세트를 체크해야 저장돼요. 나가면 이 기록은 저장되지 않아요.",
+      "leave": "나가기",
+      "keepAdding": "계속 입력",
+      "discardTitle": "저장하지 않고 나갈까요?",
+      "discardBody_other": "체크한 {{count}}세트가 저장되지 않아요."
     }
   },
   "stats": {
@@ -597,7 +615,15 @@
       "best": "최고",
       "rowA11y": "{{date}}, {{sets}}{{best}}, 기록 보기",
       "chartA11y": "{{name}} {{metric}} 추이, 기록 {{count}}회, 가장 최근 {{value}}"
-    }
+    },
+    "menuA11y": "종목 메뉴",
+    "rename": "이름 변경",
+    "delete": "종목 삭제",
+    "renameHint": "지난 기록에도 바뀐 이름으로 보여요.",
+    "deleteTitle": "{{name}} 삭제할까요?",
+    "deleteBody": "종목 목록과 루틴에서 사라져요. 지난 기록은 그대로 남아요.",
+    "deleteConfirm": "삭제",
+    "cancel": "취소"
   },
   "home": {
     "todayRoutine": "오늘은 {{name}} 하는 날",
@@ -616,7 +642,6 @@
     "streak": "연속 기록",
     "streakValue": "{{count}}",
     "streakUnit": "주",
-    "prRecent": "{{name}} {{value}}",
     "prA11y": "최근 개인 기록: {{name}} {{value}}, {{when}}",
     "dayA11y": "{{date}}, {{state}}",
     "state": {
@@ -679,7 +704,9 @@
     "stripNext": "다음 주 보기",
     "stripPrev": "지난 주 보기",
     "weekNoTarget_other": "회",
-    "streakNoTarget": "주 목표를 정하면 보여요"
+    "streakNoTarget": "주 목표를 정하면 보여요",
+    "weekRangeSame": "{{start}} – {{day}}일",
+    "weekRange": "{{start}} – {{end}}"
   },
   "relative": {
     "today": "오늘",

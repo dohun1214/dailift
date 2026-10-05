@@ -17,6 +17,7 @@ import { daysAgo } from '@/domain/home';
 import { formatClock } from '@/domain/rest-timer';
 import { isStaleWorkout } from '@/domain/workout-session';
 import { useAppLanguage } from '@/i18n/use-app-language';
+import { settlePendingAdd } from '@/lib/pending-add';
 import { useProfile } from '@/stores/profile';
 import { useRestTimer } from '@/stores/rest-timer';
 
@@ -26,7 +27,7 @@ let recoveryAsked = false;
 let staleSkipped: string | null = null;
 
 type Prompt =
-  | { kind: 'recover'; id: string; name: string; startedAt: number }
+  | { kind: 'recover'; id: string; name: string; startedAt: number; completedSets: number }
   | {
       kind: 'stale';
       id: string;
@@ -51,6 +52,9 @@ export default function TabsLayout() {
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   // 닫히는 동안에도 내용이 남아 있도록 마지막으로 띄운 것을 기억한다.
   const [shown, setShown] = useState<Prompt | null>(null);
+  // '기록 지우기'를 누르면 한 번 더 묻는다. 같은 확인 창의 내용만 바꾼다(창 두 개를 겹쳐 띄우지 않는다).
+  const [eraseOpen, setEraseOpen] = useState(false);
+  const [eraseShown, setEraseShown] = useState(false);
   const pathRef = useRef(pathname);
   pathRef.current = pathname;
   const ready = consented && onboarded;
@@ -71,11 +75,12 @@ export default function TabsLayout() {
         next = { kind: 'stale', ...base, lastAt, completedSets: activity.completedSets };
     } else if (firstOpen && pathRef.current !== '/workout') {
       // 이미 운동 화면이 떠 있으면(앱 복원) 묻지 않는다.
-      next = { kind: 'recover', ...base };
+      next = { kind: 'recover', ...base, completedSets: activity.completedSets };
     }
     if (next) {
       setShown(next);
       setPrompt(next);
+      setEraseShown(false);
     }
   }, []);
 
@@ -83,6 +88,8 @@ export default function TabsLayout() {
     if (!ready) return;
     if (!recoveryAsked) {
       recoveryAsked = true;
+      // 지난 날 기록을 추가하던 중에 앱이 꺼졌으면 남은 것을 정리한다.
+      settlePendingAdd(db);
       checkActive(true);
     }
     const sub = AppState.addEventListener('change', (state) => {
@@ -92,10 +99,36 @@ export default function TabsLayout() {
   }, [ready, checkActive]);
 
   const close = () => setPrompt(null);
-  const discardPrompted = () => {
+  /** 기록 지우기: 바로 지우지 않고 한 번 더 묻는다 */
+  const askErase = () => {
     if (!prompt) return;
+    if (prompt.kind === 'stale') {
+      // 아래쪽 창이 다 내려간 뒤에 확인 창을 띄운다.
+      close();
+      setTimeout(() => {
+        setEraseShown(true);
+        setEraseOpen(true);
+      }, 300);
+      return;
+    }
+    setEraseShown(true);
+    setEraseOpen(true);
+  };
+  const cancelErase = () => {
+    setEraseOpen(false);
+    if (shown?.kind === 'stale') {
+      // 오래된 운동 창에서 왔으면 그 창으로 돌아간다.
+      const back = shown;
+      setTimeout(() => setPrompt(back), 250);
+      return;
+    }
+    setEraseShown(false);
+  };
+  const eraseNow = () => {
+    if (!shown) return;
     useRestTimer.getState().stop();
-    discardWorkout(db, prompt.id);
+    discardWorkout(db, shown.id);
+    setEraseOpen(false);
     close();
   };
   const resumePrompted = () => {
@@ -192,27 +225,44 @@ export default function TabsLayout() {
         minutes={stale ? Math.max(1, Math.round((stale.lastAt - stale.startedAt) / 60000)) : 0}
         onFinish={finishAtLast}
         onResume={resumePrompted}
-        onDiscard={discardPrompted}
+        onDiscard={askErase}
         onClose={skipStale}
       />
-      <ConfirmDialog
-        visible={prompt?.kind === 'recover'}
-        title={t('workout.recoverTitle')}
-        body={
-          recover
-            ? t('workout.recoverBody', {
-                name: recover.name,
-                elapsed: formatClock((Date.now() - recover.startedAt) / 1000),
-              })
-            : undefined
-        }
-        cancelLabel={t('workout.recoverDiscard')}
-        cancelDestructive
-        confirmLabel={t('workout.resume')}
-        onCancel={discardPrompted}
-        onConfirm={resumePrompted}
-        onDismiss={close}
-      />
+      {eraseShown ? (
+        <ConfirmDialog
+          visible={eraseOpen}
+          title={t('workout.eraseTitle')}
+          body={
+            shown && shown.completedSets > 0
+              ? t('workout.eraseBody', { name: shown.name, count: shown.completedSets })
+              : t('workout.eraseBodyEmpty', { name: shown?.name ?? '' })
+          }
+          cancelLabel={t('workout.eraseCancel')}
+          confirmLabel={t('workout.recoverDiscard')}
+          destructive
+          onCancel={cancelErase}
+          onConfirm={eraseNow}
+        />
+      ) : (
+        <ConfirmDialog
+          visible={prompt?.kind === 'recover'}
+          title={t('workout.recoverTitle')}
+          body={
+            recover
+              ? t('workout.recoverBody', {
+                  name: recover.name,
+                  elapsed: formatClock((Date.now() - recover.startedAt) / 1000),
+                })
+              : undefined
+          }
+          cancelLabel={t('workout.recoverDiscard')}
+          cancelDestructive
+          confirmLabel={t('workout.resume')}
+          onCancel={askErase}
+          onConfirm={resumePrompted}
+          onDismiss={close}
+        />
+      )}
     </Tabs>
   );
 }

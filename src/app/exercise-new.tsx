@@ -7,7 +7,7 @@ import { StyleSheet } from 'react-native-unistyles';
 import { Card, Chip, Screen, TextButton, TextField, TopBar } from '@/components/ui';
 import { MUSCLES } from '@/data/muscles';
 import { db } from '@/db/client';
-import { createCustomExercise } from '@/db/routine-editor';
+import { createCustomExercise, customNameTaken } from '@/db/routine-editor';
 import type { Equipment, ExerciseType } from '@/db/schema';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { deliverCreatedExercise } from '@/stores/exercise-picker';
@@ -32,7 +32,7 @@ export default function ExerciseNewScreen() {
   const [primary, setPrimary] = useState<string[]>([]);
   const [secondary, setSecondary] = useState<string[]>([]);
   const [equipment, setEquipment] = useState<Equipment>('barbell');
-  const [error, setError] = useState<'name' | 'primary' | null>(null);
+  const [error, setError] = useState<'name' | 'duplicate' | 'primary' | null>(null);
 
   const togglePrimary = (id: string) => {
     setError(null);
@@ -46,6 +46,7 @@ export default function ExerciseNewScreen() {
 
   const save = () => {
     if (!name.trim()) return setError('name');
+    if (customNameTaken(db, name)) return setError('duplicate');
     if (primary.length === 0) return setError('primary');
     const id = createCustomExercise(db, { name, type, equipment, primary, secondary });
     deliverCreatedExercise(id);
@@ -68,7 +69,13 @@ export default function ExerciseNewScreen() {
           value={name}
           placeholder={t('exercises.new.namePlaceholder')}
           maxLength={40}
-          error={error === 'name' ? t('exercises.new.nameRequired') : undefined}
+          error={
+            error === 'name'
+              ? t('exercises.new.nameRequired')
+              : error === 'duplicate'
+                ? t('exercises.new.nameTaken')
+                : undefined
+          }
           onChangeText={(v) => {
             setError(null);
             setName(v);

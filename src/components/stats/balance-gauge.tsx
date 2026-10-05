@@ -1,4 +1,5 @@
 import { Check } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
@@ -18,12 +19,20 @@ type Props = {
  */
 export function BalanceGauge({ name, value, target, a11yLabel }: Props) {
   const { theme } = useUnistyles();
+  const { i18n } = useTranslation();
+  // 영어 부위 이름(Shoulders 등)은 한글보다 길다.
+  const nameWidth = i18n.language.startsWith('ko') ? 40 : 76;
   const level = targetLevel(value, target);
   const shown = Number.isInteger(value) ? String(value) : value.toFixed(1);
 
   return (
     <View style={styles.row} accessible accessibilityLabel={a11yLabel}>
-      <Text style={[styles.name, level === 'none' && styles.muted]}>{name}</Text>
+      <Text
+        style={[styles.name, { width: nameWidth }, level === 'none' && styles.muted]}
+        numberOfLines={1}
+      >
+        {name}
+      </Text>
       <View style={styles.track}>
         {level !== 'none' ? (
           <View

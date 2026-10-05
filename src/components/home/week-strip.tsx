@@ -60,12 +60,14 @@ export function WeekStrip({
   shiftRef.current = onShift;
 
   // 밀어서 넘긴 게 아닌데 주가 바뀌면(홈을 떠났다 돌아옴, 접근성 동작) 그 주로 옮긴다.
+  // 움직임 없이 바로 옮긴다: 홈이 다른 화면에 가려지는 순간에 시작한 움직임은 끝까지 가지 못하고
+  // 멈춘 자리에 남는 일이 있었다(날짜 줄만 지난주에 머무름).
   // biome-ignore lint/correctness/useExhaustiveDependencies: 주가 바뀔 때만 맞춘다
   useEffect(() => {
     if (expected.current === weekOffset) return;
     expected.current = weekOffset;
     target.value = weekOffset;
-    page.value = withTiming(weekOffset, { duration: 200 });
+    page.value = weekOffset;
   }, [weekOffset]);
 
   const pan = useMemo(() => {
