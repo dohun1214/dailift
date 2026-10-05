@@ -356,6 +356,82 @@ export function startWorkout(
   return workoutId;
 }
 
+/**
+ * 지난 날의 운동 기록을 새로 만든다(이미 마친 운동으로). 루틴을 고르면 그 계획대로 본세트를 채워 두고,
+ * 기록 수정 화면에서 실제로 한 세트만 체크한다(체크 안 한 세트는 나갈 때 정리된다).
+ */
+export function addPastWorkout(
+  db: AppDatabase,
+  opts: {
+    routineId: string | null;
+    name: string;
+    weightUnit: WeightUnit;
+    barWeight?: number;
+    startedAt: number;
+    minutes: number;
+  },
+  makeId: IdFn = newId,
+): string {
+  const workoutId = makeId();
+  db.transaction((tx) => {
+    tx.insert(schema.workouts)
+      .values({
+        id: workoutId,
+        routineId: opts.routineId,
+        name: opts.name,
+        status: 'completed',
+        startedAt: opts.startedAt,
+        endedAt: opts.startedAt + opts.minutes * 60_000,
+      })
+      .run();
+    if (!opts.routineId) return;
+    const items = tx
+      .select()
+      .from(schema.routineExercises)
+      .where(
+        and(
+          eq(schema.routineExercises.routineId, opts.routineId),
+          isNull(schema.routineExercises.deletedAt),
+        ),
+      )
+      .orderBy(asc(schema.routineExercises.position))
+      .all();
+    insertExercises(
+      tx,
+      workoutId,
+      items,
+      0,
+      opts.weightUnit,
+      makeId,
+      new Set(),
+      opts.barWeight ?? defaultBarWeight(opts.weightUnit),
+    );
+    // 지난 기록에는 자동 워밍업 줄을 넣지 않는다(본세트만 채워 둔다).
+    const exerciseIds = tx
+      .select({ id: schema.workoutExercises.id })
+      .from(schema.workoutExercises)
+      .where(eq(schema.workoutExercises.workoutId, workoutId))
+      .all()
+      .map((r) => r.id);
+    for (const id of exerciseIds) {
+      tx.delete(schema.sets)
+        .where(and(eq(schema.sets.workoutExerciseId, id), eq(schema.sets.kind, 'warmup')))
+        .run();
+    }
+  });
+  return workoutId;
+}
+
+/** 마친 운동의 운동 시간(분)을 바꾼다. 시작 시각은 그대로 두고 끝난 시각을 옮긴다 */
+export function setWorkoutMinutes(db: AppDatabase, workoutId: string, minutes: number) {
+  const [w] = db.select().from(schema.workouts).where(eq(schema.workouts.id, workoutId)).all();
+  if (!w) return;
+  db.update(schema.workouts)
+    .set({ endedAt: w.startedAt + Math.max(0, Math.round(minutes)) * 60_000 })
+    .where(eq(schema.workouts.id, workoutId))
+    .run();
+}
+
 /** 운동 중 종목 추가 (맨 뒤). 기본 3세트 · 8–12회, 휴식은 설정의 기본 휴식(없으면 무게 종목 90초·나머지 60초) */
 export function addExercisesToWorkout(
   db: AppDatabase,

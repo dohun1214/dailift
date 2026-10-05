@@ -11,6 +11,7 @@ import * as schema from '../schema';
 import { seedReferenceData } from '../seed';
 import {
   addExercisesToWorkout,
+  addPastWorkout,
   addSet,
   applyToRemainingSets,
   completeSet,
@@ -24,6 +25,7 @@ import {
   restoreWorkoutExercise,
   setCompleted,
   setWorkoutExerciseRest,
+  setWorkoutMinutes,
   startWorkout,
   updateSet,
   workoutActivity,
@@ -130,6 +132,71 @@ describe('startWorkout', () => {
       [62.5, 8],
     ]);
     expect(setsOf(db, incline?.id ?? '').some((s) => s.kind === 'warmup')).toBe(false);
+  });
+});
+
+describe('지난 날 기록 추가', () => {
+  it('마친 운동으로 만들고 루틴대로 세트를 채워 둔다', () => {
+    const db = createTestDb();
+    const routineId = routineWith(db, ['bench_press', 'lateral_raise']);
+    const id = addPastWorkout(
+      db,
+      { routineId, name: 'R', weightUnit: 'kg', startedAt: 1_000_000, minutes: 50 },
+      makeId,
+    );
+    const [w] = db.select().from(schema.workouts).where(eq(schema.workouts.id, id)).all();
+    expect(w?.status).toBe('completed');
+    expect(w?.startedAt).toBe(1_000_000);
+    expect(w?.endedAt).toBe(1_000_000 + 50 * 60_000);
+    // 진행 중인 운동이 아니다
+    expect(getActiveWorkout(db)).toBeUndefined();
+    const wes = exercisesOf(db, id);
+    expect(wes).toHaveLength(2);
+    expect(setsOf(db, wes[0]?.id ?? '').every((s) => s.completedAt === null)).toBe(true);
+  });
+
+  it('지난 기록이 있어 워밍업이 붙는 종목도 본세트만 채운다', () => {
+    const db = createTestDb();
+    const routineId = routineWith(db, ['bench_press']);
+    const first = startWorkout(db, { routineId, name: 'R', weightUnit: 'kg', now: 1000 }, makeId);
+    for (const s of setsOf(db, exercisesOf(db, first)[0]?.id ?? '')) {
+      updateSet(db, s.id, { weight: 60, reps: 8 });
+      completeSet(db, s.id, 'weight_reps', 2000);
+    }
+    finishWorkout(db, first, 3000);
+    const id = addPastWorkout(
+      db,
+      { routineId, name: 'R', weightUnit: 'kg', startedAt: 9_000_000, minutes: 40 },
+      makeId,
+    );
+    const sets = setsOf(db, exercisesOf(db, id)[0]?.id ?? '');
+    expect(sets.length).toBeGreaterThan(0);
+    expect(sets.every((s) => s.kind === 'working')).toBe(true);
+  });
+
+  it('진행 중인 운동이 있어도 따로 만든다', () => {
+    const db = createTestDb();
+    const active = startWorkout(db, { routineId: null, name: 'now', weightUnit: 'kg' }, makeId);
+    const id = addPastWorkout(
+      db,
+      { routineId: null, name: 'past', weightUnit: 'kg', startedAt: 5000, minutes: 30 },
+      makeId,
+    );
+    expect(id).not.toBe(active);
+    expect(getActiveWorkout(db)?.id).toBe(active);
+    expect(exercisesOf(db, id)).toHaveLength(0);
+  });
+
+  it('운동 시간을 바꾸면 끝난 시각이 옮겨진다', () => {
+    const db = createTestDb();
+    const id = addPastWorkout(
+      db,
+      { routineId: null, name: 'past', weightUnit: 'kg', startedAt: 5000, minutes: 30 },
+      makeId,
+    );
+    setWorkoutMinutes(db, id, 75);
+    const [w] = db.select().from(schema.workouts).where(eq(schema.workouts.id, id)).all();
+    expect(w?.endedAt).toBe(5000 + 75 * 60_000);
   });
 });
 

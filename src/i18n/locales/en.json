@@ -482,7 +482,14 @@
       "emptyTitle": "No sets left",
       "emptyBody": "Delete this workout?",
       "keep": "Keep editing",
-      "delete": "Delete"
+      "delete": "Delete",
+      "addTitle": "Add record",
+      "save": "Save",
+      "saveButton": "Save record",
+      "duration": "Duration",
+      "minutes": "min",
+      "addHint": "Filled in from the routine. Check only the sets you did — unchecked sets aren't saved.",
+      "addSub": "{{date}} · {{name}}"
     }
   },
   "stats": {
@@ -620,6 +627,9 @@
       "todayDone": "today, workout done"
     },
     "stripA11y": "This week",
+    "stripOtherA11y": "Another week",
+    "stripHint": "Swipe left or right to change weeks",
+    "dayHint": "Shows that day",
     "doneTitle": "{{name}} done today",
     "doneBadge": "Done",
     "viewRecord": "View workout",
@@ -651,6 +661,26 @@
       "allDone": "All sets done",
       "reps_one": "{{count}} rep",
       "reps_other": "{{count}} reps"
+    },
+    "day": {
+      "todayTitle": "{{date}} · Today",
+      "noRecord": "No workout logged.",
+      "restPast": "Rest day.",
+      "rest": "Rest day. No routine is scheduled.",
+      "planned": "Planned",
+      "add": "Add a workout for this day",
+      "startNow": "Start this routine now",
+      "startNowNamed": "Start {{name}} now",
+      "startNamed": "Start {{name}}",
+      "viewRoutine": "View routine",
+      "setDays": "Set routine days",
+      "workoutHint": "Opens that day's record",
+      "addTitle": "What did you do?",
+      "addSub": "Saved as a record for {{date}}.",
+      "addMeta_one": "{{count}} exercise · {{sets}} sets",
+      "addMeta_other": "{{count}} exercises · {{sets}} sets",
+      "addEmpty": "Log without a routine",
+      "addEmptySub": "Add exercises yourself"
     }
   },
   "relative": {

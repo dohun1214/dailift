@@ -2,13 +2,21 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { usePreventRemove } from 'expo-router/react-navigation';
-import { Plus } from 'lucide-react-native';
+import { Clock, Plus } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import { Screen, TextButton, TopBar } from '@/components/ui';
+import { Button, Screen, TextButton, TopBar } from '@/components/ui';
 import { ActiveExerciseCard, SetRow } from '@/components/workout';
 import { db } from '@/db/client';
 import { addRecordedSet, cleanupRecordedWorkout, deleteWorkout } from '@/db/history';
@@ -20,6 +28,7 @@ import {
   completeSet,
   deleteSet,
   setCompleted,
+  setWorkoutMinutes,
   updateSet,
 } from '@/db/workout';
 import { useAppLanguage } from '@/i18n/use-app-language';
@@ -30,6 +39,8 @@ import { useSettings, workoutDefaults } from '@/stores/settings';
 /**
  * 지난 운동 기록 수정. 바꾸는 즉시 저장되고, 나갈 때 완료 해제된 세트·빈 종목을 정리한다.
  * 세트가 하나도 남지 않으면 기록을 지울지 묻는다.
+ * `added=1`로 열면 지난 날에 새로 추가하는 기록이다: 운동 시간을 적을 수 있고,
+ * 체크한 세트가 없이 나가면 묻지 않고 지운다(아무것도 추가하지 않은 것).
  */
 export default function WorkoutEditScreen() {
   const { t } = useTranslation();
@@ -37,11 +48,13 @@ export default function WorkoutEditScreen() {
   const navigation = useNavigation();
   const lang = useAppLanguage();
   const unit = useSettings((s) => s.weightUnit);
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, added } = useLocalSearchParams<{ id: string; added?: string }>();
+  const isNew = added === '1';
   const workoutId = id ?? '';
   const catalog = useExerciseCatalog(lang);
   const exercises = useWorkoutExercises(workoutId);
   const [leaving, setLeaving] = useState(false);
+  const [minutesText, setMinutesText] = useState<string | null>(null);
   const { data: rows } = useLiveQuery(
     db
       .select()
@@ -58,6 +71,12 @@ export default function WorkoutEditScreen() {
 
   // 나갈 때 정리. 완료 세트가 없으면 지울지 먼저 묻는다.
   usePreventRemove(!leaving && !!workout && doneCount === 0, ({ data }) => {
+    if (isNew) {
+      for (const path of deleteWorkout(db, workoutId)) removePhotoFile(path);
+      setLeaving(true);
+      navigation.dispatch(data.action);
+      return;
+    }
     Alert.alert(t('history.edit.emptyTitle'), t('history.edit.emptyBody'), [
       { text: t('history.edit.keep'), style: 'cancel' },
       {
@@ -117,14 +136,60 @@ export default function WorkoutEditScreen() {
       <Screen
         header={
           <TopBar
-            title={t('history.edit.title')}
+            title={t(isNew ? 'history.edit.addTitle' : 'history.edit.title')}
             leading="close"
             onLeadingPress={finish}
-            trailing={<TextButton label={t('history.edit.done')} onPress={finish} />}
+            trailing={
+              <TextButton
+                label={t(isNew ? 'history.edit.save' : 'history.edit.done')}
+                onPress={finish}
+              />
+            }
           />
         }
       >
-        {workout ? <Text style={styles.name}>{workout.name}</Text> : null}
+        {workout ? (
+          <Text style={styles.name}>
+            {isNew
+              ? t('history.edit.addSub', {
+                  date: new Date(workout.startedAt).toLocaleDateString(
+                    lang === 'ko' ? 'ko-KR' : 'en-US',
+                    { month: 'long', day: 'numeric', weekday: 'long' },
+                  ),
+                  name: workout.name,
+                })
+              : workout.name}
+          </Text>
+        ) : null}
+        {isNew && workout ? (
+          <View style={styles.duration}>
+            <Clock size={18} color={theme.colors.text2} strokeWidth={1.8} />
+            <Text style={styles.durationLabel}>{t('history.edit.duration')}</Text>
+            <TextInput
+              accessibilityLabel={t('history.edit.duration')}
+              value={
+                minutesText ??
+                String(
+                  Math.round(((workout.endedAt ?? workout.startedAt) - workout.startedAt) / 60_000),
+                )
+              }
+              onChangeText={(text) => {
+                const digits = text.replace(/[^0-9]/g, '').slice(0, 3);
+                setMinutesText(digits);
+                if (digits !== '') setWorkoutMinutes(db, workoutId, Number(digits));
+              }}
+              onBlur={() => setMinutesText(null)}
+              keyboardType="number-pad"
+              selectTextOnFocus
+              maxLength={3}
+              style={styles.durationInput}
+            />
+            <Text style={styles.durationUnit}>{t('history.edit.minutes')}</Text>
+          </View>
+        ) : null}
+        {isNew && exercises.length > 0 && workout?.routineId ? (
+          <Text style={styles.hint}>{t('history.edit.addHint')}</Text>
+        ) : null}
         {exercises.map((we, index) => {
           const info = catalog.byId.get(we.exerciseId);
           const type = info?.type ?? 'weight_reps';
@@ -173,6 +238,7 @@ export default function WorkoutEditScreen() {
           <Plus size={18} color={theme.colors.text} strokeWidth={1.8} />
           <Text style={styles.addText}>{t('history.edit.addExercise')}</Text>
         </Pressable>
+        {isNew ? <Button label={t('history.edit.saveButton')} onPress={finish} /> : null}
         <View style={styles.bottom} />
       </Screen>
     </KeyboardAvoidingView>
@@ -188,6 +254,53 @@ const styles = StyleSheet.create((theme) => ({
     lineHeight: 17,
     includeFontPadding: false,
     fontFamily: theme.fonts.medium,
+    color: theme.colors.text2,
+  },
+  duration: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingLeft: 16,
+    paddingRight: 12,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.surface,
+  },
+  durationLabel: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 18,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.semibold,
+    color: theme.colors.text,
+  },
+  durationInput: {
+    minWidth: 64,
+    height: 40,
+    paddingVertical: 0,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    textAlign: 'center',
+    fontSize: 16,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.numBold,
+    fontVariant: ['tabular-nums'],
+    color: theme.colors.text,
+    backgroundColor: theme.colors.surface2,
+  },
+  durationUnit: {
+    fontSize: 13,
+    lineHeight: 17,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.text2,
+  },
+  hint: {
+    paddingHorizontal: 6,
+    fontSize: 12,
+    lineHeight: 18,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
     color: theme.colors.text2,
   },
   add: {
