@@ -134,8 +134,12 @@ export function ExerciseListView() {
     );
 
   const searching = query.trim().length > 0;
-  // 만든 종목이 목록에 보이도록 검색을 푼다.
-  const create = (name: string | null = null) => openExerciseCreator(() => setQuery(''), name);
+  // 만든 종목이 목록에 보이도록 검색과 부위 고르기를 푼다.
+  const create = (name: string | null = null) =>
+    openExerciseCreator(() => {
+      setQuery('');
+      setGroup(null);
+    }, name);
   const none = done.length === 0 && other.length === 0;
   const noRecords = ready && summaries.size === 0;
 
@@ -145,6 +149,7 @@ export function ExerciseListView() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         style={styles.chipsScroll}
         contentContainerStyle={styles.chips}
       >

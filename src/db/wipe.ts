@@ -1,4 +1,4 @@
-import { eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 
 import * as schema from './schema';
 import type { AppDatabase } from './seed';
@@ -42,18 +42,39 @@ export function wipeUserData(db: AppDatabase): string[] {
   });
 }
 
-/** 이 기기에 사용자가 만든 기록(루틴·운동·직접 만든 종목·체성분)이 있는지 */
+/** 이 기기에 사용자가 만든, 지워지지 않은 기록(루틴·운동·직접 만든 종목·체성분)이 있는지 */
 export function hasUserData(db: AppDatabase): boolean {
   const any = (rows: unknown[]) => rows.length > 0;
   return (
-    any(db.select({ id: schema.routines.id }).from(schema.routines).limit(1).all()) ||
-    any(db.select({ id: schema.workouts.id }).from(schema.workouts).limit(1).all()) ||
-    any(db.select({ id: schema.bodyMetrics.id }).from(schema.bodyMetrics).limit(1).all()) ||
+    any(
+      db
+        .select({ id: schema.routines.id })
+        .from(schema.routines)
+        .where(isNull(schema.routines.deletedAt))
+        .limit(1)
+        .all(),
+    ) ||
+    any(
+      db
+        .select({ id: schema.workouts.id })
+        .from(schema.workouts)
+        .where(isNull(schema.workouts.deletedAt))
+        .limit(1)
+        .all(),
+    ) ||
+    any(
+      db
+        .select({ id: schema.bodyMetrics.id })
+        .from(schema.bodyMetrics)
+        .where(isNull(schema.bodyMetrics.deletedAt))
+        .limit(1)
+        .all(),
+    ) ||
     any(
       db
         .select({ id: schema.exercises.id })
         .from(schema.exercises)
-        .where(eq(schema.exercises.isCustom, 1))
+        .where(and(eq(schema.exercises.isCustom, 1), isNull(schema.exercises.deletedAt)))
         .limit(1)
         .all(),
     )

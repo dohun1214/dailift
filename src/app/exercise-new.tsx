@@ -55,6 +55,8 @@ export default function ExerciseNewScreen() {
 
   return (
     <Screen
+      avoidKeyboard
+      dismissKeyboardOnDrag
       header={
         <TopBar
           title={t('exercises.new.title')}

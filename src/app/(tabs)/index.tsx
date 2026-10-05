@@ -43,6 +43,7 @@ import type { SummarySet } from '@/domain/session-summary';
 import { resolveSetTargets, type TargetGroup } from '@/domain/set-targets';
 import { BALANCE_GROUPS, groupBalance } from '@/domain/stats';
 import { useAppLanguage } from '@/i18n/use-app-language';
+import { openWorkout } from '@/lib/open-workout';
 import { useToday } from '@/lib/use-today';
 import { useProfile } from '@/stores/profile';
 import { useSettings, workoutDefaults } from '@/stores/settings';
@@ -205,7 +206,7 @@ export default function HomeScreen() {
         weightUnit: unit,
         barWeight: workoutDefaults().barWeight,
       });
-    router.push('/workout');
+    openWorkout();
   };
 
   const joinNames = (ids: readonly string[]) => {
@@ -469,7 +470,7 @@ export default function HomeScreen() {
         onClose={() => setOpenDay(null)}
         onOpenWorkout={(id) => router.push({ pathname: '/workout-summary/[id]', params: { id } })}
         onStart={(r) => start(r.id, r.name)}
-        onResume={() => router.push('/workout')}
+        onResume={() => openWorkout()}
         onPickStart={() => setTimeout(() => setPicking(true), 320)}
         onViewRoutine={(id) =>
           id ? router.push({ pathname: '/routine/[id]', params: { id } }) : router.push('/routines')
@@ -492,7 +493,7 @@ export default function HomeScreen() {
         onCancel={() => setBusyWith(null)}
         onConfirm={() => {
           setBusyWith(null);
-          router.push('/workout');
+          openWorkout();
         }}
       />
     </Screen>

@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { BottomSheet, Button } from '@/components/ui';
+import { SHEET_NEXT_MS } from '@/components/ui/use-sheet-motion';
 
 export type MenuItem = {
   label: string;
@@ -34,7 +35,7 @@ export function WorkoutMenuSheet({ visible, title, items, cancelLabel, onClose }
               onPress={() => {
                 onClose();
                 // 시트가 닫힌 뒤에 실행한다(다른 창·화면을 여는 동작과 겹치지 않게).
-                setTimeout(item.onPress, 250);
+                setTimeout(item.onPress, SHEET_NEXT_MS);
               }}
               style={({ pressed }) => [
                 styles.item,

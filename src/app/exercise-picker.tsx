@@ -53,16 +53,23 @@ export default function ExercisePickerScreen() {
       .filter(Boolean)
       .join(' · ');
 
+  // 고른 뒤에 지운 종목(직접 만든 종목)은 빼고 넘긴다.
+  const picked = selected.filter((id) => {
+    const e = catalog.byId.get(id);
+    return e !== undefined && !e.deleted;
+  });
+
   const confirm = () => {
-    deliverPickedExercises(selected);
+    deliverPickedExercises(picked);
     router.back();
   };
 
   const create = (name: string | null = null) => {
     openExerciseCreator((id) => {
       setSelected((s) => (single ? [id] : [...s, id]));
-      // 새로 만든 종목이 목록에 보이도록 검색을 푼다.
+      // 새로 만든 종목이 목록에 보이도록 검색과 부위 고르기를 푼다.
       setQuery('');
+      setGroup(null);
     }, name);
   };
   const searching = query.trim().length > 0;
@@ -117,11 +124,11 @@ export default function ExercisePickerScreen() {
           label={
             single
               ? t('exercises.replaceConfirm')
-              : selected.length
-                ? t('exercises.add', { count: selected.length })
+              : picked.length
+                ? t('exercises.add', { count: picked.length })
                 : t('exercises.addNone')
           }
-          disabled={selected.length === 0}
+          disabled={picked.length === 0}
           onPress={confirm}
         />
       }
@@ -132,6 +139,7 @@ export default function ExercisePickerScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         style={styles.chipsScroll}
         contentContainerStyle={styles.chips}
       >

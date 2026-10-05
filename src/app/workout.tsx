@@ -24,6 +24,7 @@ import {
   Snackbar,
   TextButton,
 } from '@/components/ui';
+import { SHEET_NEXT_MS } from '@/components/ui/use-sheet-motion';
 import {
   ActiveExerciseCard,
   CollapsedExerciseCard,
@@ -84,6 +85,8 @@ import {
 } from '@/domain/workout-session';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { object as objectJosa } from '@/lib/josa';
+import { markRecoveryAsked } from '@/lib/recovery-flag';
+import { useKeyboardReveal } from '@/lib/use-keyboard-reveal';
 import { useNow } from '@/lib/use-now';
 import { openExercisePicker } from '@/stores/exercise-picker';
 import { useRestTimer } from '@/stores/rest-timer';
@@ -226,6 +229,19 @@ export default function WorkoutScreen() {
     });
   const fieldNav = useFieldNav(fieldOrder);
   const fieldKey = fieldNav.current?.key;
+  // 입력 중인 칸이 키보드 뒤에 있으면 보이는 곳까지 올린다. '다음'으로 칸을 옮길 때도.
+  const scrollRef = useRef<ScrollView>(null);
+  const { onScroll: onRevealScroll, reveal } = useKeyboardReveal(scrollRef);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 칸이 바뀔 때마다 본다
+  useEffect(() => {
+    if (!fieldKey || !keyboardVisible) return;
+    const handle = setTimeout(reveal, 120);
+    return () => clearTimeout(handle);
+  }, [fieldKey]);
+  // 이 화면으로 바로 열렸으면(잠금 화면의 휴식 표시) 홈에서 '진행 중인 운동' 안내를 다시 하지 않는다.
+  useEffect(markRecoveryAsked, []);
+  // 끝내기 · 버리기가 두 번 실행되지 않게
+  const ending = useRef(false);
   useEffect(() => {
     // 다른 칸으로 옮기면 적용 안내를 지운다
     setApplied((a) => (a && a.key !== fieldKey ? null : a));
@@ -454,12 +470,16 @@ export default function WorkoutScreen() {
     setConfirmOpen(true);
   };
   const discardNow = () => {
+    if (ending.current) return;
+    ending.current = true;
     stopRest();
     setFinished(true);
     discardWorkout(db, currentWorkout.id);
     leave();
   };
   const complete = () => {
+    if (ending.current) return;
+    ending.current = true;
     // 마지막 세트를 마친 지 오래됐으면(끝내는 걸 잊었으면) 그 시각을 운동이 끝난 시각으로 친다.
     const last = Math.max(0, ...exercises.flatMap((e) => e.sets.map((x) => x.completedAt ?? 0)));
     const at = Date.now();
@@ -591,10 +611,13 @@ export default function WorkoutScreen() {
 
       <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <ScrollView
+          ref={scrollRef}
           style={styles.flex}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          onScroll={onRevealScroll}
+          scrollEventThrottle={32}
         >
           <FieldNavProvider value={fieldNav.nav}>
             {exercises.length === 0 ? (
@@ -824,7 +847,7 @@ export default function WorkoutScreen() {
             onPress: () => {
               const target = setMenu ? { id: setMenu.id, rpe: setMenu.rpe } : null;
               // 앞 시트가 닫힌 뒤에 연다(모달 두 개가 겹치면 안드로이드에서 안 뜬다)
-              setTimeout(() => setRpeFor(target), 250);
+              setTimeout(() => setRpeFor(target), SHEET_NEXT_MS);
             },
           },
         ]}

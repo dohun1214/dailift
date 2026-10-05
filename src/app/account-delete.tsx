@@ -10,7 +10,7 @@ import { useExportSheet } from '@/components/export-sheet';
 import { Button, Card, ConfirmDialog, Screen, TopBar } from '@/components/ui';
 import { deleteAccount } from '@/lib/auth';
 import { wipeDevice } from '@/lib/wipe-device';
-import { syncIdle } from '@/sync/manager';
+import { pauseSync, resumeSync } from '@/sync/manager';
 
 export default function AccountDeleteScreen() {
   const { t } = useTranslation();
@@ -23,8 +23,8 @@ export default function AccountDeleteScreen() {
     setAsking(false);
     setBusy(true);
     try {
-      // 돌고 있던 동기화가 지운 뒤에 기록을 다시 채우지 않게 끝나기를 기다린다.
-      await syncIdle();
+      // 지우는 동안에는 동기화를 멈춘다(지운 뒤에 기록을 다시 올리거나 채우지 않게).
+      await pauseSync();
       await deleteAccount();
       wipeDevice();
       router.dismissAll();
@@ -33,6 +33,8 @@ export default function AccountDeleteScreen() {
       console.warn('[auth] delete failed', e);
       Alert.alert(t('auth.delete.failedTitle'), t('auth.delete.failed'));
       setBusy(false);
+    } finally {
+      resumeSync();
     }
   };
 

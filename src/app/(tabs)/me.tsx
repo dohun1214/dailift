@@ -28,7 +28,7 @@ import { wipeDevice } from '@/lib/wipe-device';
 import { accountInfo, useAuth } from '@/stores/auth';
 import { useProfile } from '@/stores/profile';
 import { useSettings } from '@/stores/settings';
-import { syncIdle, syncNow, useSync } from '@/sync/manager';
+import { pauseSync, resumeSync, syncNow, useSync } from '@/sync/manager';
 import { wipeServerData } from '@/sync/server-wipe';
 import { ACCENTS, type Accent, themes } from '@/theme/tokens';
 
@@ -130,21 +130,27 @@ export default function MeScreen() {
 
   const wipeAll = async () => {
     const userId = useAuth.getState().session?.user.id;
-    if (userId) {
-      // 로그인한 계정은 서버 기록부터 지운다. 못 지우면(오프라인 등) 기기 기록도 그대로 둔다.
-      setWiping(true);
-      try {
-        await syncIdle();
-        await wipeServerData(userId);
-      } catch (e) {
-        console.warn('[sync] server wipe failed', e);
-        setWiping(false);
-        Alert.alert(t('auth.delete.failedTitle'), t('auth.delete.failed'));
-        return;
+    // 지우는 동안에는 동기화를 멈춘다(지우는 사이에 다시 올리거나 받지 않게).
+    await pauseSync();
+    try {
+      if (userId) {
+        // 로그인한 계정은 서버 기록부터 지운다. 못 지우면(오프라인 등) 기기 기록도 그대로 둔다.
+        setWiping(true);
+        try {
+          await wipeServerData(userId);
+        } catch (e) {
+          console.warn('[sync] server wipe failed', e);
+          setWiping(false);
+          Alert.alert(t('auth.delete.failedTitle'), t('auth.delete.failed'));
+          return;
+        }
       }
+      wipeDevice();
+      // 로그인 정보가 기기에 남아 있을 수 있으니(오프라인으로 켠 경우) 항상 로그아웃한다.
+      await signOut().catch((e) => console.warn('[auth] sign-out failed', e));
+    } finally {
+      resumeSync();
     }
-    wipeDevice();
-    if (userId) signOut().catch((e) => console.warn('[auth] sign-out failed', e));
     router.replace('/welcome');
   };
 

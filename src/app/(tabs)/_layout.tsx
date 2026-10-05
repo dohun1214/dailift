@@ -9,6 +9,7 @@ import { useUnistyles } from 'react-native-unistyles';
 
 import { ConfirmDialog } from '@/components/ui';
 import { TabButton } from '@/components/ui/tab-button';
+import { SHEET_NEXT_MS } from '@/components/ui/use-sheet-motion';
 import { StaleWorkoutSheet, WorkoutMiniBar } from '@/components/workout';
 import { db } from '@/db/client';
 import { useActiveWorkout } from '@/db/use-workout';
@@ -17,12 +18,16 @@ import { daysAgo } from '@/domain/home';
 import { formatClock } from '@/domain/rest-timer';
 import { isStaleWorkout } from '@/domain/workout-session';
 import { useAppLanguage } from '@/i18n/use-app-language';
+import { openWorkout } from '@/lib/open-workout';
 import { settlePendingAdd } from '@/lib/pending-add';
+import { markRecoveryAsked, recoveryAsked } from '@/lib/recovery-flag';
 import { useProfile } from '@/stores/profile';
 import { useRestTimer } from '@/stores/rest-timer';
 
-/** 앱을 켤 때 한 번만 진행 중인 운동을 알려준다. */
-let recoveryAsked = false;
+/** 앱을 켤 때 한 번만 하는 정리를 했는지 */
+let settled = false;
+/** 탭 화면의 경로. 이 화면들이 보일 때만 안내 창을 띄운다 */
+const TAB_PATHS = new Set(['/', '/routines', '/log', '/nutrition', '/me']);
 /** '이어서 하기'로 넘긴 오래된 운동(id:마지막 기록). 같은 상태로는 다시 묻지 않는다. */
 let staleSkipped: string | null = null;
 
@@ -45,7 +50,7 @@ export default function TabsLayout() {
   const { theme } = useUnistyles();
   const consented = useProfile((s) => s.consentAcceptedAt !== null);
   const onboarded = useProfile((s) => s.onboardingCompleted);
-  const { workout: active } = useActiveWorkout();
+  const { workout: active, ready: activeReady } = useActiveWorkout();
   const pathname = usePathname();
 
   const lang = useAppLanguage();
@@ -57,6 +62,9 @@ export default function TabsLayout() {
   const [eraseShown, setEraseShown] = useState(false);
   const pathRef = useRef(pathname);
   pathRef.current = pathname;
+  const eraseOpenRef = useRef(eraseOpen);
+  eraseOpenRef.current = eraseOpen;
+  const onTabs = TAB_PATHS.has(pathname);
   const ready = consented && onboarded;
 
   /**
@@ -64,6 +72,11 @@ export default function TabsLayout() {
    * 아니면 앱을 켠 직후에만 이어할지 묻는다.
    */
   const checkActive = useCallback((firstOpen: boolean) => {
+    // 지울지 묻는 중이면 그 창을 바꿔치지 않는다.
+    if (eraseOpenRef.current) return;
+    // 다른 화면이 위에 떠 있으면 묻지 않는다. iOS는 가려진 화면의 창을 띄우지 못하고 미뤄 두었다가
+    // 탭으로 돌아오는 순간(이미 끝낸 운동에 대해) 띄운다. 탭으로 돌아올 때 다시 확인한다.
+    if (!TAB_PATHS.has(pathRef.current)) return;
     const w = getActiveWorkout(db);
     if (!w) return;
     const activity = workoutActivity(db, w.id);
@@ -73,8 +86,7 @@ export default function TabsLayout() {
     if (isStaleWorkout(lastAt, Date.now())) {
       if (staleSkipped !== `${w.id}:${lastAt}`)
         next = { kind: 'stale', ...base, lastAt, completedSets: activity.completedSets };
-    } else if (firstOpen && pathRef.current !== '/workout') {
-      // 이미 운동 화면이 떠 있으면(앱 복원) 묻지 않는다.
+    } else if (firstOpen) {
       next = { kind: 'recover', ...base, completedSets: activity.completedSets };
     }
     if (next) {
@@ -86,10 +98,13 @@ export default function TabsLayout() {
 
   useEffect(() => {
     if (!ready) return;
-    if (!recoveryAsked) {
-      recoveryAsked = true;
+    if (!settled) {
+      settled = true;
       // 지난 날 기록을 추가하던 중에 앱이 꺼졌으면 남은 것을 정리한다.
       settlePendingAdd(db);
+    }
+    if (!recoveryAsked()) {
+      markRecoveryAsked();
       checkActive(true);
     }
     const sub = AppState.addEventListener('change', (state) => {
@@ -97,6 +112,20 @@ export default function TabsLayout() {
     });
     return () => sub.remove();
   }, [ready, checkActive]);
+
+  // 다른 화면에서 탭으로 돌아왔을 때도 오래된 운동이 있는지 본다.
+  useEffect(() => {
+    if (ready && onTabs) checkActive(false);
+  }, [ready, onTabs, checkActive]);
+
+  // 안내하던 운동이 그 사이에 끝났거나 지워졌으면 창을 거둔다(끝난 운동을 다시 지우거나 끝내지 않게).
+  const activeId = active?.id;
+  useEffect(() => {
+    if (!activeReady || !prompt || prompt.id === activeId) return;
+    setPrompt(null);
+    setEraseOpen(false);
+  }, [activeReady, activeId, prompt]);
+  const stillActive = (id: string) => getActiveWorkout(db)?.id === id;
 
   const close = () => setPrompt(null);
   /** 기록 지우기: 바로 지우지 않고 한 번 더 묻는다 */
@@ -108,7 +137,7 @@ export default function TabsLayout() {
       setTimeout(() => {
         setEraseShown(true);
         setEraseOpen(true);
-      }, 300);
+      }, SHEET_NEXT_MS);
       return;
     }
     setEraseShown(true);
@@ -118,23 +147,29 @@ export default function TabsLayout() {
     setEraseOpen(false);
     if (shown?.kind === 'stale') {
       // 오래된 운동 창에서 왔으면 그 창으로 돌아간다.
+      // 확인 창은 서서히 사라진다. 다 사라지기 전에 띄우면 iOS에서 아래쪽 창이 뜨지 않는다.
       const back = shown;
-      setTimeout(() => setPrompt(back), 250);
+      setTimeout(() => {
+        if (stillActive(back.id)) setPrompt(back);
+      }, 500);
       return;
     }
     setEraseShown(false);
   };
   const eraseNow = () => {
     if (!shown) return;
-    useRestTimer.getState().stop();
-    discardWorkout(db, shown.id);
+    if (stillActive(shown.id)) {
+      useRestTimer.getState().stop();
+      discardWorkout(db, shown.id);
+    }
     setEraseOpen(false);
     close();
   };
   const resumePrompted = () => {
     if (prompt?.kind === 'stale') staleSkipped = `${prompt.id}:${prompt.lastAt}`;
+    const id = prompt?.id;
     close();
-    if (pathRef.current !== '/workout') router.push('/workout');
+    if (id && stillActive(id) && pathRef.current !== '/workout') openWorkout();
   };
   const skipStale = () => {
     if (prompt?.kind === 'stale') staleSkipped = `${prompt.id}:${prompt.lastAt}`;
@@ -143,6 +178,7 @@ export default function TabsLayout() {
   const finishAtLast = () => {
     if (prompt?.kind !== 'stale') return;
     const { id, lastAt } = prompt;
+    if (!stillActive(id)) return close();
     const onWorkout = pathRef.current === '/workout';
     useRestTimer.getState().stop();
     finishWorkout(db, id, Date.now(), lastAt);

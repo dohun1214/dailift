@@ -12,16 +12,7 @@ import {
 } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Alert,
-  Keyboard,
-  Linking,
-  Pressable,
-  type ScrollView,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Alert, Linking, Pressable, Text, TextInput, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { RoutineUpdateCard } from '@/components/summary/routine-update-card';
 import {
@@ -79,18 +70,14 @@ export default function WorkoutSummaryScreen() {
   const goneRef = useRef(false);
   const noteRef = useRef(note);
   noteRef.current = note;
-  // 메모를 누르면 키보드 위로 보이게 끌어올린다.
-  const scrollRef = useRef<ScrollView>(null);
-  const memoY = useRef(0);
-  const memoFocused = useRef(false);
   const picking = useRef(false);
-  const showMemo = useCallback(() => {
-    if (memoFocused.current) scrollRef.current?.scrollTo({ y: memoY.current - 12, animated: true });
+  // 마지막으로 저장한 메모. 바뀌지 않았으면 다시 쓰지 않는다(볼 때마다 기록이 '수정됨'이 되지 않게).
+  const savedNote = useRef(note);
+  const saveNote = useCallback((workoutId: string, text: string) => {
+    if (text === savedNote.current) return;
+    savedNote.current = text;
+    setWorkoutNote(db, workoutId, text);
   }, []);
-  useEffect(() => {
-    const sub = Keyboard.addListener('keyboardDidShow', showMemo);
-    return () => sub.remove();
-  }, [showMemo]);
 
   const { data: photos } = useLiveQuery(
     db
@@ -105,20 +92,31 @@ export default function WorkoutSummaryScreen() {
   // 메모는 입력을 멈추면 저장하고, 화면을 떠날 때도 저장한다.
   useEffect(() => {
     if (!data) return;
-    const handle = setTimeout(() => setWorkoutNote(db, data.workout.id, note), 500);
+    const handle = setTimeout(() => saveNote(data.workout.id, note), 500);
     return () => clearTimeout(handle);
-  }, [note, data]);
+  }, [note, data, saveNote]);
   useEffect(
     () => () => {
-      if (data && !goneRef.current) setWorkoutNote(db, data.workout.id, noteRef.current);
+      if (data && !goneRef.current) saveNote(data.workout.id, noteRef.current);
     },
-    [data],
+    [data, saveNote],
   );
+
+  // 수정 화면에서 이 기록을 지우고 돌아왔으면 빈 안내 대신 바로 닫는다.
+  const had = useRef(data !== null);
+  if (data) had.current = true;
+  const lost = !data && had.current && !gone;
+  useEffect(() => {
+    if (!lost) return;
+    goneRef.current = true;
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  }, [lost]);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   // 지운 직후에는 닫히는 동안 빈 화면만 둔다.
-  if (gone) return <View style={styles.gone} />;
+  if (gone || lost) return <View style={styles.gone} />;
   if (!data) {
     return (
       <Screen header={<TopBar leading="close" onLeadingPress={close} />}>
@@ -224,11 +222,7 @@ export default function WorkoutSummaryScreen() {
   ];
 
   return (
-    <Screen
-      avoidKeyboard
-      scrollRef={scrollRef}
-      footer={<Button label={t('summary.done')} onPress={close} />}
-    >
+    <Screen avoidKeyboard footer={<Button label={t('summary.done')} onPress={close} />}>
       <View style={styles.head}>
         <View style={styles.headText}>
           <Text style={styles.date}>
@@ -334,12 +328,7 @@ export default function WorkoutSummaryScreen() {
         </View>
       ) : null}
 
-      <View
-        style={styles.memoCard}
-        onLayout={(e) => {
-          memoY.current = e.nativeEvent.layout.y;
-        }}
-      >
+      <View style={styles.memoCard}>
         <Text style={styles.memoLabel} nativeID="memo-label">
           {t('summary.memo')}
         </Text>
@@ -353,14 +342,6 @@ export default function WorkoutSummaryScreen() {
           selectionColor={theme.colors.accentText}
           multiline
           maxLength={1000}
-          onFocus={() => {
-            memoFocused.current = true;
-            // 키보드가 이미 올라와 있을 때를 위해 한 번 더
-            setTimeout(showMemo, 350);
-          }}
-          onBlur={() => {
-            memoFocused.current = false;
-          }}
           style={styles.memo}
         />
       </View>

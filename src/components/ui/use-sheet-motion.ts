@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, type LayoutChangeEvent, useWindowDimensions } from 'react-native';
+import {
+  Animated,
+  Easing,
+  Keyboard,
+  type LayoutChangeEvent,
+  useWindowDimensions,
+} from 'react-native';
 
 const OPEN_MS = 260;
 const CLOSE_MS = 200;
@@ -9,13 +15,15 @@ const CLOSE_MS = 200;
  * iOS는 닫히는 창 위에 띄운 화면을 창과 함께 닫아 버리고, 그 뒤로 앱이 눌리지 않게 된다.
  */
 export const SHEET_CLOSED_MS = CLOSE_MS + 250;
+/** 창이 내려간 뒤 앱의 다른 창(확인 창 · 다른 아래쪽 창)을 이어서 띄울 때 기다리는 시간 */
+export const SHEET_NEXT_MS = CLOSE_MS + 120;
 
 /**
  * 아래에서 올라오는 창의 움직임: 열릴 때 바닥에서 밀려 올라오고 배경이 어두워지며,
  * 닫힐 때는 다시 내려간 뒤에 사라진다(`mounted`가 그때 false가 된다).
  * 창에 `onLayout`을 걸어 높이를 알려 주면 그 높이만큼만 움직인다.
  */
-export function useSheetMotion(visible: boolean) {
+export function useSheetMotion(visible: boolean, keepKeyboard = false) {
   const { height: windowHeight } = useWindowDimensions();
   const open = useRef(new Animated.Value(0)).current;
   // 높이를 알기 전에는 화면 밖에서 시작한다.
@@ -36,6 +44,8 @@ export function useSheetMotion(visible: boolean) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: 열림 · 닫힘이 바뀔 때만 움직인다
   useEffect(() => {
     if (visible) {
+      // 입력 중에 열리면 키보드가 창을 가리지 않게 내린다(창 안에 입력칸이 있으면 그대로).
+      if (!keepKeyboard) Keyboard.dismiss();
       // 내려가는 중에 다시 열리면 그 자리에서 바로 올린다.
       if (mountedRef.current) {
         rise();

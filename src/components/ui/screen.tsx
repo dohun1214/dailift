@@ -1,7 +1,9 @@
-import type { ReactNode, Ref } from 'react';
+import { type ReactNode, useRef } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native-unistyles';
+
+import { useKeyboardReveal } from '@/lib/use-keyboard-reveal';
 
 type Props = {
   children: ReactNode;
@@ -13,12 +15,13 @@ type Props = {
   scroll?: boolean;
   /** 하단 탭 위에 놓이는 화면이면 true (하단 안전 영역을 탭 바가 처리) */
   inTabs?: boolean;
-  /** 글자를 입력하는 화면이면 true: iOS에서 키보드가 올라올 때 내용과 하단 버튼이 가려지지 않게 한다 */
+  /**
+   * 글자를 입력하는 화면이면 true: iOS에서 키보드가 올라올 때 내용과 하단 버튼이 가려지지 않게 하고,
+   * 입력 중인 칸이 키보드 뒤에 있으면 보이는 곳까지 스크롤한다.
+   */
   avoidKeyboard?: boolean;
   /** 검색 화면이면 true: 목록을 끌면 키보드가 내려간다 */
   dismissKeyboardOnDrag?: boolean;
-  /** 스크롤 위치를 직접 옮길 때 (scroll이 true일 때만) */
-  scrollRef?: Ref<ScrollView>;
 };
 
 export function Screen({
@@ -29,9 +32,10 @@ export function Screen({
   inTabs = false,
   avoidKeyboard = false,
   dismissKeyboardOnDrag = false,
-  scrollRef,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
+  const { onScroll } = useKeyboardReveal(scrollRef, avoidKeyboard);
   const bottom = inTabs ? 0 : insets.bottom;
 
   const body = (
@@ -40,6 +44,8 @@ export function Screen({
       {scroll ? (
         <ScrollView
           ref={scrollRef}
+          onScroll={avoidKeyboard ? onScroll : undefined}
+          scrollEventThrottle={avoidKeyboard ? 32 : undefined}
           style={styles.flex}
           contentContainerStyle={[
             styles.content,
