@@ -441,6 +441,7 @@
   "history": {
     "segHistory": "히스토리",
     "segStats": "통계",
+    "segExercises": "종목",
     "segA11y": "기록 보기 방식",
     "count_other": "운동 {{count}}회",
     "meta": "{{minutes}}분 · {{sets}}세트 · {{volume}}",
@@ -776,5 +777,19 @@
     "min": "{{m}}분",
     "sec": "{{s}}초",
     "minSec": "{{m}}분 {{s}}초"
+  },
+  "exerciseList": {
+    "done": "기록한 종목",
+    "doneNote_other": "최근 순 · {{count}}개",
+    "other": "다른 종목",
+    "all": "모든 종목",
+    "results": "검색 결과",
+    "resultsNote_other": "{{count}}개",
+    "sessions_other": "{{count}}회 기록",
+    "none": "아직 기록한 종목이 없어요. 운동을 기록하면 여기에 최근 순으로 모여요.",
+    "rowA11y": "{{name}}, {{sub}}{{record}}",
+    "recordA11y": ", 최고 {{best}}, {{count}}",
+    "rowHint": "종목 설명과 기록을 봐요",
+    "clear": "지우기"
   }
 }
