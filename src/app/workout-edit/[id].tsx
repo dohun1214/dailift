@@ -182,7 +182,9 @@ export default function WorkoutEditScreen() {
           )
           .all()) {
           if (s.kind === 'warmup') deleteSet(db, s.id);
-          else setCompleted(db, s.id, true, completedAt);
+          // 채울 값이 없는(그날 전 기록이 없는) 세트는 체크하지 않고 둔다.
+          else if (s.reps !== null || s.durationSec !== null)
+            setCompleted(db, s.id, true, completedAt);
         }
       }
     });
@@ -193,6 +195,7 @@ export default function WorkoutEditScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Screen
+        revealInputs
         header={
           <TopBar
             title={t(isNew ? 'history.edit.addTitle' : 'history.edit.title')}

@@ -231,7 +231,7 @@ export default function WorkoutScreen() {
   const fieldKey = fieldNav.current?.key;
   // 입력 중인 칸이 키보드 뒤에 있으면 보이는 곳까지 올린다. '다음'으로 칸을 옮길 때도.
   const scrollRef = useRef<ScrollView>(null);
-  const { onScroll: onRevealScroll, reveal } = useKeyboardReveal(scrollRef);
+  const { reveal } = useKeyboardReveal(scrollRef);
   // biome-ignore lint/correctness/useExhaustiveDependencies: 칸이 바뀔 때마다 본다
   useEffect(() => {
     if (!fieldKey || !keyboardVisible) return;
@@ -616,8 +616,6 @@ export default function WorkoutScreen() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          onScroll={onRevealScroll}
-          scrollEventThrottle={32}
         >
           <FieldNavProvider value={fieldNav.nav}>
             {exercises.length === 0 ? (

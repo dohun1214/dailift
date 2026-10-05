@@ -20,6 +20,8 @@ type Props = {
    * 입력 중인 칸이 키보드 뒤에 있으면 보이는 곳까지 스크롤한다.
    */
   avoidKeyboard?: boolean;
+  /** 키보드 처리를 화면이 직접 할 때(밖에서 KeyboardAvoidingView로 감쌌을 때): 가려진 입력칸만 올려 준다 */
+  revealInputs?: boolean;
   /** 검색 화면이면 true: 목록을 끌면 키보드가 내려간다 */
   dismissKeyboardOnDrag?: boolean;
 };
@@ -32,10 +34,11 @@ export function Screen({
   inTabs = false,
   avoidKeyboard = false,
   dismissKeyboardOnDrag = false,
+  revealInputs = false,
 }: Props) {
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
-  const { onScroll } = useKeyboardReveal(scrollRef, avoidKeyboard);
+  useKeyboardReveal(scrollRef, avoidKeyboard || revealInputs);
   const bottom = inTabs ? 0 : insets.bottom;
 
   const body = (
@@ -44,8 +47,6 @@ export function Screen({
       {scroll ? (
         <ScrollView
           ref={scrollRef}
-          onScroll={avoidKeyboard ? onScroll : undefined}
-          scrollEventThrottle={avoidKeyboard ? 32 : undefined}
           style={styles.flex}
           contentContainerStyle={[
             styles.content,

@@ -41,6 +41,7 @@ import {
 } from '@/domain/session-summary';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { type PhotoSource, photoUri, pickPhoto, removePhotoFile } from '@/lib/photos';
+import { revealFocusedInput } from '@/lib/use-keyboard-reveal';
 import { useProfile } from '@/stores/profile';
 import { useSettings } from '@/stores/settings';
 
@@ -342,6 +343,8 @@ export default function WorkoutSummaryScreen() {
           selectionColor={theme.colors.accentText}
           multiline
           maxLength={1000}
+          // 줄이 늘어나면 키보드 위로 다시 올린다
+          onContentSizeChange={revealFocusedInput}
           style={styles.memo}
         />
       </View>

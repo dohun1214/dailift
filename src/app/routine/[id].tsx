@@ -264,6 +264,7 @@ export default function RoutineEditScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Screen
+        revealInputs
         header={
           <TopBar
             title={isNew ? t('routines.edit.newTitle') : t('routines.edit.title')}

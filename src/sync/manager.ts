@@ -120,7 +120,8 @@ export async function pauseSync(): Promise<void> {
     clearTimeout(timer);
     timer = null;
   }
-  await (running ?? Promise.resolve());
+  // 돌던 동기화가 실패로 끝나도 멈춘 상태로 계속 간다(부른 쪽이 반드시 resumeSync를 부른다).
+  await (running ?? Promise.resolve()).catch(() => undefined);
 }
 
 export function resumeSync() {
