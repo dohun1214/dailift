@@ -123,14 +123,8 @@ export default function HomeScreen() {
   );
 
   const starts = workouts.map((w) => w.startedAt);
-  const strip = weekStrip(
-    now,
-    routines.map((r) => r.weekdays),
-    starts,
-    weekOffset,
-  );
-  const canPrev = weekOffset > minWeekOffset(starts, now);
-  const canNext = weekOffset < MAX_WEEKS_AHEAD;
+  const masks = routines.map((r) => r.weekdays);
+  const minOffset = minWeekOffset(starts, now);
   const thisWeek = workoutsThisWeek(starts, now);
   const muscleRows = useMemo(() => {
     const balance = groupBalance(sets, now.getTime(), musclesOf);
@@ -273,12 +267,12 @@ export default function HomeScreen() {
         </View>
 
         <WeekStrip
-          days={strip}
+          daysFor={(offset) => weekStrip(now, masks, starts, offset)}
           dateFormat={dayFmt}
           weekOffset={weekOffset}
+          minOffset={minOffset}
+          maxOffset={MAX_WEEKS_AHEAD}
           selected={openDay}
-          canPrev={canPrev}
-          canNext={canNext}
           onShift={(dir) => setWeekOffset((w) => w + dir)}
           onDayPress={(d) => showDay(d.date)}
         />

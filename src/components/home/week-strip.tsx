@@ -11,92 +11,102 @@ import type { StripDay } from '@/domain/home';
 import { WEEKDAYS } from '@/lib/weekdays';
 
 type Props = {
-  days: readonly StripDay[];
+  /** 그 주의 7칸 (0 = 이번 주, -1 = 지난주, 1 = 다음 주) */
+  daysFor: (weekOffset: number) => readonly StripDay[];
   dateFormat: Intl.DateTimeFormat;
-  /** 보고 있는 주 (0 = 이번 주). 바뀌면 새 주가 옆에서 들어온다 */
+  /** 보고 있는 주 */
   weekOffset: number;
+  /** 넘길 수 있는 범위 */
+  minOffset: number;
+  maxOffset: number;
   /** 창을 띄워 보고 있는 날 (테두리로 표시) */
   selected: Date | null;
-  canPrev: boolean;
-  canNext: boolean;
   /** -1: 지난주로, 1: 다음 주로 */
   onShift: (dir: -1 | 1) => void;
   onDayPress: (day: StripDay) => void;
 };
 
-/** 이만큼 밀면 주가 넘어간다 */
+/** 이만큼 밀거나 이 속도로 튕기면 주가 넘어간다 */
 const SWIPE = 48;
+const FLING = 500;
 
 /**
  * 한 주 7칸: 오늘(포인트색) · 운동함(옅은 포인트색 + 체크) · 예정(점) · 쉬는 날.
  * 칸을 누르면 그날 내용을 보고, 좌우로 밀면 주가 넘어간다.
+ * 앞뒤 주를 옆에 붙여 그려 두어서, 밀기 시작하면 옆 주의 끝 날짜부터 따라 들어온다.
  */
 export function WeekStrip({
-  days,
+  daysFor,
   dateFormat,
   weekOffset,
+  minOffset,
+  maxOffset,
   selected,
-  canPrev,
-  canNext,
   onShift,
   onDayPress,
 }: Props) {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
-  const tx = useSharedValue(0);
+  /** 지금 보이는 위치(주 단위, 소수). 0이면 이번 주가 가운데 */
+  const page = useSharedValue(weekOffset);
+  const start = useSharedValue(weekOffset);
   const width = useSharedValue(0);
-  /** 방금 넘긴 방향. 새 주를 그 반대쪽에서 들여보낸다 */
-  const entering = useRef<-1 | 0 | 1>(0);
   const shiftRef = useRef(onShift);
   shiftRef.current = onShift;
 
-  // weekOffset이 바뀌면(새 주가 그려지면) 옆에서 들어오게 한다.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 주가 바뀔 때만 움직인다
+  // 밀어서 넘긴 게 아닌데 주가 바뀌면(홈을 떠났다 돌아옴, 접근성 동작) 그 주로 옮긴다.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 주가 바뀔 때만 맞춘다
   useEffect(() => {
-    const from = entering.current;
-    entering.current = 0;
-    if (from === 0) {
-      tx.value = 0;
-      return;
-    }
-    tx.value = from * width.value;
-    tx.value = withTiming(0, { duration: 180 });
+    if (Math.round(page.value) !== weekOffset)
+      page.value = withTiming(weekOffset, { duration: 200 });
   }, [weekOffset]);
 
   const pan = useMemo(() => {
-    const shift = (dir: -1 | 1) => {
-      entering.current = dir;
-      shiftRef.current(dir);
-    };
+    const shift = (dir: -1 | 1) => shiftRef.current(dir);
     return Gesture.Pan()
       .activeOffsetX([-16, 16])
       .failOffsetY([-14, 14])
+      .onBegin(() => {
+        start.value = Math.round(page.value);
+      })
       .onUpdate((e) => {
-        const blocked = (e.translationX > 0 && !canPrev) || (e.translationX < 0 && !canNext);
-        tx.value = e.translationX * (blocked ? 0.2 : 1);
+        if (width.value <= 0) return;
+        const lower = Math.max(minOffset, start.value - 1);
+        const upper = Math.min(maxOffset, start.value + 1);
+        const raw = start.value - e.translationX / width.value;
+        // 더 넘길 주가 없으면 조금만 끌려온다
+        page.value =
+          raw < lower
+            ? lower + (raw - lower) * 0.2
+            : raw > upper
+              ? upper + (raw - upper) * 0.2
+              : raw;
       })
       .onEnd((e) => {
+        const next = e.translationX < -SWIPE || e.velocityX < -FLING;
+        const prev = e.translationX > SWIPE || e.velocityX > FLING;
         const dir: -1 | 0 | 1 =
-          e.translationX < -SWIPE && canNext ? 1 : e.translationX > SWIPE && canPrev ? -1 : 0;
-        if (dir === 0) {
-          tx.value = withTiming(0, { duration: 160 });
-          return;
-        }
-        tx.value = withTiming(-dir * width.value, { duration: 140 }, (finished) => {
-          if (finished) scheduleOnRN(shift, dir);
+          next && start.value < maxOffset ? 1 : prev && start.value > minOffset ? -1 : 0;
+        page.value = withTiming(start.value + dir, { duration: 200 }, (finished) => {
+          if (finished && dir !== 0) scheduleOnRN(shift, dir);
         });
       });
-  }, [canPrev, canNext, tx, width]);
+  }, [minOffset, maxOffset, page, start, width]);
 
   const slide = useAnimatedStyle(() => ({
-    transform: [{ translateX: tx.value }],
-    opacity: width.value > 0 ? 1 - Math.min(1, Math.abs(tx.value) / width.value) * 0.7 : 1,
+    transform: [{ translateX: -page.value * width.value }],
   }));
+
+  const canPrev = weekOffset > minOffset;
+  const canNext = weekOffset < maxOffset;
+  const offsets = [weekOffset - 1, weekOffset, weekOffset + 1].filter(
+    (o) => o >= minOffset && o <= maxOffset,
+  );
 
   return (
     <GestureDetector gesture={pan}>
-      <Animated.View
-        style={[styles.grid, slide]}
+      <View
+        style={styles.clip}
         onLayout={(e) => {
           width.value = e.nativeEvent.layout.width;
         }}
@@ -111,67 +121,92 @@ export function WeekStrip({
           if (e.nativeEvent.actionName === 'decrement' && canPrev) onShift(-1);
         }}
       >
-        {days.map((d) => {
-          const dow = WEEKDAYS[d.weekday] ?? 'mon';
-          const picked = selected !== null && selected.getTime() === d.date.getTime();
-          return (
-            <Pressable
-              key={d.date.toISOString()}
-              style={({ pressed }) => [
-                styles.cell,
-                d.state === 'today' && styles.today,
-                d.state === 'done' && styles.done,
-                pressed && styles.pressed,
-              ]}
-              accessibilityRole="button"
-              accessibilityState={{ selected: picked }}
-              accessibilityLabel={t('home.dayA11y', {
-                date: dateFormat.format(d.date),
-                state: t(`home.state.${d.state === 'today' && d.done ? 'todayDone' : d.state}`),
-              })}
-              accessibilityHint={t('home.dayHint')}
-              onPress={() => onDayPress(d)}
+        <Animated.View style={[styles.track, slide]}>
+          {offsets.map((o) => (
+            <View
+              key={o}
+              style={[styles.week, { left: `${o * 100}%` }]}
+              // 옆 주는 밀 때만 보이므로 화면 낭독기에는 지금 주만 읽힌다
+              importantForAccessibility={o === weekOffset ? 'auto' : 'no-hide-descendants'}
+              accessibilityElementsHidden={o !== weekOffset}
             >
-              {picked ? <View style={styles.ring} pointerEvents="none" /> : null}
-              <Text
-                style={[
-                  styles.dow,
-                  d.state === 'today' && styles.onAccent,
-                  d.state === 'done' && styles.accentText,
-                  d.state === 'plan' && styles.text,
-                ]}
-              >
-                {t(`weekday.short.${dow}`)}
-              </Text>
-              <Text
-                style={[
-                  styles.day,
-                  d.state === 'today' && styles.onAccent,
-                  d.state === 'done' && styles.accentText,
-                  d.state === 'plan' && styles.text,
-                ]}
-              >
-                {d.date.getDate()}
-              </Text>
-              <View style={styles.mark}>
-                {d.state === 'done' ? (
-                  <Check size={13} color={theme.colors.accentText} strokeWidth={2.6} />
-                ) : null}
-                {d.state === 'today' && d.done ? (
-                  <Check size={13} color={theme.colors.onAccent} strokeWidth={2.6} />
-                ) : null}
-                {d.state === 'plan' ? <View style={styles.dot} /> : null}
-              </View>
-            </Pressable>
-          );
-        })}
-      </Animated.View>
+              {daysFor(o).map((d) => {
+                const dow = WEEKDAYS[d.weekday] ?? 'mon';
+                const picked = selected !== null && selected.getTime() === d.date.getTime();
+                return (
+                  <Pressable
+                    key={d.date.toISOString()}
+                    style={({ pressed }) => [
+                      styles.cell,
+                      d.state === 'today' && styles.today,
+                      d.state === 'done' && styles.done,
+                      pressed && styles.pressed,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: picked }}
+                    accessibilityLabel={t('home.dayA11y', {
+                      date: dateFormat.format(d.date),
+                      state: t(
+                        `home.state.${d.state === 'today' && d.done ? 'todayDone' : d.state}`,
+                      ),
+                    })}
+                    accessibilityHint={t('home.dayHint')}
+                    onPress={() => onDayPress(d)}
+                  >
+                    {picked ? <View style={styles.ring} pointerEvents="none" /> : null}
+                    <Text
+                      style={[
+                        styles.dow,
+                        d.state === 'today' && styles.onAccent,
+                        d.state === 'done' && styles.accentText,
+                        d.state === 'plan' && styles.text,
+                      ]}
+                    >
+                      {t(`weekday.short.${dow}`)}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.day,
+                        d.state === 'today' && styles.onAccent,
+                        d.state === 'done' && styles.accentText,
+                        d.state === 'plan' && styles.text,
+                      ]}
+                    >
+                      {d.date.getDate()}
+                    </Text>
+                    <View style={styles.mark}>
+                      {d.state === 'done' ? (
+                        <Check size={13} color={theme.colors.accentText} strokeWidth={2.6} />
+                      ) : null}
+                      {d.state === 'today' && d.done ? (
+                        <Check size={13} color={theme.colors.onAccent} strokeWidth={2.6} />
+                      ) : null}
+                      {d.state === 'plan' ? <View style={styles.dot} /> : null}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ))}
+        </Animated.View>
+      </View>
     </GestureDetector>
   );
 }
 
 const styles = StyleSheet.create((theme) => ({
-  grid: { flexDirection: 'row', gap: 6 },
+  // 화면 양 끝까지 넓혀서(화면 여백 16을 상쇄) 옆 주가 가장자리에서 들어오게 한다.
+  // 위아래 4는 누른 칸의 테두리가 잘리지 않을 자리.
+  clip: { height: 80, marginHorizontal: -16, marginVertical: -4, overflow: 'hidden' },
+  track: { flex: 1 },
+  week: {
+    position: 'absolute',
+    top: 4,
+    width: '100%',
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 16,
+  },
   cell: {
     flex: 1,
     height: 72,
