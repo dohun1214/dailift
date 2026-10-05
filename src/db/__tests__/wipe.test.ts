@@ -10,7 +10,7 @@ import { copyTemplate } from '../routines';
 import * as schema from '../schema';
 import { seedReferenceData } from '../seed';
 import { addWorkoutPhoto } from '../summary';
-import { wipeUserData } from '../wipe';
+import { hasUserData, wipeUserData } from '../wipe';
 import { startWorkout } from '../workout';
 
 function createTestDb() {
@@ -27,6 +27,7 @@ describe('wipeUserData', () => {
   it('사용자 데이터는 지우고 참조 데이터는 남긴다', () => {
     const db = createTestDb();
     const baseMappings = db.select({ n: count() }).from(schema.exerciseMuscles).get()?.n;
+    expect(hasUserData(db)).toBe(false);
     copyTemplate(db, 'push_pull_legs', { lang: 'ko', weightUnit: 'kg' }, makeId);
     const routine = db.select().from(schema.routines).get();
     const workoutId = startWorkout(
@@ -47,7 +48,9 @@ describe('wipeUserData', () => {
       makeId,
     );
 
+    expect(hasUserData(db)).toBe(true);
     expect(wipeUserData(db)).toEqual(['photos/a.jpg']);
+    expect(hasUserData(db)).toBe(false);
 
     for (const table of [
       schema.routines,

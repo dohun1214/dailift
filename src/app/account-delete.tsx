@@ -7,19 +7,24 @@ import { Alert, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { useExportSheet } from '@/components/export-sheet';
-import { Button, Card, Screen, TopBar } from '@/components/ui';
+import { Button, Card, ConfirmDialog, Screen, TopBar } from '@/components/ui';
 import { deleteAccount } from '@/lib/auth';
 import { wipeDevice } from '@/lib/wipe-device';
+import { syncIdle } from '@/sync/manager';
 
 export default function AccountDeleteScreen() {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
   const [busy, setBusy] = useState(false);
+  const [asking, setAsking] = useState(false);
   const exportSheet = useExportSheet();
 
   const remove = async () => {
+    setAsking(false);
     setBusy(true);
     try {
+      // 돌고 있던 동기화가 지운 뒤에 기록을 다시 채우지 않게 끝나기를 기다린다.
+      await syncIdle();
       await deleteAccount();
       wipeDevice();
       router.dismissAll();
@@ -37,10 +42,10 @@ export default function AccountDeleteScreen() {
       footer={
         <View style={styles.footer}>
           <Button
-            label={t('auth.delete.confirm')}
+            label={t(busy ? 'auth.delete.deleting' : 'auth.delete.confirm')}
             variant="danger"
             disabled={busy}
-            onPress={remove}
+            onPress={() => setAsking(true)}
           />
         </View>
       }
@@ -73,6 +78,16 @@ export default function AccountDeleteScreen() {
         />
       </View>
       {exportSheet.sheet}
+      <ConfirmDialog
+        visible={asking}
+        title={t('auth.delete.confirmTitle')}
+        body={t('auth.delete.confirmBody')}
+        cancelLabel={t('settings.cancel')}
+        confirmLabel={t('auth.delete.confirmAction')}
+        destructive
+        onCancel={() => setAsking(false)}
+        onConfirm={() => void remove()}
+      />
     </Screen>
   );
 }

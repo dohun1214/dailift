@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useUnistyles } from 'react-native-unistyles';
 
+import { AccountSwitchDialog } from '@/components/account-switch-dialog';
 import { DatabaseProvider } from '@/db/provider';
 import { startAuth } from '@/lib/auth';
 import { configureNotifications } from '@/lib/notifications';
@@ -60,6 +61,7 @@ export default function RootLayout() {
           <Stack.Screen name="account-link" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="account-delete" />
         </Stack>
+        <AccountSwitchDialog />
       </DatabaseProvider>
     </GestureHandlerRootView>
   );

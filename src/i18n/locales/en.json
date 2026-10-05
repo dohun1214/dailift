@@ -13,7 +13,7 @@
     "save": "Save"
   },
   "welcome": {
-    "tagline": "Log your workouts, meals,\nand body changes in one place.",
+    "tagline": "Log your workouts and meals\nin one place.",
     "apple": "Continue with Apple",
     "google": "Continue with Google",
     "guest": "Start without an account",
@@ -761,7 +761,8 @@
     "restOnLockScreenSub": "Shows the time left even when you leave the app or lock your phone",
     "setTargets": "Weekly target sets",
     "setTargetsDefault": "Recommended",
-    "setTargetsCustom": "Custom"
+    "setTargetsCustom": "Custom",
+    "wipeBodyAccount": "Your routines, workout history, and photos will be erased from this device and the server. Your account stays. This can't be undone."
   },
   "plates": {
     "title": "Plate calculator",
@@ -803,13 +804,22 @@
       "title": "Delete account",
       "heading": "Delete your account?",
       "sub": "This can't be undone.",
-      "b1": "Your workouts, body data, meals, and photos on the server will be deleted",
+      "b1": "Your workouts, meals, and photos on the server will be deleted",
       "b2": "Data on this device will be deleted too",
       "b3": "Your Apple or Google link will be removed",
       "confirm": "Delete account and all data",
       "failedTitle": "Couldn't delete",
       "failed": "Check your connection and try again.",
-      "exportFirst": "Export my data first"
+      "exportFirst": "Export my data first",
+      "confirmTitle": "Delete your account?",
+      "confirmBody": "All your records will be erased. This can't be undone.",
+      "confirmAction": "Delete",
+      "deleting": "Deleting…"
+    },
+    "switch": {
+      "title": "This device has another account's records",
+      "body": "If you continue, the records on this device are cleared and the records of the account you just signed in to are loaded. Anything backed up to the other account is still there when you sign in to it.",
+      "replace": "Clear and continue"
     }
   },
   "sync": {
