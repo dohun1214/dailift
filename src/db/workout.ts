@@ -453,7 +453,8 @@ export function addExercisesToWorkout(
   exerciseIds: readonly string[],
   unit: WeightUnit,
   makeId: IdFn = newId,
-  opts: { restSec?: number; barWeight?: number } = {},
+  /** `recordedBefore`: 지난 날 기록에 넣을 때 그날의 시각. 그 전 마지막 기록 값을 그대로 쓰고 증량 제안은 하지 않는다 */
+  opts: { restSec?: number; barWeight?: number; recordedBefore?: number } = {},
 ) {
   if (exerciseIds.length === 0) return;
   db.transaction((tx) => {
@@ -504,6 +505,7 @@ export function addExercisesToWorkout(
       makeId,
       warmed,
       opts.barWeight ?? defaultBarWeight(unit),
+      opts.recordedBefore,
     );
   });
 }

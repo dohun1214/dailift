@@ -66,4 +66,12 @@ describe('wipeUserData', () => {
     expect(db.select({ n: count() }).from(schema.exercises).get()?.n).toBe(BASE_EXERCISES.length);
     expect(db.select({ n: count() }).from(schema.exerciseMuscles).get()?.n).toBe(baseMappings);
   });
+
+  it('지운 흔적만 남은 기기는 기록이 없는 것으로 본다', () => {
+    const db = createTestDb();
+    copyTemplate(db, 'push_pull_legs', { lang: 'ko', weightUnit: 'kg' }, makeId);
+    expect(hasUserData(db)).toBe(true);
+    db.update(schema.routines).set({ deletedAt: 1 }).run();
+    expect(hasUserData(db)).toBe(false);
+  });
 });

@@ -47,7 +47,7 @@ export function BottomSheet({
   const drag = useRef(new Animated.Value(0)).current;
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
-  const motion = useSheetMotion(visible);
+  const motion = useSheetMotion(visible, avoidKeyboard);
   // 내려가는 동안에는 닫히기 직전 내용을 그대로 보여 준다(부모가 내용을 먼저 비워도 줄어들지 않게).
   const shown = useRef({ title, subtitle, children });
   if (visible) shown.current = { title, subtitle, children };

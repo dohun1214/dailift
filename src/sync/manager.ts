@@ -62,6 +62,8 @@ const CHANGE_DELAY_MS = 8_000;
 let running: Promise<void> | null = null;
 let again = false;
 let timer: ReturnType<typeof setTimeout> | null = null;
+/** 기록을 통째로 지우는 동안에는 동기화를 멈춘다(지우는 사이에 다시 올리거나 받지 않게) */
+let paused = false;
 
 async function run(userId: string) {
   const last = Storage.getItemSync(ACCOUNT_KEY);
@@ -70,6 +72,8 @@ async function run(userId: string) {
       useSync.setState({ status: 'idle', otherAccount: true });
       return;
     }
+    // 다른 계정이 남긴 것이 지운 흔적뿐이면(보이는 기록 없음) 묻지 않고 치운다.
+    if (last) for (const path of wipeUserData(db)) removePhotoFile(path);
     resetForAccount(db);
     Storage.setItemSync(ACCOUNT_KEY, userId);
   }
@@ -90,7 +94,7 @@ async function run(userId: string) {
 /** 지금 동기화(로그인 안 했으면 아무것도 안 함). 끝나면 resolve. */
 export function syncNow(): Promise<void> {
   const userId = useAuth.getState().session?.user.id;
-  if (!userId) return Promise.resolve();
+  if (!userId || paused) return Promise.resolve();
   if (running) {
     again = true;
     return running;
@@ -99,15 +103,30 @@ export function syncNow(): Promise<void> {
     do {
       again = false;
       await run(userId);
-    } while (again);
+    } while (again && !paused);
   })().finally(() => {
     running = null;
   });
   return running;
 }
 
-/** 돌고 있는 동기화가 끝날 때까지 기다린다(기록을 지우기 전에). */
-export const syncIdle = (): Promise<void> => running ?? Promise.resolve();
+/**
+ * 기록을 통째로 지우기 전에: 새 동기화를 막고, 돌고 있는 것이 끝날 때까지 기다린다.
+ * 끝나면(성공이든 실패든) 반드시 `resumeSync()`를 부른다.
+ */
+export async function pauseSync(): Promise<void> {
+  paused = true;
+  if (timer) {
+    clearTimeout(timer);
+    timer = null;
+  }
+  // 돌던 동기화가 실패로 끝나도 멈춘 상태로 계속 간다(부른 쪽이 반드시 resumeSync를 부른다).
+  await (running ?? Promise.resolve()).catch(() => undefined);
+}
+
+export function resumeSync() {
+  paused = false;
+}
 
 /** 다른 계정의 기록이 남은 기기에서: 기기 기록을 지우고 지금 계정의 기록을 받는다. */
 export function replaceWithCurrentAccount(): Promise<void> {
@@ -129,7 +148,7 @@ export function forgetSyncAccount() {
 }
 
 function schedule() {
-  if (!useAuth.getState().session) return;
+  if (paused || !useAuth.getState().session) return;
   if (timer) clearTimeout(timer);
   timer = setTimeout(() => {
     timer = null;

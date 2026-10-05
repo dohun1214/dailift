@@ -18,6 +18,8 @@ import { recommendTemplate } from '@/domain/profile';
 import type { RoutineSummary } from '@/domain/routine';
 import { LIMITS } from '@/domain/routine-draft';
 import { useAppLanguage } from '@/i18n/use-app-language';
+import { openWorkout } from '@/lib/open-workout';
+import { useToday } from '@/lib/use-today';
 import { isScheduledOn } from '@/lib/weekdays';
 import { useProfile } from '@/stores/profile';
 import { useSettings, workoutDefaults } from '@/stores/settings';
@@ -30,7 +32,7 @@ export default function RoutinesScreen() {
   const experience = useProfile((s) => s.experience);
   const daysPerWeek = useProfile((s) => s.daysPerWeek);
   const recommended = recommendTemplate({ experience, daysPerWeek });
-  const today = new Date();
+  const today = useToday();
 
   const meta = (r: RoutineSummary) =>
     r.exerciseCount === 0
@@ -61,7 +63,7 @@ export default function RoutinesScreen() {
         barWeight: workoutDefaults().barWeight,
       });
     }
-    router.push('/workout');
+    openWorkout();
   };
 
   return (
@@ -176,7 +178,7 @@ export default function RoutinesScreen() {
         onCancel={() => setBusyWith(null)}
         onConfirm={() => {
           setBusyWith(null);
-          router.push('/workout');
+          openWorkout();
         }}
       />
       <ConfirmDialog

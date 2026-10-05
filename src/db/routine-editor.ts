@@ -255,6 +255,17 @@ export function defaultRestFor(
   return new Map(rows.map((r) => [r.id, restSec ?? (r.type === 'weight_reps' ? 90 : 60)]));
 }
 
+/** 종목 id 목록 → 시간으로 재는 종목들. 방금 만든 종목도 맞게 나오도록 DB에서 바로 읽는다. */
+export function timeExerciseIds(db: AppDatabase, ids: readonly string[]): Set<string> {
+  if (ids.length === 0) return new Set();
+  const rows = db
+    .select({ id: schema.exercises.id, type: schema.exercises.type })
+    .from(schema.exercises)
+    .where(inArray(schema.exercises.id, [...ids]))
+    .all();
+  return new Set(rows.filter((r) => r.type === 'time').map((r) => r.id));
+}
+
 /**
  * 저장할 횟수 범위. 세트별로 정한 종목은 그 세트들의 값에서 가져오고(목록에 옛 범위가 남지 않게),
  * 값이 없으면 화면에 있던 범위를, 그것도 비어 있으면 기본 범위를 쓴다.

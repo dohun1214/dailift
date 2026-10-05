@@ -153,7 +153,11 @@ export default function WorkoutEditScreen() {
 
   const addExercises = () =>
     openExercisePicker((ids) => {
-      addExercisesToWorkout(db, workoutId, ids, unit, undefined, workoutDefaults());
+      // 그날 전에 한 마지막 기록 값으로 채운다(그 뒤에 늘린 무게나 증량 제안을 쓰지 않는다).
+      addExercisesToWorkout(db, workoutId, ids, unit, undefined, {
+        ...workoutDefaults(),
+        recordedBefore: workout?.startedAt,
+      });
       // 지난 기록이라 새 세트도 바로 완료 상태로 둔다(프리필 값 그대로).
       for (const we of db
         .select()
@@ -178,7 +182,9 @@ export default function WorkoutEditScreen() {
           )
           .all()) {
           if (s.kind === 'warmup') deleteSet(db, s.id);
-          else setCompleted(db, s.id, true, completedAt);
+          // 채울 값이 없는(그날 전 기록이 없는) 세트는 체크하지 않고 둔다.
+          else if (s.reps !== null || s.durationSec !== null)
+            setCompleted(db, s.id, true, completedAt);
         }
       }
     });
@@ -189,6 +195,7 @@ export default function WorkoutEditScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Screen
+        revealInputs
         header={
           <TopBar
             title={t(isNew ? 'history.edit.addTitle' : 'history.edit.title')}

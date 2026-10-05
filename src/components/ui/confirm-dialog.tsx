@@ -1,4 +1,5 @@
-import { Modal, Pressable, Text, View } from 'react-native';
+import { useEffect } from 'react';
+import { Keyboard, Modal, Pressable, Text, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
 type Props = {
@@ -30,6 +31,10 @@ export function ConfirmDialog({
   onConfirm,
   onDismiss = onCancel,
 }: Props) {
+  // 입력 중에 뜨면 키보드를 내린다.
+  useEffect(() => {
+    if (visible) Keyboard.dismiss();
+  }, [visible]);
   return (
     <Modal
       visible={visible}

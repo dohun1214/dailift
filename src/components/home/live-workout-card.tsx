@@ -1,16 +1,15 @@
-import { router } from 'expo-router';
 import { Timer } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-
 import { Badge, Button } from '@/components/ui';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
 import { useWorkoutExercises } from '@/db/use-workout';
 import { formatClock, remainingSec } from '@/domain/rest-timer';
 import { workoutProgress } from '@/domain/workout-session';
 import { useAppLanguage } from '@/i18n/use-app-language';
+import { openWorkout } from '@/lib/open-workout';
 import { useNow } from '@/lib/use-now';
 import { useRestTimer } from '@/stores/rest-timer';
 
@@ -103,7 +102,7 @@ export function LiveWorkoutCard({ workout }: Props) {
         </View>
       ) : null}
 
-      <Button label={t('home.resume')} onPress={() => router.push('/workout')} />
+      <Button label={t('home.resume')} onPress={openWorkout} />
     </View>
   );
 }

@@ -174,6 +174,34 @@ describe('지난 날 기록 추가', () => {
     expect(sets.every((s) => s.kind === 'working')).toBe(true);
   });
 
+  it('지난 기록에 종목을 더할 때도 그날 전 기록 값을 쓴다', () => {
+    const db = createTestDb();
+    const routineId = routineWith(db, ['bench_press']);
+    const record = (now: number, weight: number, reps: number) => {
+      const w = startWorkout(db, { routineId, name: 'R', weightUnit: 'kg', now }, makeId);
+      for (const s of setsOf(db, exercisesOf(db, w)[0]?.id ?? '')) {
+        if (s.kind === 'warmup') continue;
+        updateSet(db, s.id, { weight, reps });
+        completeSet(db, s.id, 'weight_reps', now + 1);
+      }
+      finishWorkout(db, w, now + 2);
+    };
+    record(1_000, 60, 12);
+    record(9_000_000, 80, 5);
+    const empty = routineWith(db, []);
+    const id = addPastWorkout(
+      db,
+      { routineId: empty, name: 'E', weightUnit: 'kg', startedAt: 5_000_000, minutes: 40 },
+      makeId,
+    );
+    addExercisesToWorkout(db, id, [baseExerciseId('bench_press')], 'kg', makeId, {
+      recordedBefore: 5_000_000,
+    });
+    const working = setsOf(db, exercisesOf(db, id)[0]?.id ?? '').filter((x) => x.kind !== 'warmup');
+    expect(working.length).toBeGreaterThan(0);
+    expect(working.every((x) => x.weight === 60 && x.reps === 12)).toBe(true);
+  });
+
   it('그날 전 마지막 기록 값을 그대로 채우고 증량 제안은 하지 않는다', () => {
     const db = createTestDb();
     const routineId = routineWith(db, ['bench_press']);

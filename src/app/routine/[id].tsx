@@ -15,6 +15,7 @@ import {
   emptyRoutineDraft,
   loadRoutineDraft,
   saveRoutineDraft,
+  timeExerciseIds,
 } from '@/db/routine-editor';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
 import {
@@ -97,14 +98,10 @@ export default function RoutineEditScreen() {
   const addExercises = () => {
     openExercisePicker((ids) => {
       const rests = defaultRestFor(db, ids, useSettings.getState().defaultRestSec);
+      // 고르는 화면에서 방금 만든 종목은 이 화면의 목록에 아직 없다 → DB에서 읽는다.
+      const timed = timeExerciseIds(db, ids);
       const added = ids.map((exerciseId) =>
-        newDraftItem(
-          newId(),
-          exerciseId,
-          weightUnit,
-          rests.get(exerciseId),
-          isTimeExercise(exerciseId),
-        ),
+        newDraftItem(newId(), exerciseId, weightUnit, rests.get(exerciseId), timed.has(exerciseId)),
       );
       setError(null);
       setDraft((d) => (d ? { ...d, items: [...d.items, ...added] } : d));
@@ -267,6 +264,7 @@ export default function RoutineEditScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Screen
+        revealInputs
         header={
           <TopBar
             title={isNew ? t('routines.edit.newTitle') : t('routines.edit.title')}

@@ -40,7 +40,8 @@ export async function pickPhoto(source: PhotoSource): Promise<string | 'denied' 
   const ext =
     (asset.uri.split('.').pop() ?? 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
   const relative = `${PHOTO_DIR}/${newId()}.${ext}`;
-  new File(asset.uri).copy(new File(Paths.document, relative));
+  // copy()는 끝나기를 기다려야 하는 함수라, 파일이 생긴 뒤에 경로를 돌려주도록 copySync를 쓴다.
+  new File(asset.uri).copySync(new File(Paths.document, relative));
   return relative;
 }
 

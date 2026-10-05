@@ -1,10 +1,9 @@
-import { router } from 'expo-router';
 import { ChevronUp } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-
 import { formatClock, remainingSec } from '@/domain/rest-timer';
+import { openWorkout } from '@/lib/open-workout';
 import { useNow } from '@/lib/use-now';
 import { useRestTimer } from '@/stores/rest-timer';
 
@@ -25,7 +24,7 @@ export function WorkoutMiniBar({ name, startedAt }: Props) {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${t('workout.miniA11y')}, ${name}, ${elapsed}`}
-      onPress={() => router.push('/workout')}
+      onPress={openWorkout}
       style={({ pressed }) => [styles.bar, pressed && styles.pressed]}
     >
       <View style={styles.dot} />
