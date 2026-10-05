@@ -1,13 +1,12 @@
-import { and, eq, isNotNull, isNull, ne } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
 import type { ExtendedBodyPart, Slug } from 'react-native-body-highlighter';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import { LineChart } from '@/components/stats/line-chart';
+import { ExerciseProgress } from '@/components/exercise/exercise-progress';
 import { AppText, BodyFigure, Screen, TopBar } from '@/components/ui';
 import { LEVEL_OPACITY } from '@/components/workout';
 import { guideFor } from '@/data/exercise-guides';
@@ -15,11 +14,8 @@ import { MUSCLES } from '@/data/muscles';
 import { db } from '@/db/client';
 import * as schema from '@/db/schema';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
-import { type StatSet, sessionBestE1rm } from '@/domain/stats';
-import { convertWeight } from '@/domain/strength';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { useProfile } from '@/stores/profile';
-import { useSettings } from '@/stores/settings';
 import { withAlpha } from '@/theme/color';
 
 /** 뒤에서 더 잘 보이는 근육 — 주동근이 여기 많으면 미니 근육맵을 뒷모습으로 */
@@ -32,15 +28,12 @@ const BACK_MUSCLES = new Set([
   'calves',
   'triceps',
 ]);
-const CHART_SESSIONS = 12;
-const fmt = (n: number) => String(Math.round(n * 100) / 100);
 
-/** 종목 상세: 주동·협응근(미니 근육맵), 기구, 동작 5단계, 내 기록(추정 1RM·최고 중량·추이) */
+/** 종목 상세: 주동·협응근(미니 근육맵), 기구, 내 기록(추이 그래프·최근 기록), 동작 5단계 */
 export default function ExerciseDetailScreen() {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
   const lang = useAppLanguage();
-  const unit = useSettings((s) => s.weightUnit);
   const bodyType = useProfile((s) => s.bodyType);
   const { id } = useLocalSearchParams<{ id: string }>();
   const exerciseId = id ?? '';
@@ -59,51 +52,6 @@ export default function ExerciseDetailScreen() {
       ),
     [exerciseId],
   );
-  const { data: setRows } = useLiveQuery(
-    db
-      .select({
-        workoutId: schema.workouts.id,
-        startedAt: schema.workouts.startedAt,
-        exerciseId: schema.workoutExercises.exerciseId,
-        weight: schema.sets.weight,
-        reps: schema.sets.reps,
-        unit: schema.sets.weightUnit,
-      })
-      .from(schema.sets)
-      .innerJoin(
-        schema.workoutExercises,
-        eq(schema.workoutExercises.id, schema.sets.workoutExerciseId),
-      )
-      .innerJoin(schema.workouts, eq(schema.workouts.id, schema.workoutExercises.workoutId))
-      .where(
-        and(
-          eq(schema.workoutExercises.exerciseId, exerciseId),
-          eq(schema.workouts.status, 'completed'),
-          isNull(schema.workouts.deletedAt),
-          isNull(schema.workoutExercises.deletedAt),
-          isNull(schema.sets.deletedAt),
-          isNotNull(schema.sets.completedAt),
-          ne(schema.sets.kind, 'warmup'),
-        ),
-      ),
-    [exerciseId],
-  );
-
-  const record = useMemo(() => {
-    const sets = setRows as StatSet[];
-    const sessions = sessionBestE1rm(sets, exerciseId, unit);
-    const best = sessions.reduce((m, s) => Math.max(m, s.e1rm), 0);
-    let heaviest: { weight: number; reps: number } | null = null;
-    for (const s of sets) {
-      if (s.weight === null || !s.reps) continue;
-      const w = convertWeight(s.weight, s.unit, unit);
-      if (!heaviest || w > heaviest.weight || (w === heaviest.weight && s.reps > heaviest.reps)) {
-        heaviest = { weight: w, reps: s.reps };
-      }
-    }
-    return { sessions: sessions.slice(-CHART_SESSIONS), best, heaviest };
-  }, [setRows, exerciseId, unit]);
-
   if (!info) {
     return (
       <Screen header={<TopBar />}>
@@ -168,6 +116,8 @@ export default function ExerciseDetailScreen() {
         </View>
       </View>
 
+      <ExerciseProgress exerciseId={exerciseId} name={info.name} type={info.type} />
+
       <View style={[styles.card, styles.stepsCard]}>
         <Text style={styles.h2} accessibilityRole="header">
           {t('exerciseDetail.steps')}
@@ -190,42 +140,6 @@ export default function ExerciseDetailScreen() {
           </View>
         ) : (
           <Text style={styles.muted}>{t('exerciseDetail.custom')}</Text>
-        )}
-      </View>
-
-      <View style={[styles.card, styles.recordCard]}>
-        <View style={styles.recordHead}>
-          <Text style={[styles.h2, styles.flex]} accessibilityRole="header">
-            {t('exerciseDetail.record')}
-          </Text>
-          <Text style={styles.small}>{t('exerciseDetail.e1rm')}</Text>
-        </View>
-        {record.best > 0 ? (
-          <>
-            <View style={styles.valueRow}>
-              <Text style={styles.value}>{record.best.toFixed(1)}</Text>
-              <Text style={styles.sub}>
-                {record.heaviest
-                  ? t('exerciseDetail.bestSet', {
-                      unit,
-                      weight: `${fmt(record.heaviest.weight)}${unit}`,
-                      reps: record.heaviest.reps,
-                    })
-                  : unit}
-              </Text>
-            </View>
-            <LineChart
-              values={record.sessions.map((s) => s.e1rm)}
-              label={t('exerciseDetail.chartA11y', {
-                name: info.name,
-                count: record.sessions.length,
-                value: record.best.toFixed(1),
-                unit,
-              })}
-            />
-          </>
-        ) : (
-          <Text style={styles.muted}>{t('exerciseDetail.noRecord')}</Text>
         )}
       </View>
     </Screen>
@@ -256,7 +170,6 @@ function TagGroup({
 }
 
 const styles = StyleSheet.create((theme) => ({
-  flex: { flex: 1 },
   first: { marginTop: 8 },
   card: {
     gap: 12,
@@ -322,32 +235,6 @@ const styles = StyleSheet.create((theme) => ({
     includeFontPadding: false,
     fontFamily: theme.fonts.regular,
     color: theme.colors.text,
-  },
-  recordCard: { gap: 10 },
-  recordHead: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  small: {
-    fontSize: 12,
-    lineHeight: 16,
-    includeFontPadding: false,
-    fontFamily: theme.fonts.regular,
-    color: theme.colors.text2,
-  },
-  valueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
-  value: {
-    fontSize: 28,
-    lineHeight: 36,
-    includeFontPadding: false,
-    fontFamily: theme.fonts.numBold,
-    fontVariant: ['tabular-nums'],
-    color: theme.colors.text,
-  },
-  sub: {
-    flexShrink: 1,
-    fontSize: 13,
-    lineHeight: 17,
-    includeFontPadding: false,
-    fontFamily: theme.fonts.regular,
-    color: theme.colors.text2,
   },
   muted: {
     fontSize: 13,

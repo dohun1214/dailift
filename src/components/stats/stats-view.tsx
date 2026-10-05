@@ -1,4 +1,5 @@
-import { ChevronDown } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { ChevronDown, ChevronRight } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
@@ -169,6 +170,20 @@ export function StatsView() {
               values={weeks}
               label={t('stats.chartA11y', { name: exName, value: fmt1(latest), unit })}
             />
+            {exerciseId ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() =>
+                  router.push({ pathname: '/exercise/[id]', params: { id: exerciseId } })
+                }
+                style={({ pressed }) => [styles.detail, pressed && styles.pressed]}
+              >
+                <Text style={styles.detailText} numberOfLines={1}>
+                  {t('stats.detailLink', { name: exName })}
+                </Text>
+                <ChevronRight size={16} color={theme.colors.text} strokeWidth={1.8} />
+              </Pressable>
+            ) : null}
           </>
         ) : (
           <Text style={styles.small}>{t('stats.e1rmEmpty')}</Text>
@@ -299,6 +314,25 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.text,
   },
   pressed: { opacity: 0.7 },
+  detail: {
+    height: 44,
+    marginTop: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    paddingHorizontal: 14,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surface2,
+  },
+  detailText: {
+    flexShrink: 1,
+    fontSize: 14,
+    lineHeight: 18,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.semibold,
+    color: theme.colors.text,
+  },
   e1rmValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
   e1rmValue: {
     fontSize: 28,
