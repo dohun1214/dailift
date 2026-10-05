@@ -2,7 +2,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { usePreventRemove } from 'expo-router/react-navigation';
-import { Clock, Plus } from 'lucide-react-native';
+import { Check, Clock, Plus } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
@@ -126,6 +126,19 @@ export default function WorkoutEditScreen() {
     return () => clearPendingAdd();
   }, [isNew, workoutId]);
 
+  // 추가 화면의 '모든 세트 체크': 한 번에 다 체크해 두고 안 한 세트만 푼다. 다 체크돼 있으면 모두 푼다.
+  const totalSets = doneCount + undoneCount;
+  const allChecked = totalSets > 0 && undoneCount === 0;
+  const toggleAll = () => {
+    for (const we of exercises) {
+      const type = catalog.byId.get(we.exerciseId)?.type ?? 'weight_reps';
+      for (const s of we.sets) {
+        if (allChecked) setCompleted(db, s.id, false);
+        else if (s.completedAt === null) completeSet(db, s.id, type, completedAt);
+      }
+    }
+  };
+
   const finish = () => router.back();
   /** 기록 저장(추가): 체크한 세트가 있어야 저장된다 */
   const save = () => {
@@ -228,6 +241,18 @@ export default function WorkoutEditScreen() {
         ) : null}
         {isNew && exercises.length > 0 && workout?.routineId ? (
           <Text style={styles.hint}>{t('history.edit.addHint')}</Text>
+        ) : null}
+        {isNew && totalSets > 0 ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={toggleAll}
+            style={({ pressed }) => [styles.checkAll, pressed && styles.pressed]}
+          >
+            <Check size={16} color={theme.colors.text} strokeWidth={2.4} />
+            <Text style={styles.addText}>
+              {t(allChecked ? 'history.edit.uncheckAll' : 'history.edit.checkAll')}
+            </Text>
+          </Pressable>
         ) : null}
         {exercises.map((we, index) => {
           const info = catalog.byId.get(we.exerciseId);
@@ -389,6 +414,16 @@ const styles = StyleSheet.create((theme) => ({
     includeFontPadding: false,
     fontFamily: theme.fonts.regular,
     color: theme.colors.text2,
+  },
+  pressed: { opacity: 0.7 },
+  checkAll: {
+    height: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 16,
+    backgroundColor: theme.colors.surface,
   },
   add: {
     height: 52,

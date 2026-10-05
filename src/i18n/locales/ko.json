@@ -497,7 +497,9 @@
       "leave": "나가기",
       "keepAdding": "계속 입력",
       "discardTitle": "저장하지 않고 나갈까요?",
-      "discardBody_other": "체크한 {{count}}세트가 저장되지 않아요."
+      "discardBody_other": "체크한 {{count}}세트가 저장되지 않아요.",
+      "checkAll": "모든 세트 체크",
+      "uncheckAll": "모두 체크 해제"
     }
   },
   "stats": {
