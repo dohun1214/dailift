@@ -6,9 +6,12 @@ import type { StatSet } from '@/domain/stats';
 
 import { db } from './client';
 import * as schema from './schema';
+import { useTableRev } from './use-table-rev';
 
 /** 통계용 데이터: 완료한 운동의 완료 본세트 전체와 종목→부위 연결. 기록이 바뀌면 갱신된다. */
 export function useStatsData() {
+  // 운동을 마치면 workouts만 바뀐다(sets는 그대로) → 그때도 다시 읽는다.
+  const rev = useTableRev(schema.workouts, schema.workoutExercises);
   const { data: rows, updatedAt } = useLiveQuery(
     db
       .select({
@@ -35,6 +38,7 @@ export function useStatsData() {
           ne(schema.sets.kind, 'warmup'),
         ),
       ),
+    [rev],
   );
   const { data: muscles } = useLiveQuery(
     db

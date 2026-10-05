@@ -100,6 +100,7 @@ export default function ExercisePickerScreen() {
   return (
     <Screen
       avoidKeyboard
+      dismissKeyboardOnDrag
       header={
         <TopBar
           title={t(single ? 'exercises.pickerTitleReplace' : 'exercises.pickerTitle')}

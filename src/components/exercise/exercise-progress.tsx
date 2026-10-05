@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui';
 import { db } from '@/db/client';
 import type { ExerciseType } from '@/db/schema';
 import * as schema from '@/db/schema';
+import { useTableRev } from '@/db/use-table-rev';
 import {
   bestSession,
   defaultPeriod,
@@ -54,6 +55,8 @@ export function ExerciseProgress({ exerciseId, name, type }: Props) {
   // 화면을 여는 시점 기준(렌더마다 바뀌지 않게)
   const [now] = useState(() => Date.now());
 
+  // 기록을 고치거나 지우면 workouts만 바뀔 수 있다 → 그때도 다시 읽는다.
+  const rev = useTableRev(schema.workouts, schema.workoutExercises);
   const { data: rows } = useLiveQuery(
     db
       .select({
@@ -86,7 +89,7 @@ export function ExerciseProgress({ exerciseId, name, type }: Props) {
         asc(schema.workoutExercises.position),
         asc(schema.sets.position),
       ),
-    [exerciseId],
+    [exerciseId, rev],
   );
 
   const sessions = useMemo(

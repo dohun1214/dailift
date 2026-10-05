@@ -1,13 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
 import { ExerciseListView } from '@/components/exercise/exercise-list';
 import { HistoryRow } from '@/components/history/history-row';
 import { StatsView } from '@/components/stats/stats-view';
-import { ActionSheet, Screen, Segmented } from '@/components/ui';
+import { ActionSheet, ConfirmDialog, Screen, Segmented } from '@/components/ui';
 import { db } from '@/db/client';
 import { deleteWorkout } from '@/db/history';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
@@ -37,6 +37,7 @@ export default function LogScreen() {
   }, [params.view]);
   const { months, ready } = useHistory(unit);
   const [selected, setSelected] = useState<HistoryItem | null>(null);
+  const [deleting, setDeleting] = useState<HistoryItem | null>(null);
   const locale = lang === 'ko' ? 'ko-KR' : 'en-US';
   const monthFmt = new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long' });
   const dowFmt = new Intl.DateTimeFormat(locale, { weekday: 'short' });
@@ -63,20 +64,8 @@ export default function LogScreen() {
       : names.join(' · ');
   };
 
-  const confirmDelete = (item: HistoryItem) =>
-    Alert.alert(t('history.deleteTitle'), t('history.deleteBody'), [
-      { text: t('history.actions.cancel'), style: 'cancel' },
-      {
-        text: t('history.deleteConfirm'),
-        style: 'destructive',
-        onPress: () => {
-          for (const path of deleteWorkout(db, item.id)) removePhotoFile(path);
-        },
-      },
-    ]);
-
   return (
-    <Screen inTabs>
+    <Screen inTabs dismissKeyboardOnDrag>
       <Segmented
         accessibilityLabel={t('history.segA11y')}
         options={[
@@ -158,12 +147,25 @@ export default function LogScreen() {
                 {
                   label: t('history.actions.delete'),
                   destructive: true,
-                  // 창이 다 내려간 뒤에 확인 창을 띄운다(iOS는 닫히는 창 위에 띄우면 같이 사라진다).
-                  onPress: () => setTimeout(() => confirmDelete(selected), 350),
+                  afterClose: true,
+                  onPress: () => setDeleting(selected),
                 },
               ]
             : []
         }
+      />
+      <ConfirmDialog
+        visible={deleting !== null}
+        title={t('history.deleteTitle')}
+        body={t('history.deleteBody')}
+        cancelLabel={t('history.actions.cancel')}
+        confirmLabel={t('history.deleteConfirm')}
+        destructive
+        onCancel={() => setDeleting(null)}
+        onConfirm={() => {
+          if (deleting) for (const path of deleteWorkout(db, deleting.id)) removePhotoFile(path);
+          setDeleting(null);
+        }}
       />
     </Screen>
   );

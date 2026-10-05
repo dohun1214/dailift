@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native-unistyles';
@@ -15,6 +15,10 @@ type Props = {
   inTabs?: boolean;
   /** 글자를 입력하는 화면이면 true: iOS에서 키보드가 올라올 때 내용과 하단 버튼이 가려지지 않게 한다 */
   avoidKeyboard?: boolean;
+  /** 검색 화면이면 true: 목록을 끌면 키보드가 내려간다 */
+  dismissKeyboardOnDrag?: boolean;
+  /** 스크롤 위치를 직접 옮길 때 (scroll이 true일 때만) */
+  scrollRef?: Ref<ScrollView>;
 };
 
 export function Screen({
@@ -24,6 +28,8 @@ export function Screen({
   scroll = true,
   inTabs = false,
   avoidKeyboard = false,
+  dismissKeyboardOnDrag = false,
+  scrollRef,
 }: Props) {
   const insets = useSafeAreaInsets();
   const bottom = inTabs ? 0 : insets.bottom;
@@ -33,6 +39,7 @@ export function Screen({
       {header}
       {scroll ? (
         <ScrollView
+          ref={scrollRef}
           style={styles.flex}
           contentContainerStyle={[
             styles.content,
@@ -40,6 +47,7 @@ export function Screen({
             { paddingBottom: footer ? 16 : bottom + 28 },
           ]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={dismissKeyboardOnDrag ? 'on-drag' : 'none'}
         >
           {children}
         </ScrollView>

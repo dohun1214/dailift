@@ -8,10 +8,13 @@ import type { SummarySet } from '@/domain/session-summary';
 import { db } from './client';
 import { completedWorkoutsQuery } from './history';
 import * as schema from './schema';
+import { useTableRev } from './use-table-rev';
 
 /** 히스토리 목록(월별). 운동을 끝내거나 고치면 자동으로 다시 계산된다. */
 export function useHistory(unit: schema.WeightUnit) {
   const { data: workouts, updatedAt } = useLiveQuery(completedWorkoutsQuery(db));
+  // 운동을 마치면 workouts만 바뀐다(sets는 그대로) → 세트 목록도 그때 다시 읽는다.
+  const rev = useTableRev(schema.workouts, schema.workoutExercises);
   const { data: rows } = useLiveQuery(
     db
       .select({
@@ -39,6 +42,7 @@ export function useHistory(unit: schema.WeightUnit) {
           isNotNull(schema.sets.completedAt),
         ),
       ),
+    [rev],
   );
   const months = useMemo(() => {
     const byWorkout = new Map<string, SummarySet[]>();
