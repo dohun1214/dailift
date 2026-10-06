@@ -17,6 +17,8 @@ export function AccountSwitchDialog() {
 
   return (
     <ConfirmDialog
+      // 로그인 창이 닫히는 도중에도 반드시 보이도록 화면 위에 그대로 그린다.
+      inline
       visible={otherAccount && !busy}
       title={t('auth.switch.title')}
       body={t('auth.switch.body')}

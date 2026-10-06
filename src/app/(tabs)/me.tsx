@@ -148,7 +148,11 @@ export default function MeScreen() {
       wipeDevice();
       router.replace('/welcome');
       // 로그인 정보가 기기에 남아 있을 수 있으니(오프라인으로 켠 경우) 항상 로그아웃한다.
-      await signOut().catch((e) => console.warn('[auth] sign-out failed', e));
+      // 로그아웃이 끝나지 않더라도 동기화가 멈춘 채로 남지 않게 5초까지만 기다린다.
+      await Promise.race([
+        signOut().catch((e) => console.warn('[auth] sign-out failed', e)),
+        new Promise((resolve) => setTimeout(resolve, 5000)),
+      ]);
     } finally {
       resumeSync();
     }

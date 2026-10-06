@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Linking, Pressable, Text, TextInput, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { PhotoViewer } from '@/components/summary/photo-viewer';
 import { RoutineUpdateCard } from '@/components/summary/routine-update-card';
 import {
   ActionSheet,
@@ -68,6 +69,7 @@ export default function WorkoutSummaryScreen() {
   const [gone, setGone] = useState(false);
   const [note, setNote] = useState(data?.workout.note ?? '');
   const [photoSheet, setPhotoSheet] = useState(false);
+  const [viewing, setViewing] = useState<number | null>(null);
   const goneRef = useRef(false);
   const noteRef = useRef(note);
   noteRef.current = note;
@@ -357,6 +359,7 @@ export default function WorkoutSummaryScreen() {
               accessibilityRole="image"
               accessibilityLabel={t('summary.photoA11y', { index: i + 1 })}
               accessibilityHint={t('summary.photoDeleteHint')}
+              onPress={() => setViewing(i)}
               onLongPress={() => confirmDeletePhoto(p.id, p.path)}
             >
               <Image source={{ uri: photoUri(p.path) }} style={styles.photo} contentFit="cover" />
@@ -375,6 +378,12 @@ export default function WorkoutSummaryScreen() {
 
       <RoutineUpdateCard workoutId={summary.workout.id} />
 
+      <PhotoViewer
+        uris={photos.map((p) => photoUri(p.path))}
+        index={viewing}
+        closeLabel={t('common.close')}
+        onClose={() => setViewing(null)}
+      />
       <ActionSheet
         visible={photoSheet}
         cancelLabel={t('summary.photoCancel')}
