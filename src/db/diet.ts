@@ -103,6 +103,11 @@ export function deleteFoodLog(db: AppDatabase, id: string, now = Date.now()) {
   db.update(schema.foodLogs).set({ deletedAt: now }).where(eq(schema.foodLogs.id, id)).run();
 }
 
+/** 방금 지운 기록을 되살린다('취소'). 지운 표시만 걷어 내므로 양 · 자리는 그대로다 */
+export function restoreFoodLog(db: AppDatabase, id: string) {
+  db.update(schema.foodLogs).set({ deletedAt: null }).where(eq(schema.foodLogs.id, id)).run();
+}
+
 /** 가장 최근에 넣은 기록들(최근 먹은 음식을 뽑는 데 쓴다) */
 export function latestFoodLogs(db: AppDatabase, limit = 300): FoodLog[] {
   return db
