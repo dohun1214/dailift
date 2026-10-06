@@ -902,7 +902,15 @@
     "fontsValue": "Onest · IBM Plex Sans KR (OFL)",
     "groupOss": "Open source licenses",
     "hint": "Dailift uses the open source software below. Tap an item to read its full license.",
-    "homepage": "Open homepage"
+    "homepage": "Open homepage",
+    "foodUsda": "USDA FoodData Central",
+    "foodMfds": "MFDS Food Nutrient Database (Korea)",
+    "foodUsdaLicense": "Public domain (CC0)",
+    "foodMfdsLicense": "Korean open government data",
+    "foodCount_one": "Nutrition data for {{n}} food · {{license}}",
+    "foodCount_other": "Nutrition data for {{n}} foods · {{license}}",
+    "foodLoading": "Food nutrition data · {{license}}",
+    "foodFailed": "Couldn't load the food nutrition data"
   },
   "duration": {
     "min": "{{m}} min",

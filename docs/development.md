@@ -160,6 +160,16 @@ npm test
 - 복용 시각은 앱 안의 창(`time-sheet.tsx`, 5분 단위)에서 고른다. 시스템 시계 창은 네이티브 패키지가 필요해 쓰지 않았다.
 - 효능 문구는 쓰지 않는다. 목록 아래에 면책 문구를 둔다.
 
+## 음식 DB (#97)
+- 앱에 넣는 읽기 전용 SQLite 파일 `assets/food/foods.db`. 사용자 기록(`dailift.db`)과 다른 파일이다. `scripts/build-food-db.mjs`로 만든다(원본은 저장소에 넣지 않는다 — 받는 곳과 쓰는 법은 스크립트 머리말. 식약처 것은 `scripts/fetch-mfds-foods.mjs`로 공공데이터포털 API에서 받는다 — 인증키는 환경 변수로만 넘기고 저장소에 넣지 않는다). 새로 만들면 `src/food/food-db.ts`의 `FOOD_DB_VERSION`을 올린다(기기에는 `foods-v<판>.db`로 복사하므로 올리지 않으면 예전 파일을 계속 쓴다).
+- 들어 있는 것(2026-10 기준 20,074개, 3.6MB): USDA 13,224(FNDDS 5,431 + SR Legacy 7,793), 식약처 6,850(음식 1,970 + 원재료 2,913 + 업체 음식 1,967). 식약처 데이터를 다듬는 규칙은 스크립트에 있다 — 밑줄로 이어진 이름은 쉼표로, 같은 이름이 여러 조사에 있으면 하나만(가정식 → 외식 → 급식 순), 수산물의 지역 · 월별 표본은 하나만(대표 평균 우선), 탄수화물 · 지방이 비어 있는 업체 음식(약 13,000개)은 뺌, 업체 음식은 이름 뒤에 ` · 업체`, 마실 것만 ml.
+- 구조: `foods`(src `usda|mfds`, sid = 출처의 id, pri = 출처 안 순서, name, cho = 초성, 100g(ml)당 kcal · protein · carb · fat, basis `g|ml`, serving · serving_name), `portions`(가정 단위 — USDA만), `meta`(출처별 개수). 검색 색인(FTS)은 두지 않았다 — 이름을 LIKE로 훑어도 몇 ms라서 파일을 키우지 않는 쪽을 골랐다.
+- 여는 곳 `src/food/food-db.ts`(`openFoodDb` — 처음 한 번 `importDatabaseFromAssetAsync`로 복사), 훅 `use-food-db.ts`(`useFoodDb`, `useFoodSources`), 찾기 `catalog.ts`(`searchFoods` · `findFood` · `foodPortions` · `foodCounts` — 열린 DB만 받으므로 테스트는 better-sqlite3로 실제 파일을 연다).
+- 출처 규칙 `src/domain/food-search.ts`: 기기 지역이 KR이면 식약처 먼저 + USDA, 그 밖에는 USDA만(고르는 설정 없음). 검색어의 낱말은 모두 들어 있어야 하고, 순서는 출처 → 같은 이름 → 검색어로 시작하고 끊김 → 검색어로 시작 → 낱말의 처음 → 그 밖 → pri → 짧은 이름. 한글은 띄어쓰기 · 밑줄을 빼고 견주고, 초성이 섞이면 초성 칸에서 넓게 찾은 뒤 `matchesSearch`로 거른다.
+- 기록에는 음식 DB의 줄 번호(`id`)가 아니라 `src` + `sid`와 영양값 사본을 남긴다(DB를 새로 만들면 줄 번호가 바뀐다).
+- 데이터 출처 화면(`settings/licenses.tsx`)은 이 기기에서 보이는 출처만 적고 음식 수를 DB에서 읽어 보여 준다.
+- 개발 빌드 전용 확인 화면 `dailift://dev/food`(식단 화면이 생기면 지운다).
+
 ## 서버 동기화
 - 서버 테이블은 기기 SYNCED_TABLES와 같은 컬럼 + `user_id`(기본값 auth.uid(), auth.users on delete cascade) + `rev`. RLS로 본인 행만 select/insert/update(삭제는 툼스톤, 계정 삭제 시 cascade). SQL은 `supabase/migrations/`.
 - 서버 트리거 `sync_before_write`: 쓰기마다 전역 시퀀스로 `rev`를 매기고, `updated_at`이 기존보다 오래된 수정은 무시(LWW).
