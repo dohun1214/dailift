@@ -30,6 +30,7 @@ import {
   ActiveExerciseCard,
   CollapsedExerciseCard,
   FieldNavProvider,
+  KEYBOARD_BAR_HEIGHT,
   KeyboardBar,
   RestSheet,
   RestTimerBar,
@@ -120,6 +121,14 @@ function KeepScreenOn() {
 }
 
 /** 운동 중 화면. 탭 위에 뜨는 전체 화면이고, 접어도(아래 화살표) 운동은 계속된다. */
+/**
+ * iOS: 아래 버튼(운동 완료 등)을 키보드와 함께 올라가는 영역 밖에 두어 키보드가 그대로 덮게 한다.
+ * 그 영역 안에 두면 키보드가 올라오기 시작할 때 버튼이 먼저 따라 올라오다가, 키보드 위 줄로 바뀌면서 사라지는 것이 보인다
+ * (키보드 알림이 포커스 알림보다 먼저 와서 한 번에 바꿀 수 없다).
+ * Android는 키보드가 다 올라온 뒤에 한 번에 바뀌므로 예전처럼 줄과 맞바꾼다.
+ */
+const FOOTER_UNDER_KEYBOARD = Platform.OS === 'ios';
+
 export default function WorkoutScreen() {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
@@ -230,14 +239,12 @@ export default function WorkoutScreen() {
     });
   const fieldNav = useFieldNav(fieldOrder);
   const fieldKey = fieldNav.current?.key;
-  // 입력 중이면 아래 버튼 대신 키보드 위 줄을 보인다.
-  // iOS는 칸을 누른 순간(키보드가 움직이기 전)에 바꾼다 — 키보드가 올라오기 시작한 뒤에 바꾸면
-  // 아래 버튼이 키보드를 따라 올라오다가 사라지는 것이 잠깐 보인다.
+  // 입력 중이면 키보드 위에 '다음 · 완료' 줄을 보인다.
   // Android는 키보드만 닫고 칸은 그대로일 수 있어서(뒤로 가기) 키보드가 보일 때만.
   const typing = fieldNav.current !== null && (Platform.OS === 'ios' || keyboardVisible);
   // 입력 중인 칸이 키보드 뒤에 있으면 보이는 곳까지 올린다. '다음'으로 칸을 옮길 때도.
   const scrollRef = useRef<ScrollView>(null);
-  const { reveal } = useKeyboardReveal(scrollRef);
+  const { reveal } = useKeyboardReveal(scrollRef, true, KEYBOARD_BAR_HEIGHT);
   // biome-ignore lint/correctness/useExhaustiveDependencies: 칸이 바뀔 때마다 본다
   useEffect(() => {
     if (!fieldKey || !keyboardVisible) return;
@@ -601,6 +608,19 @@ export default function WorkoutScreen() {
     );
   }
 
+  // 아래 버튼들. iOS에서는 입력 중에도 제자리에 그대로 둔다(키보드 뒤에 가려진다).
+  // 숨기지 않는다 — 키보드가 덮기 전에 먼저 사라지는 것도 깜빡임으로 보인다.
+  const footer = (
+    <View
+      style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}
+      pointerEvents={typing ? 'none' : 'auto'}
+    >
+      {undoBar}
+      <RestTimerBar />
+      <Button label={t('workout.finish')} onPress={finish} />
+    </View>
+  );
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       {keepAwake ? <KeepScreenOn /> : null}
@@ -762,14 +782,11 @@ export default function WorkoutScreen() {
             onNext={fieldNav.next}
             onDone={fieldNav.done}
           />
-        ) : (
-          <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
-            {undoBar}
-            <RestTimerBar />
-            <Button label={t('workout.finish')} onPress={finish} />
-          </View>
+        ) : FOOTER_UNDER_KEYBOARD ? null : (
+          footer
         )}
       </KeyboardAvoidingView>
+      {FOOTER_UNDER_KEYBOARD ? footer : null}
 
       <WorkoutMenuSheet
         visible={menuOpen}

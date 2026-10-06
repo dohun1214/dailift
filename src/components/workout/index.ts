@@ -1,6 +1,6 @@
 export { ActiveExerciseCard, CollapsedExerciseCard } from './exercise-card';
 export { FieldNavProvider, useFieldNav, useKeyboardVisible } from './field-nav';
-export { KeyboardBar } from './keyboard-bar';
+export { KEYBOARD_BAR_HEIGHT, KeyboardBar } from './keyboard-bar';
 export { LEVEL_OPACITY, MuscleMapCard } from './muscle-map-card';
 export { RestSheet } from './rest-sheet';
 export { RestTimerBar } from './rest-timer-bar';
