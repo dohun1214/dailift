@@ -10,7 +10,6 @@ type CreateHandler = (exerciseId: string) => void;
 let onPick: PickHandler | null = null;
 let onCreate: CreateHandler | null = null;
 let single = false;
-let createName: string | null = null;
 
 /** `single`: 하나만 고른다(종목 바꾸기). 아니면 여러 개를 골라 추가한다. */
 export function openExercisePicker(handler: PickHandler, options: { single?: boolean } = {}) {
@@ -31,8 +30,7 @@ export function deliverPickedExercises(ids: string[]) {
 /** `name`: 이름 칸에 미리 채울 글자(검색어로 만들 때) */
 export function openExerciseCreator(handler: CreateHandler, name: string | null = null) {
   onCreate = handler;
-  createName = name;
-  router.push('/exercise-new');
+  router.push(name ? { pathname: '/exercise-new', params: { name } } : '/exercise-new');
 }
 
 export function deliverCreatedExercise(id: string) {
@@ -40,6 +38,3 @@ export function deliverCreatedExercise(id: string) {
   onCreate = null;
   handler?.(id);
 }
-
-/** 종목 만들기 화면의 이름 칸에 처음 채울 글자 (열 때마다 새로 정해진다) */
-export const creatorName = (): string => createName ?? '';

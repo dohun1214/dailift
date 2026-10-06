@@ -1,9 +1,9 @@
 import { useNavigation } from 'expo-router';
 import { type RefObject, useCallback, useEffect } from 'react';
-import { Keyboard, type ScrollView, TextInput } from 'react-native';
+import { Keyboard, Platform, type ScrollView, TextInput } from 'react-native';
 
-/** 입력칸 아래로 남겨 둘 여백 */
-const GAP = 16;
+/** 입력칸 아래로 남겨 둘 여백(입력칸을 감싼 카드의 아래쪽까지 보이도록 넉넉히) */
+const GAP = 36;
 /** 키보드가 다 올라온 뒤 화면 배치가 끝나기를 기다리는 시간 */
 const SETTLE_MS = 150;
 
@@ -30,33 +30,38 @@ export function revealFocusedInput() {
 export function useKeyboardReveal(scrollRef: RefObject<ScrollView | null>, enabled = true) {
   const navigation = useNavigation();
 
-  const reveal = useCallback(() => {
-    // 다른 화면에 가려져 있으면 그 화면의 입력칸이다.
-    if (!navigation.isFocused()) return;
-    const scroll = scrollRef.current as Scroll | null;
-    const input = TextInput.State.currentlyFocusedInput() as Partial<Host> | null;
-    const content = scroll?.getInnerViewRef?.();
-    if (!scroll?.measureInWindow || !input?.measureInWindow || !input.measureLayout || !content)
-      return;
-    const { measureLayout } = input;
-    input.measureInWindow((_x, y, _w, h) => {
-      scroll.measureInWindow?.((_sx, sy, _sw, sh) => {
-        if (!(h > 0) || !(sh > 0)) return;
-        // 이미 보인다
-        if (y + h + GAP <= sy + sh) return;
-        // 내용 안에서의 위치를 재서 그 칸의 아래가 보이는 영역의 아래에 오게 한다.
-        // 이 스크롤 영역 안의 칸이 아니면 실패로 끝나고 아무 일도 없다.
-        measureLayout.call(
-          input,
-          content,
-          (_l, top, _w2, height) => {
-            scroll.scrollTo({ y: Math.max(0, top + height + GAP - sh), animated: true });
-          },
-          () => undefined,
-        );
+  /** `shrink`: 곧 키보드만큼 줄어들 높이(키보드가 올라오기 시작할 때 미리 맞추려고) */
+  const reveal = useCallback(
+    (shrink = 0) => {
+      // 다른 화면에 가려져 있으면 그 화면의 입력칸이다.
+      if (!navigation.isFocused()) return;
+      const scroll = scrollRef.current as Scroll | null;
+      const input = TextInput.State.currentlyFocusedInput() as Partial<Host> | null;
+      const content = scroll?.getInnerViewRef?.();
+      if (!scroll?.measureInWindow || !input?.measureInWindow || !input.measureLayout || !content)
+        return;
+      const { measureLayout } = input;
+      input.measureInWindow((_x, y, _w, h) => {
+        scroll.measureInWindow?.((_sx, sy, _sw, sh) => {
+          const visible = sh - shrink;
+          if (!(h > 0) || !(visible > 0)) return;
+          // 이미 보인다
+          if (y + h + GAP <= sy + visible) return;
+          // 내용 안에서의 위치를 재서 그 칸의 아래가 보이는 영역의 아래에 오게 한다.
+          // 이 스크롤 영역 안의 칸이 아니면 실패로 끝나고 아무 일도 없다.
+          measureLayout.call(
+            input,
+            content,
+            (_l, top, _w2, height) => {
+              scroll.scrollTo({ y: Math.max(0, top + height + GAP - visible), animated: true });
+            },
+            () => undefined,
+          );
+        });
       });
-    });
-  }, [scrollRef, navigation]);
+    },
+    [scrollRef, navigation],
+  );
 
   useEffect(() => {
     if (!enabled) return;
@@ -66,10 +71,21 @@ export function useKeyboardReveal(scrollRef: RefObject<ScrollView | null>, enabl
       if (timer) clearTimeout(timer);
       timer = setTimeout(reveal, SETTLE_MS);
     });
-    reveals.add(reveal);
+    // iOS는 키보드가 올라오기 시작할 때 높이를 알려 준다 → 키보드와 함께 올라가게 미리 맞춘다.
+    // (다 올라온 뒤에 위에서 한 번 더 정확히 맞춘다.)
+    // 이미 올라와 있는 키보드가 모양만 바뀔 때는 화면이 더 줄지 않으므로 미리 맞추지 않는다.
+    const early =
+      Platform.OS === 'ios'
+        ? Keyboard.addListener('keyboardWillShow', (e) => {
+            if (!Keyboard.isVisible()) reveal(e.endCoordinates.height);
+          })
+        : null;
+    const again = () => reveal();
+    reveals.add(again);
     return () => {
       sub.remove();
-      reveals.delete(reveal);
+      early?.remove();
+      reveals.delete(again);
       if (timer) clearTimeout(timer);
     };
   }, [reveal, enabled]);

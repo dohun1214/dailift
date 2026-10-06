@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Keyboard, Modal, Pressable, Text, View } from 'react-native';
+import { BackHandler, Keyboard, Modal, Pressable, Text, View } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
 type Props = {
@@ -16,6 +16,12 @@ type Props = {
   onConfirm: () => void;
   /** 바깥을 누르거나 뒤로 가기를 눌렀을 때. 없으면 onCancel */
   onDismiss?: () => void;
+  /**
+   * 별도 창(Modal)을 띄우지 않고 지금 화면 위에 그대로 그린다. 앱 맨 위(루트)에 두는 창에만 쓴다.
+   * iOS는 로그인 창이 닫히거나 화면이 넘어가는 도중에는 새 창을 띄우지 못하고 그대로 잃어버리는데,
+   * 꼭 답을 받아야 하는 창은 그렇게 되면 안 된다.
+   */
+  inline?: boolean;
 };
 
 /** 화면 가운데 뜨는 확인 창: 제목 · 설명 · 취소/확인 */
@@ -30,19 +36,24 @@ export function ConfirmDialog({
   onCancel,
   onConfirm,
   onDismiss = onCancel,
+  inline = false,
 }: Props) {
   // 입력 중에 뜨면 키보드를 내린다.
   useEffect(() => {
     if (visible) Keyboard.dismiss();
   }, [visible]);
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onDismiss}
-      statusBarTranslucent
-    >
+  // 화면 위에 그대로 그릴 때는 안드로이드의 뒤로 가기도 여기서 받는다.
+  useEffect(() => {
+    if (!inline || !visible) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      onDismiss();
+      return true;
+    });
+    return () => sub.remove();
+  }, [inline, visible, onDismiss]);
+
+  const content = (
+    <>
       <Pressable style={styles.backdrop} onPress={onDismiss} accessible={false} />
       <View style={styles.wrap} pointerEvents="box-none">
         <View style={styles.card} accessibilityRole="alert" accessibilityViewIsModal>
@@ -74,6 +85,18 @@ export function ConfirmDialog({
           </View>
         </View>
       </View>
+    </>
+  );
+  if (inline) return visible ? <View style={styles.inline}>{content}</View> : null;
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onDismiss}
+      statusBarTranslucent
+    >
+      {content}
     </Modal>
   );
 }
@@ -117,6 +140,7 @@ export function NoticeDialog({ visible, title, body, okLabel, onClose }: NoticeP
 }
 
 const styles = StyleSheet.create((theme) => ({
+  inline: { ...StyleSheet.absoluteFillObject, zIndex: 1000, elevation: 1000 },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: theme.colors.scrim },
   wrap: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
   card: {

@@ -6,13 +6,9 @@ import { SearchField } from '@/components/ui';
 
 const NAME_MAX = 40;
 
-/**
- * 검색어를 새 종목 이름으로 쓸 수 있으면 그 이름. 초성만 친 검색어(ㅂㅊ)는 이름이 아니므로 null.
- */
+/** 검색어를 새 종목 이름으로 쓸 때의 글자(앞뒤 공백 제거, 길이 제한). 빈 검색어면 null */
 export function creatableName(query: string): string | null {
-  const name = query.trim().slice(0, NAME_MAX);
-  if (!name || /[ㄱ-ㅎㅏ-ㅣ]/.test(name)) return null;
-  return name;
+  return query.trim().slice(0, NAME_MAX) || null;
 }
 
 type RowProps = {

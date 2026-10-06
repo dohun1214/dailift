@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
@@ -10,7 +10,7 @@ import { db } from '@/db/client';
 import { createCustomExercise, customNameTaken } from '@/db/routine-editor';
 import type { Equipment, ExerciseType } from '@/db/schema';
 import { useAppLanguage } from '@/i18n/use-app-language';
-import { creatorName, deliverCreatedExercise } from '@/stores/exercise-picker';
+import { deliverCreatedExercise } from '@/stores/exercise-picker';
 
 const TYPES: readonly ExerciseType[] = ['weight_reps', 'bodyweight_reps', 'time'];
 const EQUIPMENT: readonly Equipment[] = [
@@ -27,7 +27,9 @@ const EQUIPMENT: readonly Equipment[] = [
 export default function ExerciseNewScreen() {
   const { t } = useTranslation();
   const lang = useAppLanguage();
-  const [name, setName] = useState(creatorName);
+  // 검색어로 만들기를 누르면 그 검색어가 이름으로 넘어온다.
+  const params = useLocalSearchParams<{ name?: string }>();
+  const [name, setName] = useState(() => (params.name ?? '').slice(0, 40));
   const [type, setType] = useState<ExerciseType>('weight_reps');
   const [primary, setPrimary] = useState<string[]>([]);
   const [secondary, setSecondary] = useState<string[]>([]);
