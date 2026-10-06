@@ -14,7 +14,7 @@ import { useToday } from '@/lib/use-today';
 
 import { useSupplementFormat } from './use-supplement-format';
 
-/** 영양 탭의 '영양제' 구간: 오늘 복용 체크, 지난 7일, 사용 안 하는 영양제 */
+/** 영양 탭의 '영양제' 구간: 오늘 복용 체크, 이번 주, 사용 안 하는 영양제 */
 export function SupplementsView() {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
@@ -124,22 +124,37 @@ export function SupplementsView() {
                   key={d.date.getTime()}
                   style={styles.day}
                   accessible
-                  accessibilityLabel={t('supplements.weekDayA11y', {
-                    date: dayFmt.format(d.date),
-                    count: d.count,
-                  })}
+                  accessibilityLabel={
+                    d.future
+                      ? dayFmt.format(d.date)
+                      : t('supplements.weekDayA11y', {
+                          date: dayFmt.format(d.date),
+                          count: d.count,
+                        })
+                  }
                 >
-                  <Text style={styles.dow}>{dowFmt.format(d.date)}</Text>
-                  <View style={[styles.dot, d.complete && styles.dotOn]}>
-                    <Text
-                      style={[
-                        styles.dotText,
-                        d.count === 0 && styles.dotZero,
-                        d.complete && styles.dotTextOn,
-                      ]}
-                    >
-                      {d.count}
-                    </Text>
+                  <Text style={[styles.dow, d.today && styles.dowToday]}>
+                    {dowFmt.format(d.date)}
+                  </Text>
+                  <View
+                    style={[
+                      styles.dot,
+                      d.complete && styles.dotOn,
+                      d.future && styles.dotFuture,
+                      d.today && !d.complete && styles.dotToday,
+                    ]}
+                  >
+                    {d.future ? null : (
+                      <Text
+                        style={[
+                          styles.dotText,
+                          d.count === 0 && styles.dotZero,
+                          d.complete && styles.dotTextOn,
+                        ]}
+                      >
+                        {d.count}
+                      </Text>
+                    )}
                   </View>
                 </View>
               ))}
@@ -287,7 +302,10 @@ const styles = StyleSheet.create((theme) => ({
     justifyContent: 'center',
     backgroundColor: theme.colors.surface2,
   },
+  dowToday: { fontFamily: theme.fonts.bold, color: theme.colors.text },
   dotOn: { backgroundColor: theme.colors.accent },
+  dotFuture: { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.line },
+  dotToday: { borderWidth: 1.5, borderColor: theme.colors.accent },
   dotText: {
     fontSize: 12,
     lineHeight: 16,

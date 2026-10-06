@@ -1,5 +1,6 @@
-/** 영양제 계산: 오늘 목록, 지난 7일, 알림 계획. 모두 순수 함수. */
+/** 영양제 계산: 오늘 목록, 이번 주, 알림 계획. 모두 순수 함수. */
 import type { SupplementTiming } from '@/db/schema';
+import { weekdayIndex } from '@/lib/weekdays';
 
 export type Supplement = {
   id: string;
@@ -82,10 +83,18 @@ export type WeekDay = {
   /** 그날 먹어야 했던 수: 그날까지 등록돼 있던, 지금 사용 중인 영양제 */
   total: number;
   complete: boolean;
+  today: boolean;
+  /** 아직 오지 않은 날 */
+  future: boolean;
 };
 
-/** 오늘까지 7일. 먹은 수는 영양제 단위로 센다(같은 날 기록이 둘이어도 하나). */
-export function lastSevenDays(
+/** 그 주 월요일 (홈 · 통계와 같은 기준) */
+export function weekStart(today: Date): Date {
+  return new Date(today.getFullYear(), today.getMonth(), today.getDate() - weekdayIndex(today));
+}
+
+/** 이번 주 월–일. 먹은 수는 영양제 단위로 센다(같은 날 기록이 둘이어도 하나). 오지 않은 날은 비워 둔다. */
+export function thisWeek(
   supplements: readonly Supplement[],
   logs: readonly { supplementId: string; date: string }[],
   today: Date,
@@ -99,12 +108,23 @@ export function lastSevenDays(
     set.add(l.supplementId);
     byDate.set(l.date, set);
   }
+  const start = weekStart(today);
+  const todayKey = dateKey(today);
   return Array.from({ length: 7 }, (_, i) => {
-    const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (6 - i));
+    const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    const key = dateKey(date);
+    const future = key > todayKey;
     const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1).getTime();
-    const total = active.filter((s) => s.createdAt < endOfDay).length;
-    const count = byDate.get(dateKey(date))?.size ?? 0;
-    return { date, count, total, complete: total > 0 && count >= total };
+    const total = future ? 0 : active.filter((s) => s.createdAt < endOfDay).length;
+    const count = future ? 0 : (byDate.get(key)?.size ?? 0);
+    return {
+      date,
+      count,
+      total,
+      complete: total > 0 && count >= total,
+      today: key === todayKey,
+      future,
+    };
   });
 }
 

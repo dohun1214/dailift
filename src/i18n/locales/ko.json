@@ -907,7 +907,7 @@
     "today": "오늘",
     "progress": "{{done}} / {{total}}",
     "allDone": "다 먹었어요",
-    "week": "지난 7일",
+    "week": "이번 주",
     "weekDone_other": "다 먹은 날 {{count}}일",
     "weekDayA11y": "{{date}}, {{count}}개 먹음",
     "inactive": "사용 안 함",

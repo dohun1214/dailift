@@ -943,7 +943,7 @@
     "today": "Today",
     "progress": "{{done}} / {{total}}",
     "allDone": "All taken",
-    "week": "Last 7 days",
+    "week": "This week",
     "weekDone_one": "{{count}} full day",
     "weekDone_other": "{{count}} full days",
     "weekDayA11y": "{{date}}, {{count}} taken",

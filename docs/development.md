@@ -150,7 +150,7 @@ npm test
 ## 영양제 (#95)
 - 영양 탭 `src/app/(tabs)/nutrition.tsx`: 식단 | 영양제 세그먼트(식단은 아직 '준비 중'). 목록은 `src/components/supplements/supplements-view.tsx`, 추가 · 편집은 `src/app/supplement/[id].tsx`(`new`면 추가).
 - 표: `supplements`(이름, 용량 글자, `timing` = `time` | `after_workout`, `time_min` = 자정부터 몇 분, `after_min`, `notify` · `renotify` · `active`), `supplement_logs`(영양제 id, 날짜 `YYYY-MM-DD`(기기 현지), 먹은 시각). 체크를 풀면 그날 그 영양제의 줄을 모두 지운 것으로 표시하고, 다시 체크하면 그 줄을 되살린다. 유니크 인덱스가 없으므로 먹은 수는 영양제 단위로 센다.
-- 계산은 `src/domain/supplements.ts`(순수 함수): 오늘 목록(`todayList`), 지난 7일(`lastSevenDays` — 지금 사용 중인 영양제만, 그날까지 등록돼 있던 것을 분모로), 알림 계획(`planNotifications`).
+- 계산은 `src/domain/supplements.ts`(순수 함수): 오늘 목록(`todayList`), 이번 주(`thisWeek` — 월–일, 홈 · 통계와 같은 주 기준. 지금 사용 중인 영양제만, 그날까지 등록돼 있던 것을 분모로. 오지 않은 날은 비워 둔다), 알림 계획(`planNotifications`).
 - 알림(`src/lib/supplement-notifications.ts`): 전부 기기 알림. **`syncSupplementNotifications()` 하나가 예약된 영양제 알림을 지금 상태에 맞춘다** — 계획과 예약된 것을 id로 비교해 달라진 것만 지우고 건다. 영양제 알림은 `data.kind = 'supplement'`로 구분하고 휴식 타이머 알림은 건드리지 않는다(`cancelAllScheduledNotificationsAsync`를 쓰지 않는다).
   - 정해진 시각: 같은 시각의 영양제를 묶어 **요일마다 반복 알림 7개**(+ 한 시간 뒤 '다시 알림' 7개). 앱을 열지 않아도 계속 울린다. 오늘 그 묶음에서 하나라도 체크하면 오늘 요일 몫만 빼고, 남은 영양제가 있으면 그 이름만 담은 한 번짜리를 건다. 뺀 요일 알림은 그 시각이 지난 뒤 다시 맞출 때 돌아온다.
   - iOS는 예약 알림이 앱당 64개까지라 60개를 넘으면 늦은 시각의 묶음부터 '매일 반복' 하나로 줄인다(이 묶음은 체크해도 그날 알림이 온다).

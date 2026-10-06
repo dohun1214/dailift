@@ -2,12 +2,13 @@ import {
   againMinutes,
   dateKey,
   joinTime,
-  lastSevenDays,
   planNotifications,
   type Supplement,
   sortSupplements,
   splitTime,
+  thisWeek,
   todayList,
+  weekStart,
   wrapMinutes,
 } from '../supplements';
 
@@ -74,43 +75,54 @@ describe('오늘 목록', () => {
   });
 });
 
-describe('지난 7일', () => {
-  it('영양제 단위로 세고, 그날 없던 영양제는 빼고 본다', () => {
+describe('이번 주', () => {
+  it('월요일부터 일요일까지, 영양제 단위로 세고 그날 없던 영양제는 빼고 본다', () => {
     const list = [
       supp({ id: 'a' }),
-      supp({ id: 'b', createdAt: new Date(2026, 9, 5, 12).getTime() }),
+      supp({ id: 'b', createdAt: new Date(2026, 9, 6, 12).getTime() }),
       supp({ id: 'x', active: false }),
     ];
     const logs = [
-      { supplementId: 'a', date: '2026-10-04' },
-      { supplementId: 'a', date: '2026-10-04' },
-      { supplementId: 'x', date: '2026-10-04' },
-      { supplementId: 'a', date: '2026-10-06' },
-      { supplementId: 'b', date: '2026-10-06' },
+      { supplementId: 'a', date: '2026-10-04' }, // 지난주 일요일 — 안 센다
       { supplementId: 'a', date: '2026-10-05' },
+      { supplementId: 'a', date: '2026-10-05' },
+      { supplementId: 'x', date: '2026-10-05' },
+      { supplementId: 'a', date: '2026-10-06' },
+      { supplementId: 'a', date: '2026-10-07' },
+      { supplementId: 'b', date: '2026-10-07' },
+      { supplementId: 'a', date: '2026-10-09' }, // 오지 않은 날 — 안 센다
     ];
-    const days = lastSevenDays(list, logs, at(8));
+    const days = thisWeek(list, logs, new Date(2026, 9, 7, 8));
     expect(days.map((d) => dateKey(d.date))).toEqual([
-      '2026-09-30',
-      '2026-10-01',
-      '2026-10-02',
-      '2026-10-03',
-      '2026-10-04',
       '2026-10-05',
       '2026-10-06',
+      '2026-10-07',
+      '2026-10-08',
+      '2026-10-09',
+      '2026-10-10',
+      '2026-10-11',
     ]);
     expect(days.map((d) => [d.count, d.total, d.complete])).toEqual([
-      [0, 1, false],
-      [0, 1, false],
-      [0, 1, false],
-      [0, 1, false],
       [1, 1, true],
       [1, 2, false],
       [2, 2, true],
+      [0, 0, false],
+      [0, 0, false],
+      [0, 0, false],
+      [0, 0, false],
     ]);
+    expect(days.map((d) => d.today)).toEqual([false, false, true, false, false, false, false]);
+    expect(days.map((d) => d.future)).toEqual([false, false, false, true, true, true, true]);
+  });
+  it('일요일은 그 주의 마지막 날이다', () => {
+    const days = thisWeek([supp({ id: 'a' })], [], new Date(2026, 9, 11, 23));
+    expect(dateKey(days[0]?.date as Date)).toBe('2026-10-05');
+    expect(days[6]?.today).toBe(true);
+    expect(days.some((d) => d.future)).toBe(false);
+    expect(dateKey(weekStart(new Date(2026, 9, 12, 0, 1)))).toBe('2026-10-12');
   });
   it('영양제가 없으면 다 먹은 날도 없다', () => {
-    expect(lastSevenDays([], [], at(8)).every((d) => !d.complete)).toBe(true);
+    expect(thisWeek([], [], at(8)).every((d) => !d.complete)).toBe(true);
   });
 });
 
