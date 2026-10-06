@@ -196,6 +196,7 @@ export default function WorkoutEditScreen() {
     >
       <Screen
         revealInputs
+        dismissKeyboardOnDrag
         header={
           <TopBar
             title={t(isNew ? 'history.edit.addTitle' : 'history.edit.title')}
