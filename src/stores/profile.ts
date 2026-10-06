@@ -22,6 +22,8 @@ type ProfileState = OnboardingResult & {
   acceptConsent: () => void;
   completeOnboarding: (result: OnboardingResult) => void;
   setBodyType: (value: BodyType) => void;
+  /** 식단 목표 화면에서 몸무게를 넣거나 고친다(null이면 지움) */
+  setWeight: (weight: number | null, unit: WeightUnit) => void;
   /** 모든 데이터 삭제 때 처음 상태로 */
   reset: () => void;
 };
@@ -45,6 +47,7 @@ export const useProfile = create<ProfileState>()(
       acceptConsent: () => set({ consentAcceptedAt: Date.now() }),
       completeOnboarding: (result) => set({ ...result, onboardingCompleted: true }),
       setBodyType: (bodyType) => set({ bodyType }),
+      setWeight: (weight, weightUnit) => set({ weight, weightUnit }),
       reset: () => set({ ...INITIAL }),
     }),
     { name: 'profile', version: 1, storage: createJSONStorage(() => kvStorage) },

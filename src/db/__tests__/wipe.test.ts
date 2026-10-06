@@ -4,7 +4,8 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 
 import { BASE_EXERCISES } from '@/data/exercises';
-
+import type { CustomFoodInput, FoodItem } from '@/domain/diet';
+import { addFoodLog, createCustomFood, deleteFoodLog, setFavorite } from '../diet';
 import { createCustomExercise } from '../routine-editor';
 import { copyTemplate } from '../routines';
 import * as schema from '../schema';
@@ -26,6 +27,27 @@ function createTestDb() {
   seedReferenceData(db);
   return db;
 }
+const FOOD: FoodItem = {
+  src: 'mfds',
+  sid: 'D000123',
+  name: '현미밥',
+  basis: 'g',
+  kcal: 153,
+  protein: 3,
+  carb: 33,
+  fat: 1,
+  units: [],
+};
+const BAR: CustomFoodInput = {
+  name: '프로틴바',
+  per: 'serving',
+  serving: 50,
+  servingName: '1개',
+  kcal: 190,
+  protein: 20,
+  carb: 18,
+  fat: 6,
+};
 const SUPPLEMENT: SupplementInput = {
   name: '오메가3',
   dose: '',
@@ -66,6 +88,13 @@ describe('wipeUserData', () => {
 
     const supplementId = createSupplement(db, SUPPLEMENT, makeId);
     setSupplementTaken(db, supplementId, '2026-10-06', true, 1, makeId);
+    createCustomFood(db, BAR, makeId);
+    addFoodLog(
+      db,
+      { date: '2026-10-07', meal: 'lunch', item: FOOD, amount: { grams: 210, unit: null } },
+      makeId,
+    );
+    setFavorite(db, 'mfds', FOOD.sid, true, 1, makeId);
 
     expect(hasUserData(db)).toBe(true);
     expect(wipeUserData(db)).toEqual(['photos/a.jpg']);
@@ -81,6 +110,9 @@ describe('wipeUserData', () => {
       schema.workoutPhotos,
       schema.supplements,
       schema.supplementLogs,
+      schema.foods,
+      schema.foodLogs,
+      schema.foodFavorites,
     ]) {
       expect(db.select({ n: count() }).from(table).get()?.n).toBe(0);
     }
@@ -93,6 +125,18 @@ describe('wipeUserData', () => {
     const id = createSupplement(db, SUPPLEMENT, makeId);
     expect(hasUserData(db)).toBe(true);
     deleteSupplement(db, id);
+    expect(hasUserData(db)).toBe(false);
+  });
+
+  it('식단 기록만 있어도 기록이 있는 기기로 본다', () => {
+    const db = createTestDb();
+    const id = addFoodLog(
+      db,
+      { date: '2026-10-07', meal: 'lunch', item: FOOD, amount: { grams: 210, unit: null } },
+      makeId,
+    );
+    expect(hasUserData(db)).toBe(true);
+    deleteFoodLog(db, id);
     expect(hasUserData(db)).toBe(false);
   });
 

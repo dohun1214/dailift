@@ -7,7 +7,6 @@
     "me": "Me"
   },
   "common": {
-    "comingSoon": "Coming soon",
     "back": "Back",
     "close": "Close",
     "save": "Save",
@@ -783,6 +782,7 @@
     "groupPersonal": "Personalization",
     "redoProfile": "Redo profile questions",
     "bodyType": "Muscle map body",
+    "dietGoal": "Diet goals",
     "bodyMale": "Male",
     "bodyFemale": "Female",
     "groupInfo": "About",
@@ -1025,6 +1025,154 @@
       "left": "Left · {{names}}",
       "allDone": "All taken",
       "a11y": "Today's supplements {{done}} of {{total}}, open supplements"
+    }
+  },
+  "diet": {
+    "today": "Today · {{date}}",
+    "prevDay": "Previous day",
+    "nextDay": "Next day",
+    "pickDate": "pick a date",
+    "backToToday": "Today",
+    "kcal": "Calories",
+    "protein": "Protein",
+    "carb": "Carbs",
+    "fat": "Fat",
+    "left": "{{n}} {{unit}} left",
+    "over": "{{n}} {{unit}} over",
+    "reached": "Goal reached",
+    "goalLink": "Goals",
+    "goalLinkA11y": "Edit diet goals",
+    "noGoal": "Set goals to see how much is left.",
+    "setGoal": "Set goals",
+    "meal": {
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "snack": "Snacks"
+    },
+    "addToMealA11y": "Add food to {{meal}}",
+    "emptyTitle": "Log what you eat",
+    "emptyBody": "Tap + next to a meal to find a food. Calories and protein add up for you.",
+    "proteinShort": "{{n}} g protein",
+    "per100": "per 100 {{basis}}",
+    "rowHint": "Opens the amount",
+    "sourceNote": {
+      "kr": "Nutrition values are estimates based on MFDS (Korea) and USDA data.",
+      "usda": "Nutrition values are estimates based on USDA data."
+    },
+    "source": {
+      "mfds": "MFDS Food Composition DB",
+      "usda": "USDA FoodData Central",
+      "custom": "My food"
+    },
+    "unit": {
+      "serving": "1 serving",
+      "servings": "{{n}} servings",
+      "servingNoun": "serving"
+    },
+    "discardTitle": "Leave without saving?",
+    "discardBody": "Your changes will be lost.",
+    "discard": "Leave",
+    "keepEditing": "Keep editing",
+    "cancel": "Cancel",
+    "dateSheet": {
+      "title": "Date",
+      "sub": "Days with a dot have logged food.",
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "today": "Go to today",
+      "hasLogs": "has logged food"
+    },
+    "search": {
+      "title": "Add to {{meal}}",
+      "label": "Search foods",
+      "placeholder": "Search by food name",
+      "clear": "Clear search",
+      "createShort": "Create",
+      "createA11y": "Create a food",
+      "tab": {
+        "recent": "Recent",
+        "favorites": "Favorites",
+        "mine": "My foods"
+      },
+      "empty": {
+        "recent": "Nothing logged yet. Search for a food above.",
+        "favorites": "Tap the star in the amount sheet to keep foods here.",
+        "mine": "Foods that aren't listed can be added with Create."
+      },
+      "noMatchTitle": "No food matches '{{query}}'",
+      "noMatchBody": "For packaged products or supplements that aren't listed, create one from the nutrition label.",
+      "createNamed": "Create '{{name}}'",
+      "tagMine": "Mine",
+      "rowHint": "Opens the amount",
+      "quickAddA11y": "Quick add {{name}}",
+      "editA11y": "Edit {{name}}",
+      "added": "Added to {{meal}} · {{name}} {{amount}}",
+      "undo": "Undo",
+      "loading": "Opening the food list…",
+      "failed": "Couldn't open the food list. Try restarting the app.",
+      "limitTitle": "You can create up to {{max}} foods",
+      "limitBody": "Delete foods you no longer use, then try again."
+    },
+    "amount": {
+      "addTo": "Add to {{meal}}",
+      "delete": "Delete",
+      "favorite": "Favorite",
+      "unitA11y": "Unit",
+      "keyBack": "Backspace",
+      "empty": "Enter an amount",
+      "source": "{{source}} · {{kcal}} kcal per 100 {{basis}}",
+      "equals": "= {{n}} {{basis}}"
+    },
+    "custom": {
+      "titleNew": "Create food",
+      "title": "Edit food",
+      "notFound": "Food not found",
+      "name": "Name",
+      "namePlaceholder": "e.g. Protein shake",
+      "nameRequired": "Enter a name",
+      "per": "Label values are per",
+      "perServing": "Serving",
+      "per100": "100 g",
+      "serving": "Serving size",
+      "servingRequired": "Enter the serving size in grams",
+      "servingName": "Serving name (optional)",
+      "servingNamePlaceholder": "e.g. 1 bar, 1 scoop",
+      "range": "These values don't fit in 100 g. Check the numbers.",
+      "number": "Check the numbers.",
+      "note": "Copy the numbers from the nutrition label. Saved foods stay in My foods for next time.",
+      "delete": "Delete food",
+      "deleteTitle": "Delete {{name}}?",
+      "deleteBody": "It disappears from My foods. Entries you already logged stay.",
+      "deleteConfirm": "Delete"
+    },
+    "goal": {
+      "title": "Diet goals",
+      "perKg": "Protein per kg of body weight",
+      "direct": "Custom",
+      "weight": "Body weight",
+      "weightRange": "Enter a value between {{min}} and {{max}}",
+      "formula": "{{weight}} kg × {{perKg}} g",
+      "formulaLb": "{{weight}} lb ({{kg}} kg) × {{perKg}} g",
+      "perDay": "per day",
+      "needWeight": "Enter your body weight to see a daily protein goal.",
+      "hintByGoal": "The starting value is {{n}} g, based on your training goal ({{goal}}). People who train a lot sometimes go up to 2.2 g.",
+      "hintNoGoal": "The starting value is {{n}} g. People who train a lot sometimes go up to 2.2 g.",
+      "proteinDirect": "Daily protein",
+      "directHint": "This number is used as your goal, regardless of body weight.",
+      "othersTitle": "Calories · Carbs · Fat",
+      "optional": "Optional",
+      "kcal": "Daily calories",
+      "carb": "Daily carbs",
+      "fat": "Daily fat",
+      "macroSum": "Your protein, carb and fat goals add up to about {{n}} kcal.",
+      "othersHint": "The app doesn't calculate these. Enter numbers you already have; anything left empty shows totals only.",
+      "invalid": "Check the numbers.",
+      "disclaimer": "These numbers are for reference, not medical advice. If you have a medical condition, talk to a professional."
+    },
+    "home": {
+      "title": "Today's diet",
+      "a11y": "Today's diet, {{kcal}} kcal, {{protein}} g protein, open diet"
     }
   }
 }

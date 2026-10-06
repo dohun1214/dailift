@@ -256,6 +256,64 @@ export const supplementLogs = sqliteTable(
   (t) => [index('supplement_logs_date_idx').on(t.date, t.supplementId)],
 );
 
+export type Meal = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+/** 음식이 어디서 왔는지: 앱에 넣은 DB(usda · mfds) 또는 직접 만든 음식(custom) */
+export type FoodSrc = 'usda' | 'mfds' | 'custom';
+
+/** 직접 만든 음식. 영양값은 100 g당으로 둔다(화면에서 1회 제공량 기준으로 넣어도 바꿔서 저장) */
+export const foods = sqliteTable('foods', {
+  ...syncColumns,
+  name: text('name').notNull(),
+  /** 1회 제공량(g). 없으면 g으로만 넣는다 */
+  serving: real('serving'),
+  /** 그 양을 부르는 이름 ("1개", "1스쿱") */
+  servingName: text('serving_name'),
+  kcal: real('kcal').notNull().default(0),
+  protein: real('protein').notNull().default(0),
+  carb: real('carb').notNull().default(0),
+  fat: real('fat').notNull().default(0),
+});
+
+/**
+ * 먹은 기록. 날짜는 기기 현지 날짜 글자(`YYYY-MM-DD`).
+ * 음식은 출처 + 출처 id로 가리키고, 이름과 100 g당 영양값을 복사해 둔다(음식 DB를 새로 만들거나 내 음식을 고쳐도 기록은 그대로).
+ */
+export const foodLogs = sqliteTable(
+  'food_logs',
+  {
+    ...syncColumns,
+    date: text('date').notNull(),
+    meal: text('meal').$type<Meal>().notNull(),
+    position: integer('position').notNull().default(0),
+    src: text('src').$type<FoodSrc>().notNull(),
+    sid: text('sid').notNull(),
+    name: text('name').notNull(),
+    /** 먹은 양 (g, 음료는 ml) */
+    grams: real('grams').notNull(),
+    /** 1회 양 단위로 넣었으면 그 단위의 무게와 이름. g으로 넣었으면 둘 다 null. 이름만 null이면 '1인분' */
+    unitGrams: real('unit_grams'),
+    unitName: text('unit_name'),
+    basis: text('basis').$type<'g' | 'ml'>().notNull().default('g'),
+    /** 아래 넷은 100 g(ml)당 */
+    kcal: real('kcal').notNull().default(0),
+    protein: real('protein').notNull().default(0),
+    carb: real('carb').notNull().default(0),
+    fat: real('fat').notNull().default(0),
+  },
+  (t) => [index('food_logs_date_idx').on(t.date, t.meal, t.position)],
+);
+
+/** 즐겨찾기한 음식. 유니크 인덱스는 걸지 않고 앱에서 중복을 거른다 */
+export const foodFavorites = sqliteTable(
+  'food_favorites',
+  {
+    ...syncColumns,
+    src: text('src').$type<FoodSrc>().notNull(),
+    sid: text('sid').notNull(),
+  },
+  (t) => [index('food_favorites_food_idx').on(t.src, t.sid)],
+);
+
 /** 동기화 커서 (로컬 전용). cursorUpdatedAt에는 서버 rev(당겨온 마지막 번호)를 담는다. */
 export const syncState = sqliteTable('sync_state', {
   tableName: text('table_name').primaryKey(),
@@ -278,4 +336,13 @@ export const SYNCED_TABLES = [
   'body_metrics',
   'supplements',
   'supplement_logs',
+  'foods',
+  'food_logs',
+  'food_favorites',
 ] as const;
+
+/**
+ * 건강 데이터 동의가 있어야 서버와 주고받는 표(식단). 동의가 없으면 기기에만 둔다.
+ * 동의 여부는 `stores/health-consent.ts`, 건너뛰는 곳은 `sync/manager.ts`.
+ */
+export const CONSENT_TABLES = ['foods', 'food_logs', 'food_favorites'] as const;

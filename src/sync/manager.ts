@@ -15,6 +15,7 @@ import { hasUserData, wipeUserData } from '@/db/wipe';
 import { kvStorage } from '@/lib/kv-storage';
 import { removePhotoFile } from '@/lib/photos';
 import { useAuth } from '@/stores/auth';
+import { consentSkippedTables } from '@/stores/health-consent';
 
 import { pendingCount, resetForAccount, syncOnce } from './engine';
 import { syncPhotoFiles } from './photos';
@@ -82,7 +83,7 @@ async function run(userId: string) {
   try {
     // 새 사진 파일을 먼저 올리고 → 행 동기화 → 받은 사진 내려받기·지운 사진 정리
     await syncPhotoFiles(db, userId, supabasePhotoStore, devicePhotoFiles);
-    await syncOnce(db, supabaseRemote);
+    await syncOnce(db, supabaseRemote, { skip: consentSkippedTables() });
     await syncPhotoFiles(db, userId, supabasePhotoStore, devicePhotoFiles);
     useSync.getState().done(Date.now());
   } catch (e) {
@@ -139,7 +140,7 @@ export function replaceWithCurrentAccount(): Promise<void> {
 }
 
 /** 아직 서버에 안 보낸 행 수 */
-export const unsyncedCount = () => pendingCount(db);
+export const unsyncedCount = () => pendingCount(db, consentSkippedTables());
 
 /** 기기 데이터를 지울 때(모든 데이터 삭제·계정 삭제) 동기화 기록도 지운다. */
 export function forgetSyncAccount() {

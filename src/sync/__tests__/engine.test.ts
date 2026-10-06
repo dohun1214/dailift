@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 
+import { addFoodLog, logsOn } from '@/db/diet';
 import { copyTemplate } from '@/db/routines';
 import * as schema from '@/db/schema';
 import { seedReferenceData } from '@/db/seed';
@@ -241,6 +242,44 @@ describe('syncOnce', () => {
     await syncOnce(b, remote);
     await syncOnce(a, remote);
     expect(takenOn(a, '2026-10-06').size).toBe(0);
+  });
+
+  it('동의가 없는 표는 보내지도 받지도 않고, 동의하면 그때 올라간다', async () => {
+    const a = createDevice();
+    const b = createDevice();
+    const remote = new FakeRemote();
+    const rice = {
+      src: 'mfds',
+      sid: 'D000123',
+      name: '현미밥',
+      basis: 'g',
+      kcal: 153,
+      protein: 3,
+      carb: 33,
+      fat: 1,
+      units: [],
+    } as const;
+    addFoodLog(
+      a,
+      { date: '2026-10-07', meal: 'lunch', item: rice, amount: { grams: 210, unit: null } },
+      makeId,
+    );
+    const skip = schema.CONSENT_TABLES;
+
+    await syncOnce(a, remote, { skip });
+    expect(remote.table('food_logs').size).toBe(0);
+    expect(pendingCount(a, skip)).toBe(0);
+    expect(pendingCount(a)).toBe(1);
+
+    await syncOnce(a, remote);
+    expect(remote.table('food_logs').size).toBe(1);
+    expect(pendingCount(a)).toBe(0);
+
+    // 동의하지 않은 기기는 받지 않는다
+    await syncOnce(b, remote, { skip });
+    expect(logsOn(b, '2026-10-07')).toEqual([]);
+    await syncOnce(b, remote);
+    expect(logsOn(b, '2026-10-07')).toMatchObject([{ name: '현미밥', grams: 210, unit: null }]);
   });
 
   it('수정하면 dirty가 자동으로 1이 된다', async () => {

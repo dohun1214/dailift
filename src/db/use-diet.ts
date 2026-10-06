@@ -1,0 +1,105 @@
+import { and, desc, eq, isNull } from 'drizzle-orm';
+import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
+import { useMemo } from 'react';
+
+import { dayView, dietTargets, type FoodItem, recentFoods } from '@/domain/diet';
+import { useDietGoals } from '@/stores/diet-goals';
+import { useProfile } from '@/stores/profile';
+
+import { db } from './client';
+import { customItem, toFoodLog } from './diet';
+import * as schema from './schema';
+
+/** 그날의 끼니별 기록과 합계. DB가 바뀌면 다시 계산된다. */
+export function useDietDay(date: string) {
+  const { data: rows } = useLiveQuery(
+    db
+      .select()
+      .from(schema.foodLogs)
+      .where(and(eq(schema.foodLogs.date, date), isNull(schema.foodLogs.deletedAt))),
+    [date],
+  );
+  return useMemo(() => dayView(rows.map(toFoodLog)), [rows]);
+}
+
+/** 식단을 한 번이라도 적은 적이 있는지 (홈 카드 · 처음 안내) */
+export function useHasDietLogs(): boolean {
+  const { data } = useLiveQuery(
+    db
+      .select({ id: schema.foodLogs.id })
+      .from(schema.foodLogs)
+      .where(isNull(schema.foodLogs.deletedAt))
+      .limit(1),
+  );
+  return data.length > 0;
+}
+
+/** 지금 쓰는 하루 목표(없는 것은 null) */
+export function useDietTargets() {
+  const goals = useDietGoals();
+  const weight = useProfile((s) => s.weight);
+  const weightUnit = useProfile((s) => s.weightUnit);
+  const goal = useProfile((s) => s.goal);
+  return useMemo(
+    () =>
+      dietTargets(
+        {
+          proteinMode: goals.proteinMode,
+          proteinPerKg: goals.proteinPerKg,
+          proteinDirect: goals.proteinDirect,
+          kcal: goals.kcal,
+          carb: goals.carb,
+          fat: goals.fat,
+        },
+        { weight, weightUnit, goal },
+      ),
+    [
+      goals.proteinMode,
+      goals.proteinPerKg,
+      goals.proteinDirect,
+      goals.kcal,
+      goals.carb,
+      goals.fat,
+      weight,
+      weightUnit,
+      goal,
+    ],
+  );
+}
+
+/** 음식 찾기 화면에 쓰는 것: 내 음식, 최근 먹은 음식, 즐겨찾기 목록(출처 + id) */
+export function useFoodLists() {
+  const { data: foodRows } = useLiveQuery(
+    db
+      .select()
+      .from(schema.foods)
+      .where(isNull(schema.foods.deletedAt))
+      .orderBy(desc(schema.foods.createdAt)),
+  );
+  const { data: logRows } = useLiveQuery(
+    db
+      .select()
+      .from(schema.foodLogs)
+      .where(isNull(schema.foodLogs.deletedAt))
+      .orderBy(desc(schema.foodLogs.createdAt))
+      .limit(300),
+  );
+  const { data: favRows } = useLiveQuery(
+    db
+      .select({ src: schema.foodFavorites.src, sid: schema.foodFavorites.sid })
+      .from(schema.foodFavorites)
+      .where(isNull(schema.foodFavorites.deletedAt))
+      .orderBy(desc(schema.foodFavorites.createdAt)),
+  );
+  return useMemo(() => {
+    const mine: FoodItem[] = foodRows.map(customItem);
+    const seen = new Set<string>();
+    const favorites = favRows.filter((r) => {
+      const key = `${r.src}:${r.sid}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    return { mine, recent: recentFoods(logRows.map(toFoodLog)), favorites };
+  }, [foodRows, logRows, favRows]);
+}

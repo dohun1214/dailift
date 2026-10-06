@@ -362,6 +362,7 @@ export default function MeScreen() {
               )
             }
           />
+          <ListRow label={t('settings.dietGoal')} onPress={() => router.push('/diet-goal')} />
         </ListSection>
 
         <ListSection title={t('settings.groupData')}>

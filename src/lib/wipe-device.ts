@@ -1,5 +1,7 @@
 import { db } from '@/db/client';
 import { wipeUserData } from '@/db/wipe';
+import { useDietGoals } from '@/stores/diet-goals';
+import { useHealthConsent } from '@/stores/health-consent';
 import { useProfile } from '@/stores/profile';
 import { useRestTimer } from '@/stores/rest-timer';
 import { useSettings } from '@/stores/settings';
@@ -17,5 +19,7 @@ export function wipeDevice() {
   clearExportFiles();
   useSettings.getState().reset();
   useProfile.getState().reset();
+  useDietGoals.getState().reset();
+  useHealthConsent.getState().reset();
   forgetSyncAccount();
 }
