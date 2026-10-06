@@ -1054,12 +1054,14 @@
       "tab": {
         "recent": "최근",
         "favorites": "즐겨찾기",
-        "mine": "내 음식"
+        "mine": "내 음식",
+        "sets": "세트"
       },
       "empty": {
         "recent": "아직 적은 음식이 없어요. 위에서 음식을 찾아보세요.",
         "favorites": "양을 넣는 창에서 별을 누르면 여기에 모여요.",
-        "mine": "목록에 없는 음식은 '만들기'로 직접 넣을 수 있어요."
+        "mine": "목록에 없는 음식은 '만들기'로 직접 넣을 수 있어요.",
+        "sets": "아직 만든 세트가 없어요."
       },
       "noMatchTitle": "'{{query}}'에 맞는 음식이 없어요",
       "noMatchBody": "편의점 제품 · 보충제처럼 목록에 없는 것은 포장지의 영양성분표를 보고 직접 만들 수 있어요.",
@@ -1071,9 +1073,7 @@
       "added": "{{meal}}에 추가했어요 · {{name}} {{amount}}",
       "undo": "취소",
       "loading": "음식 목록을 여는 중이에요",
-      "failed": "음식 목록을 열지 못했어요. 앱을 다시 켜 보세요.",
-      "limitTitle": "내 음식은 {{max}}개까지 만들 수 있어요",
-      "limitBody": "안 쓰는 음식을 지우고 다시 만들어 주세요."
+      "failed": "음식 목록을 열지 못했어요. 앱을 다시 켜 보세요."
     },
     "amount": {
       "addTo": "{{meal}}에 추가",
@@ -1106,6 +1106,51 @@
       "deleteTitle": "{{name}} 삭제할까요?",
       "deleteBody": "'내 음식'에서 사라져요. 이미 적은 기록은 그대로 남아요.",
       "deleteConfirm": "삭제"
+    },
+    "sets": {
+      "count_other": "음식 {{count}}개",
+      "hint": "+를 누르면 세트에 든 음식이 끼니에 하나씩 들어가요. 넣은 뒤에 음식마다 양을 고치거나 뺄 수 있어요.",
+      "rowHint": "누르면 든 음식을 보여 줘요",
+      "emptyTitle": "자주 먹는 조합을 세트로 묶어 보세요",
+      "emptyBody": "음식 여러 개를 양까지 담아 두면 다음부터 한 번에 넣을 수 있어요.",
+      "create": "세트 만들기",
+      "addN": "{{meal}}에 {{count}}개 추가",
+      "previewHint": "음식 줄을 누르면 이번에 넣을 양만 고치거나 뺄 수 있어요. 세트는 그대로예요.",
+      "itemHint": "누르면 이번에 넣을 양을 고쳐요",
+      "useAmount": "이 양으로",
+      "remove": "빼기",
+      "added": "{{meal}}에 추가했어요 · {{name}} (음식 {{count}}개)",
+      "chooseTitle": "만들기",
+      "chooseFood": "음식 만들기",
+      "chooseSet": "세트 만들기",
+      "pickTitle": "세트에 담기",
+      "put": "세트에 담기",
+      "putDone": "세트에 담았어요 · {{name}} {{amount}}",
+      "done": "완료",
+      "titleNew": "세트 만들기",
+      "title": "세트 고치기",
+      "notFound": "세트를 찾을 수 없어요",
+      "name": "이름",
+      "namePlaceholder": "예: 아침 세트",
+      "nameRequired": "이름을 넣어 주세요",
+      "items": "담은 음식",
+      "itemsCount": "{{count}}개",
+      "itemsEmpty": "아래 버튼으로 음식을 찾아 양과 함께 담아 주세요.",
+      "itemsRequired": "음식을 하나 이상 담아 주세요.",
+      "addFood": "음식 담기",
+      "note": "음식 줄을 누르면 양을 고치거나 뺄 수 있어요. 세트를 고쳐도 이미 적은 기록은 그대로예요.",
+      "delete": "세트 삭제",
+      "deleteTitle": "{{name}} 삭제할까요?",
+      "deleteBody": "세트 목록에서 사라져요. 이미 적은 기록은 그대로 남아요.",
+      "deleteConfirm": "삭제"
+    },
+    "limit": {
+      "foodsTitle": "내 음식은 {{max}}개까지 만들 수 있어요",
+      "foodsBody": "안 쓰는 음식을 지우고 다시 만들어 주세요.",
+      "setsTitle": "세트는 {{max}}개까지 만들 수 있어요",
+      "setsBody": "안 쓰는 세트를 지우고 다시 만들어 주세요.",
+      "setItemsTitle": "세트 하나에는 음식을 {{max}}개까지 담을 수 있어요",
+      "setItemsBody": "음식을 빼거나 세트를 둘로 나눠 주세요."
     },
     "goal": {
       "title": "식단 목표",

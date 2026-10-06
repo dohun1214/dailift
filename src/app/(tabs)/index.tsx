@@ -388,6 +388,10 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* 오늘 챙길 것(식단 · 영양제)을 운동 카드 바로 아래에 둔다 — 화면을 넘기지 않고 보이게 */}
+        <DietCard now={now} />
+        <SupplementCard now={now} />
+
         <View style={styles.stats}>
           <View style={styles.stat} accessible>
             <Text style={styles.statLabel}>{t('home.week')}</Text>
@@ -420,9 +424,6 @@ export default function HomeScreen() {
             </Pressable>
           )}
         </View>
-
-        <DietCard now={now} />
-        <SupplementCard now={now} />
 
         <MuscleSetsCard
           rows={muscleRows}

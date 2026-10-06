@@ -60,6 +60,7 @@ export default function RootLayout() {
           <Stack.Screen name="exercise-new" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="supplement/[id]" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="food/[id]" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="food-set/[id]" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="diet-goal" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen
             name="workout"

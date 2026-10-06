@@ -36,6 +36,8 @@ const TABLES: Record<SyncedTableName, SQLiteTable> = {
   foods: schema.foods,
   food_logs: schema.foodLogs,
   food_favorites: schema.foodFavorites,
+  food_sets: schema.foodSets,
+  food_set_items: schema.foodSetItems,
 };
 
 /** 기기에만 있는 컬럼(서버로 보내지 않고, 받을 때 덮지 않음) */

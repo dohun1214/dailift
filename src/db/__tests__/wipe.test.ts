@@ -6,6 +6,7 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { BASE_EXERCISES } from '@/data/exercises';
 import type { CustomFoodInput, FoodItem } from '@/domain/diet';
 import { addFoodLog, createCustomFood, deleteFoodLog, setFavorite } from '../diet';
+import { createSet, deleteSet } from '../diet-sets';
 import { createCustomExercise } from '../routine-editor';
 import { copyTemplate } from '../routines';
 import * as schema from '../schema';
@@ -95,6 +96,7 @@ describe('wipeUserData', () => {
       makeId,
     );
     setFavorite(db, 'mfds', FOOD.sid, true, 1, makeId);
+    createSet(db, '세트', [{ item: FOOD, amount: { grams: 100, unit: null } }], makeId);
 
     expect(hasUserData(db)).toBe(true);
     expect(wipeUserData(db)).toEqual(['photos/a.jpg']);
@@ -113,6 +115,8 @@ describe('wipeUserData', () => {
       schema.foods,
       schema.foodLogs,
       schema.foodFavorites,
+      schema.foodSets,
+      schema.foodSetItems,
     ]) {
       expect(db.select({ n: count() }).from(table).get()?.n).toBe(0);
     }
@@ -137,6 +141,19 @@ describe('wipeUserData', () => {
     );
     expect(hasUserData(db)).toBe(true);
     deleteFoodLog(db, id);
+    expect(hasUserData(db)).toBe(false);
+  });
+
+  it('세트만 있어도 기록이 있는 기기로 본다', () => {
+    const db = createTestDb();
+    const id = createSet(
+      db,
+      '세트',
+      [{ item: FOOD, amount: { grams: 100, unit: null } }],
+      makeId,
+    ) as string;
+    expect(hasUserData(db)).toBe(true);
+    deleteSet(db, id);
     expect(hasUserData(db)).toBe(false);
   });
 

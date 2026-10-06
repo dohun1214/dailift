@@ -86,6 +86,8 @@ const TABLES = {
   foods: schema.foods,
   food_logs: schema.foodLogs,
   food_favorites: schema.foodFavorites,
+  food_sets: schema.foodSets,
+  food_set_items: schema.foodSetItems,
 } as const satisfies Record<(typeof SYNCED_TABLES)[number], unknown>;
 
 /** 전체 백업: 지우지 않은 사용자 행 전부(기본 종목 제외, 기기 전용 표시 컬럼 제외) */
@@ -155,6 +157,16 @@ export function exportAllTables(db: AppDatabase): Record<string, Record<string, 
     .select()
     .from(TABLES.food_favorites)
     .where(isNull(TABLES.food_favorites.deletedAt))
+    .all();
+  out.food_sets = db
+    .select()
+    .from(TABLES.food_sets)
+    .where(isNull(TABLES.food_sets.deletedAt))
+    .all();
+  out.food_set_items = db
+    .select()
+    .from(TABLES.food_set_items)
+    .where(isNull(TABLES.food_set_items.deletedAt))
     .all();
   for (const rows of Object.values(out)) {
     for (const r of rows) {

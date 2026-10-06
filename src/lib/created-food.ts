@@ -14,3 +14,16 @@ export const createdFood = () => created;
 export function clearCreatedFood() {
   created = null;
 }
+
+/** 세트를 만들거나 고치고 돌아오면 찾기 화면이 '세트' 칩을 보여 준다 */
+let setSaved = false;
+
+export function markSetSaved() {
+  setSaved = true;
+}
+
+export function takeSetSaved(): boolean {
+  const was = setSaved;
+  setSaved = false;
+  return was;
+}

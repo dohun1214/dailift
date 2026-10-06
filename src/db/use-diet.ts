@@ -8,6 +8,7 @@ import { useProfile } from '@/stores/profile';
 
 import { db } from './client';
 import { customItem, toFoodLog } from './diet';
+import { buildSets } from './diet-sets';
 import * as schema from './schema';
 
 /** 그날의 끼니별 기록과 합계. DB가 바뀌면 다시 계산된다. */
@@ -102,4 +103,15 @@ export function useFoodLists() {
     });
     return { mine, recent: recentFoods(logRows.map(toFoodLog)), favorites };
   }, [foodRows, logRows, favRows]);
+}
+
+/** 세트 목록(담은 음식 포함). 두 표 가운데 어느 쪽이 바뀌어도 다시 계산된다. */
+export function useFoodSets() {
+  const { data: sets } = useLiveQuery(
+    db.select().from(schema.foodSets).where(isNull(schema.foodSets.deletedAt)),
+  );
+  const { data: items } = useLiveQuery(
+    db.select().from(schema.foodSetItems).where(isNull(schema.foodSetItems.deletedAt)),
+  );
+  return useMemo(() => buildSets(sets, items), [sets, items]);
 }
