@@ -2,6 +2,10 @@
 import type { SupplementTiming } from '@/db/schema';
 import { weekdayIndex } from '@/lib/weekdays';
 
+import { dateKey } from './date-key';
+
+export { dateKey };
+
 export type Supplement = {
   id: string;
   name: string;
@@ -27,12 +31,6 @@ export const LIMITS = { supplements: 30, name: 30, dose: 20 } as const;
 
 const DAY_MIN = 24 * 60;
 const MIN_MS = 60_000;
-
-/** 기기 현지 날짜 글자 `YYYY-MM-DD` */
-export function dateKey(d: Date): string {
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
 
 /** 시 · 분을 5분 단위의 '자정부터 몇 분'으로 (범위를 넘으면 하루를 돌아간다) */
 export function wrapMinutes(min: number): number {

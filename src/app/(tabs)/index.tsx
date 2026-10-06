@@ -8,6 +8,7 @@ import { Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { type DayRoutine, DaySheet } from '@/components/home/day-sheet';
+import { DietCard } from '@/components/home/diet-card';
 import { LiveWorkoutCard } from '@/components/home/live-workout-card';
 import { MuscleSetsCard } from '@/components/home/muscle-sets-card';
 import { type PickRoutine, RoutinePickSheet } from '@/components/home/routine-pick-sheet';
@@ -420,6 +421,7 @@ export default function HomeScreen() {
           )}
         </View>
 
+        <DietCard now={now} />
         <SupplementCard now={now} />
 
         <MuscleSetsCard

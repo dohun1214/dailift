@@ -35,15 +35,26 @@ const PROTEIN_PER_KG: Record<Goal, number> = {
   consistency: 1.2,
 };
 
-/** 하루 단백질 목표(g, 5g 단위). 체중을 모르면 null → 목표를 숨긴다. */
+/** 식단 목표 화면에서 고를 수 있는 '몸무게 1 kg당 단백질(g)' */
+export const PROTEIN_PER_KG_OPTIONS = [1.2, 1.6, 2.0, 2.2] as const;
+
+/** 따로 고르지 않았을 때의 1 kg당 단백질: 운동 목표를 따른다 */
+export function defaultProteinPerKg(goal: Goal | null): number {
+  return PROTEIN_PER_KG[goal ?? 'consistency'];
+}
+
+/**
+ * 하루 단백질 목표(g, 5g 단위). 체중을 모르면 null → 목표를 숨긴다.
+ * `perKg`를 주면 그 값을, 없으면 운동 목표에 맞춘 값을 쓴다.
+ */
 export function proteinTargetGrams(
   weight: number | null,
   unit: 'kg' | 'lb',
   goal: Goal | null,
+  perKg: number | null = null,
 ): number | null {
   if (weight === null || weight <= 0) return null;
-  const perKg = PROTEIN_PER_KG[goal ?? 'consistency'];
-  return Math.round((toKg(weight, unit) * perKg) / 5) * 5;
+  return Math.round((toKg(weight, unit) * (perKg ?? defaultProteinPerKg(goal))) / 5) * 5;
 }
 
 /** 입력 가능한 범위. 벗어나면 저장하지 않고 오류를 보여준다. */

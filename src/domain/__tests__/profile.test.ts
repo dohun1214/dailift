@@ -33,6 +33,11 @@ describe('proteinTargetGrams', () => {
   it('목표가 없으면 기본 계수(1.2)를 쓴다', () => {
     expect(proteinTargetGrams(70, 'kg', null)).toBe(85); // 84
   });
+  it('1 kg당 값을 주면 운동 목표 대신 그 값을 쓴다', () => {
+    expect(proteinTargetGrams(72.5, 'kg', 'muscle', 2.2)).toBe(160); // 159.5
+    expect(proteinTargetGrams(72.5, 'kg', 'consistency', 2.0)).toBe(145);
+    expect(proteinTargetGrams(null, 'kg', 'muscle', 2.2)).toBeNull();
+  });
 });
 
 describe('parseDecimal', () => {

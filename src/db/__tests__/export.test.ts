@@ -26,6 +26,31 @@ const SUPPLEMENT: SupplementInput = {
   active: true,
 };
 
+import type { CustomFoodInput, FoodItem } from '@/domain/diet';
+import { addFoodLog, createCustomFood, deleteFoodLog, setFavorite } from '../diet';
+
+const FOOD: FoodItem = {
+  src: 'mfds',
+  sid: 'D000123',
+  name: '현미밥',
+  basis: 'g',
+  kcal: 153,
+  protein: 3,
+  carb: 33,
+  fat: 1,
+  units: [],
+};
+const BAR: CustomFoodInput = {
+  name: '프로틴바',
+  per: 'serving',
+  serving: 50,
+  servingName: '1개',
+  kcal: 190,
+  protein: 20,
+  carb: 18,
+  fat: 6,
+};
+
 function createTestDb() {
   const sqlite = new Database(':memory:');
   const db = drizzle(sqlite, { schema });
@@ -78,7 +103,20 @@ describe('내보내기', () => {
     setSupplementTaken(db, kept, '2026-10-06', true, 1, makeId);
     setSupplementTaken(db, gone, '2026-10-06', true, 1, makeId);
     deleteSupplement(db, gone, 2);
+    const foodId = createCustomFood(db, BAR, makeId);
+    const entry = {
+      date: '2026-10-07',
+      meal: 'lunch',
+      item: FOOD,
+      amount: { grams: 210, unit: null },
+    } as const;
+    const keptLog = addFoodLog(db, entry, makeId);
+    deleteFoodLog(db, addFoodLog(db, entry, makeId));
+    setFavorite(db, 'mfds', FOOD.sid, true, 1, makeId);
     const data = exportAllTables(db);
+    expect(data.foods?.map((r) => r.id)).toEqual([foodId]);
+    expect(data.food_logs?.map((r) => r.id)).toEqual([keptLog]);
+    expect(data.food_favorites?.map((r) => r.sid)).toEqual([FOOD.sid]);
     expect(data.supplements?.map((r) => r.id)).toEqual([kept]);
     expect(data.supplement_logs?.map((r) => r.supplementId)).toEqual([kept]);
     expect(data.exercises).toHaveLength(1);

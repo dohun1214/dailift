@@ -7,7 +7,6 @@
     "me": "내 정보"
   },
   "common": {
-    "comingSoon": "준비 중이에요",
     "back": "뒤로",
     "close": "닫기",
     "save": "저장",
@@ -755,6 +754,7 @@
     "groupPersonal": "맞춤 설정",
     "redoProfile": "프로파일링 다시 하기",
     "bodyType": "근육맵 바디",
+    "dietGoal": "식단 목표",
     "bodyMale": "남성형",
     "bodyFemale": "여성형",
     "groupInfo": "정보",
@@ -986,6 +986,154 @@
       "left": "남은 것 · {{names}}",
       "allDone": "다 먹었어요",
       "a11y": "오늘 영양제 {{done}} / {{total}}, 영양제 열기"
+    }
+  },
+  "diet": {
+    "today": "오늘 · {{date}}",
+    "prevDay": "전날",
+    "nextDay": "다음 날",
+    "pickDate": "날짜 고르기",
+    "backToToday": "오늘",
+    "kcal": "칼로리",
+    "protein": "단백질",
+    "carb": "탄수화물",
+    "fat": "지방",
+    "left": "{{n}} {{unit}} 남음",
+    "over": "{{n}} {{unit}} 넘음",
+    "reached": "목표를 채웠어요",
+    "goalLink": "목표",
+    "goalLinkA11y": "식단 목표 고치기",
+    "noGoal": "목표를 정하면 얼마나 남았는지 보여 드려요.",
+    "setGoal": "목표 정하기",
+    "meal": {
+      "breakfast": "아침",
+      "lunch": "점심",
+      "dinner": "저녁",
+      "snack": "간식"
+    },
+    "addToMealA11y": "{{meal}}에 음식 추가",
+    "emptyTitle": "먹은 음식을 적어 보세요",
+    "emptyBody": "끼니 옆의 +를 눌러 음식을 찾으면 칼로리와 단백질을 더해 드려요.",
+    "proteinShort": "단백질 {{n}} g",
+    "per100": "100 {{basis}}당",
+    "rowHint": "누르면 양을 고쳐요",
+    "sourceNote": {
+      "kr": "영양 정보는 식약처 · USDA 자료를 기준으로 한 참고값이에요.",
+      "usda": "영양 정보는 USDA 자료를 기준으로 한 참고값이에요."
+    },
+    "source": {
+      "mfds": "식약처 식품영양성분 DB",
+      "usda": "USDA FoodData Central",
+      "custom": "내 음식"
+    },
+    "unit": {
+      "serving": "1인분",
+      "servings": "{{n}}인분",
+      "servingNoun": "인분"
+    },
+    "discardTitle": "저장하지 않고 나갈까요?",
+    "discardBody": "바꾼 내용이 사라져요.",
+    "discard": "나가기",
+    "keepEditing": "계속 편집",
+    "cancel": "취소",
+    "dateSheet": {
+      "title": "날짜",
+      "sub": "점이 있는 날은 적은 음식이 있는 날이에요.",
+      "prevMonth": "이전 달",
+      "nextMonth": "다음 달",
+      "today": "오늘로",
+      "hasLogs": "적은 음식 있음"
+    },
+    "search": {
+      "title": "{{meal}}에 추가",
+      "label": "음식 찾기",
+      "placeholder": "음식 이름으로 찾기",
+      "clear": "검색어 지우기",
+      "createShort": "만들기",
+      "createA11y": "음식 직접 만들기",
+      "tab": {
+        "recent": "최근",
+        "favorites": "즐겨찾기",
+        "mine": "내 음식"
+      },
+      "empty": {
+        "recent": "아직 적은 음식이 없어요. 위에서 음식을 찾아보세요.",
+        "favorites": "양을 넣는 창에서 별을 누르면 여기에 모여요.",
+        "mine": "목록에 없는 음식은 '만들기'로 직접 넣을 수 있어요."
+      },
+      "noMatchTitle": "'{{query}}'에 맞는 음식이 없어요",
+      "noMatchBody": "편의점 제품 · 보충제처럼 목록에 없는 것은 포장지의 영양성분표를 보고 직접 만들 수 있어요.",
+      "createNamed": "'{{name}}' 만들기",
+      "tagMine": "내 음식",
+      "rowHint": "누르면 양을 정해요",
+      "quickAddA11y": "{{name}} 바로 추가",
+      "editA11y": "{{name}} 고치기",
+      "added": "{{meal}}에 추가했어요 · {{name}} {{amount}}",
+      "undo": "취소",
+      "loading": "음식 목록을 여는 중이에요",
+      "failed": "음식 목록을 열지 못했어요. 앱을 다시 켜 보세요.",
+      "limitTitle": "내 음식은 {{max}}개까지 만들 수 있어요",
+      "limitBody": "안 쓰는 음식을 지우고 다시 만들어 주세요."
+    },
+    "amount": {
+      "addTo": "{{meal}}에 추가",
+      "delete": "삭제",
+      "favorite": "즐겨찾기",
+      "unitA11y": "단위",
+      "keyBack": "지우기",
+      "empty": "양을 넣어 주세요",
+      "source": "{{source}} · 100 {{basis}}당 {{kcal}} kcal",
+      "equals": "= {{n}} {{basis}}"
+    },
+    "custom": {
+      "titleNew": "음식 만들기",
+      "title": "음식 고치기",
+      "notFound": "음식을 찾을 수 없어요",
+      "name": "이름",
+      "namePlaceholder": "예: 프로틴 셰이크",
+      "nameRequired": "이름을 넣어 주세요",
+      "per": "영양성분표의 기준",
+      "perServing": "1회 제공량",
+      "per100": "100 g당",
+      "serving": "1회 제공량",
+      "servingRequired": "1회 제공량을 g으로 넣어 주세요",
+      "servingName": "부르는 이름 (선택)",
+      "servingNamePlaceholder": "예: 1개, 1스쿱",
+      "range": "100 g에 들어갈 수 없는 값이에요. 숫자를 다시 확인해 주세요.",
+      "number": "숫자를 다시 확인해 주세요.",
+      "note": "포장지의 영양성분표에 적힌 숫자를 그대로 넣으면 돼요. 저장하면 '내 음식'에 남아 다음에도 쓸 수 있어요.",
+      "delete": "음식 삭제",
+      "deleteTitle": "{{name}} 삭제할까요?",
+      "deleteBody": "'내 음식'에서 사라져요. 이미 적은 기록은 그대로 남아요.",
+      "deleteConfirm": "삭제"
+    },
+    "goal": {
+      "title": "식단 목표",
+      "perKg": "몸무게 1 kg당 단백질",
+      "direct": "직접 입력",
+      "weight": "몸무게",
+      "weightRange": "{{min}}–{{max}} 사이로 넣어 주세요",
+      "formula": "{{weight}} kg × {{perKg}} g",
+      "formulaLb": "{{weight}} lb ({{kg}} kg) × {{perKg}} g",
+      "perDay": "하루",
+      "needWeight": "몸무게를 넣으면 하루 단백질 목표가 나와요.",
+      "hintByGoal": "처음 값은 운동 목표({{goal}})에 맞춘 {{n}} g이에요. 운동량이 많으면 2.2 g까지 올려 쓰기도 해요.",
+      "hintNoGoal": "처음 값은 {{n}} g이에요. 운동량이 많으면 2.2 g까지 올려 쓰기도 해요.",
+      "proteinDirect": "하루 단백질",
+      "directHint": "몸무게와 상관없이 넣은 숫자를 목표로 써요.",
+      "othersTitle": "칼로리 · 탄수화물 · 지방",
+      "optional": "선택",
+      "kcal": "하루 칼로리",
+      "carb": "하루 탄수화물",
+      "fat": "하루 지방",
+      "macroSum": "단백질 · 탄수화물 · 지방 목표를 더하면 약 {{n}} kcal예요.",
+      "othersHint": "앱이 계산해 주지 않아요. 정해 둔 숫자가 있으면 넣고, 비워 둔 것은 합계만 보여요.",
+      "invalid": "숫자를 다시 확인해 주세요.",
+      "disclaimer": "참고용 숫자예요. 의학적 조언이 아니며, 질환이 있으면 전문가와 상담하세요."
+    },
+    "home": {
+      "title": "오늘 식단",
+      "a11y": "오늘 식단, 칼로리 {{kcal}} kcal, 단백질 {{protein}} g, 식단 열기"
     }
   }
 }

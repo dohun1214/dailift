@@ -33,6 +33,9 @@ const TABLES: Record<SyncedTableName, SQLiteTable> = {
   body_metrics: schema.bodyMetrics,
   supplements: schema.supplements,
   supplement_logs: schema.supplementLogs,
+  foods: schema.foods,
+  food_logs: schema.foodLogs,
+  food_favorites: schema.foodFavorites,
 };
 
 /** 기기에만 있는 컬럼(서버로 보내지 않고, 받을 때 덮지 않음) */
@@ -144,9 +147,11 @@ export function resetForAccount(db: AppDatabase) {
   });
 }
 
-export function pendingCount(db: AppDatabase): number {
+/** `skip`: 서버와 주고받지 않는 표(동의가 없는 식단)는 세지 않는다 */
+export function pendingCount(db: AppDatabase, skip: readonly SyncedTableName[] = []): number {
   let n = 0;
   for (const table of schema.SYNCED_TABLES) {
+    if (skip.includes(table)) continue;
     n +=
       db.get<{ n: number }>(
         sql`SELECT COUNT(*) AS n FROM ${ident(table)} WHERE ${where(table, 'dirty = 1')}`,
@@ -157,14 +162,23 @@ export function pendingCount(db: AppDatabase): number {
 
 export type SyncResult = { pushed: number; pulled: number };
 
-/** 한 번 동기화: 모두 보낸 뒤 모두 받는다. */
+/**
+ * 한 번 동기화: 모두 보낸 뒤 모두 받는다.
+ * `skip`에 든 표는 보내지도 받지도 않는다(건강 데이터 동의가 없을 때의 식단 표). 그 표의 dirty 표시는 그대로 남아
+ * 나중에 동의하면 그때 올라간다.
+ */
 export async function syncOnce(
   db: AppDatabase,
   remote: SyncRemote,
-  { batch = 500, now = () => Date.now() }: { batch?: number; now?: () => number } = {},
+  {
+    batch = 500,
+    now = () => Date.now(),
+    skip = [],
+  }: { batch?: number; now?: () => number; skip?: readonly SyncedTableName[] } = {},
 ): Promise<SyncResult> {
+  const tables = schema.SYNCED_TABLES.filter((t) => !skip.includes(t));
   let pushed = 0;
-  for (const table of schema.SYNCED_TABLES) {
+  for (const table of tables) {
     for (;;) {
       const rows = collectDirty(db, table, batch);
       if (rows.length === 0) break;
@@ -175,7 +189,7 @@ export async function syncOnce(
     }
   }
   let pulled = 0;
-  for (const table of schema.SYNCED_TABLES) {
+  for (const table of tables) {
     let cursor = getCursor(db, table);
     for (;;) {
       const rows = await remote.pull(table, cursor, batch);

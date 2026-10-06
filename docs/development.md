@@ -148,7 +148,7 @@ npm test
 - Google 로그인이 동작하려면 Google Cloud OAuth 클라이언트(웹·Android·iOS)와 Supabase Google 제공자 설정이 필요하다. 웹·iOS 클라이언트 ID를 `src/config.ts`에, iOS URL 스킴(`com.googleusercontent.apps.…`)을 app.json 플러그인 옵션 `iosUrlScheme`에 넣는다. Android 개발용 SHA-1은 Expo 기본 debug.keystore(5E:8F:16:…:F6:25), 스토어용은 #17에서 추가.
 
 ## 영양제 (#95)
-- 영양 탭 `src/app/(tabs)/nutrition.tsx`: 식단 | 영양제 세그먼트(식단은 아직 '준비 중'). 목록은 `src/components/supplements/supplements-view.tsx`, 추가 · 편집은 `src/app/supplement/[id].tsx`(`new`면 추가).
+- 영양 탭 `src/app/(tabs)/nutrition.tsx`: 식단 | 영양제 세그먼트(처음에는 식단이 보인다. `?view=supplements|diet`로 들어오면 그 구간을 연다). 목록은 `src/components/supplements/supplements-view.tsx`, 추가 · 편집은 `src/app/supplement/[id].tsx`(`new`면 추가).
 - 표: `supplements`(이름, 용량 글자, `timing` = `time` | `after_workout`, `time_min` = 자정부터 몇 분, `after_min`, `notify` · `renotify` · `active`), `supplement_logs`(영양제 id, 날짜 `YYYY-MM-DD`(기기 현지), 먹은 시각). 체크를 풀면 그날 그 영양제의 줄을 모두 지운 것으로 표시하고, 다시 체크하면 그 줄을 되살린다. 유니크 인덱스가 없으므로 먹은 수는 영양제 단위로 센다.
 - 계산은 `src/domain/supplements.ts`(순수 함수): 오늘 목록(`todayList`), 이번 주(`thisWeek` — 월–일, 홈 · 통계와 같은 주 기준. 지금 사용 중인 영양제만, 그날까지 등록돼 있던 것을 분모로. 오지 않은 날은 비워 둔다), 알림 계획(`planNotifications`).
 - 알림(`src/lib/supplement-notifications.ts`): 전부 기기 알림. **`syncSupplementNotifications()` 하나가 예약된 영양제 알림을 지금 상태에 맞춘다** — 계획과 예약된 것을 id로 비교해 달라진 것만 지우고 건다. 영양제 알림은 `data.kind = 'supplement'`로 구분하고 휴식 타이머 알림은 건드리지 않는다(`cancelAllScheduledNotificationsAsync`를 쓰지 않는다).
@@ -168,7 +168,18 @@ npm test
 - 출처 규칙 `src/domain/food-search.ts`: 기기 지역이 KR이면 식약처 먼저 + USDA, 그 밖에는 USDA만(고르는 설정 없음). 검색어의 낱말은 모두 들어 있어야 하고, 순서는 출처 → 같은 이름 → 검색어로 시작하고 끊김 → 검색어로 시작 → 낱말의 처음 → 그 밖 → pri → 짧은 이름. 한글은 띄어쓰기 · 밑줄을 빼고 견주고, 초성이 섞이면 초성 칸에서 넓게 찾은 뒤 `matchesSearch`로 거른다.
 - 기록에는 음식 DB의 줄 번호(`id`)가 아니라 `src` + `sid`와 영양값 사본을 남긴다(DB를 새로 만들면 줄 번호가 바뀐다).
 - 데이터 출처 화면(`settings/licenses.tsx`)은 이 기기에서 보이는 출처만 적고 음식 수를 DB에서 읽어 보여 준다.
-- 개발 빌드 전용 확인 화면 `dailift://dev/food`(식단 화면이 생기면 지운다).
+
+## 식단 (#101)
+- 영양 탭의 식단 구간 `src/components/diet/diet-view.tsx`: 날짜 줄(‹ › 로 하루씩, 날짜를 누르면 달력 `date-sheet.tsx`, 오늘보다 뒤는 못 고른다), 합계 카드(`macro.tsx` — 칼로리 · 단백질은 크게, 탄수화물 · 지방은 작게), 끼니 카드 4개. 끼니 옆 +는 음식 찾기(`src/app/food-search.tsx`), 음식 줄을 누르면 양 창(`amount-sheet.tsx`)에서 양을 고치거나 지운다.
+- 표(모두 동기화 표): `foods`(직접 만든 음식 — 100 g당 영양값, 1회 제공량 g과 이름), `food_logs`(날짜 `YYYY-MM-DD`(기기 현지), 끼니, 끼니 안 순서, 음식 출처 `usda|mfds|custom` + 출처 id, **이름 · 100 g당 영양값 사본**, 먹은 양 g, 1회 양 단위로 넣었으면 그 단위의 무게와 이름), `food_favorites`(출처 + id). 음식 DB를 새로 만들거나 내 음식을 고쳐도 이미 적은 기록은 그때 값 그대로다.
+- **건강 데이터 동의가 있어야 서버와 주고받는다.** `schema.CONSENT_TABLES`(위 세 표)는 `stores/health-consent.ts`의 동의가 없으면 `sync/manager.ts`가 `syncOnce` · `pendingCount`에서 건너뛴다(보내지도 받지도 않고 dirty 표시는 남는다 → 동의하면 그때 올라간다). 기본값은 동의 없음이고, 동의 화면은 아직 없다(다음 이슈). 그때까지 식단은 기기에만 있다. "모든 데이터 삭제"는 동의와 상관없이 서버의 식단 행도 지운 것으로 표시한다.
+- 계산 `src/domain/diet.ts`(순수 함수): 먹은 양의 영양값 · 하루 합계(`dayView`), 목표(`dietTargets`), 진행(`progress` — 보이는 숫자끼리 맞도록 반올림한 값으로 남은 양을 낸다), 양 넣기(`parseAmount` · `pressKey`), 최근 먹은 음식(`recentFoods`), 직접 만든 음식의 100 g당 환산(`toPer100`). 날짜 글자와 달력은 `src/domain/date-key.ts`.
+- 양 창: 기기 키보드 대신 **창 안의 숫자판**을 쓴다(아래에서 올라오는 창 안에 입력칸을 두면 iOS에서 키보드와 창이 엇갈린다). 단위는 g(음료는 ml) 또는 그 음식의 1회 양 단위(식약처: 이름 없는 1회 양 = "1인분", USDA: "1 cup" 같은 가정 단위, 내 음식: 넣은 이름). 처음 누른 숫자는 보이던 값을 갈아 치운다.
+- 음식 찾기: 검색어가 없으면 `최근 · 즐겨찾기 · 내 음식` 칩, 있으면 내 음식 + 음식 DB를 같이 찾아 즐겨찾기 → 최근 먹은 것 → 나머지 순으로 보여 준다. 줄을 누르면 양 창(그때 가정 단위를 모두 읽는다), +는 보이는 양(최근 = 지난번 양, 그 밖 = 1회 양 또는 100 g)으로 바로 추가. 추가해도 화면에 남고 아래에 '추가했어요 · 취소'가 4초 뜬다.
+- 음식 만들기 · 고치기 `src/app/food/[id].tsx`(`new`면 만들기, `?name=`으로 이름을 채운다): 영양성분표의 기준(1회 제공량당 / 100 g당)을 고르고 숫자를 그대로 넣으면 100 g당으로 바꿔 저장한다. 만들고 돌아오면 찾기 화면이 그 음식의 양 창을 연다(`lib/created-food.ts`).
+- 목표 `src/app/diet-goal.tsx`(식단 화면의 "목표 ›" · 내 정보의 "식단 목표"): 단백질은 몸무게 1 kg당 1.2 / 1.6 / 2.0 / 2.2 g 가운데 고르거나 하루 g을 직접 넣는다. 고르지 않은 사람은 운동 목표에 맞춘 값(`defaultProteinPerKg`)을 쓰고 운동 목표를 바꾸면 따라 바뀐다. 칼로리 · 탄수화물 · 지방은 직접 넣는 숫자만(앱이 계산하지 않는다, 비우면 합계만 보인다). 몸무게도 여기서 넣고 고친다(설정의 kg · lb 단위). 목표는 `stores/diet-goals.ts`, 몸무게는 `stores/profile.ts` — 둘 다 이 기기에만 둔다.
+- 홈의 '오늘 식단' 카드 `src/components/home/diet-card.tsx`: 식단을 한 번이라도 적은 사람에게만 보인다.
+- 효능 · 감량 조언 문구는 쓰지 않는다. 식단 화면 아래에 데이터 출처, 목표 화면 아래에 면책 문구를 둔다.
 
 ## 서버 동기화
 - 서버 테이블은 기기 SYNCED_TABLES와 같은 컬럼 + `user_id`(기본값 auth.uid(), auth.users on delete cascade) + `rev`. RLS로 본인 행만 select/insert/update(삭제는 툼스톤, 계정 삭제 시 cascade). SQL은 `supabase/migrations/`.

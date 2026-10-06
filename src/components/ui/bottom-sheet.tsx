@@ -24,6 +24,10 @@ type Props = {
   children: ReactNode;
   /** 안에 글자 입력칸이 있으면 true: 키보드가 올라온 만큼 창을 위로 올린다 */
   avoidKeyboard?: boolean;
+  /** 제목 오른쪽에 두는 버튼(즐겨찾기 등) */
+  headerRight?: ReactNode;
+  /** 제목을 몇 줄까지 보여 줄지 (기본은 줄 수 제한 없음) */
+  titleLines?: number;
 };
 
 /** 이만큼 끌어내리거나 이 속도로 튕기면 닫는다 */
@@ -42,6 +46,8 @@ export function BottomSheet({
   closeLabel,
   children,
   avoidKeyboard = false,
+  headerRight,
+  titleLines,
 }: Props) {
   const insets = useSafeAreaInsets();
   const drag = useRef(new Animated.Value(0)).current;
@@ -49,8 +55,8 @@ export function BottomSheet({
   closeRef.current = onClose;
   const motion = useSheetMotion(visible, avoidKeyboard);
   // 내려가는 동안에는 닫히기 직전 내용을 그대로 보여 준다(부모가 내용을 먼저 비워도 줄어들지 않게).
-  const shown = useRef({ title, subtitle, children });
-  if (visible) shown.current = { title, subtitle, children };
+  const shown = useRef({ title, subtitle, children, headerRight });
+  if (visible) shown.current = { title, subtitle, children, headerRight };
 
   // 키보드 높이만큼 창을 올린다(창은 Modal 안이라 화면의 키보드 처리가 닿지 않는다).
   const [keyboard, setKeyboard] = useState(0);
@@ -128,13 +134,16 @@ export function BottomSheet({
         >
           <View style={styles.grab} {...pan.panHandlers}>
             <View style={styles.handle} />
-            <View style={styles.head}>
-              <Text style={styles.title} accessibilityRole="header">
-                {shown.current.title}
-              </Text>
-              {shown.current.subtitle ? (
-                <Text style={styles.subtitle}>{shown.current.subtitle}</Text>
-              ) : null}
+            <View style={styles.headRow}>
+              <View style={styles.head}>
+                <Text style={styles.title} accessibilityRole="header" numberOfLines={titleLines}>
+                  {shown.current.title}
+                </Text>
+                {shown.current.subtitle ? (
+                  <Text style={styles.subtitle}>{shown.current.subtitle}</Text>
+                ) : null}
+              </View>
+              {shown.current.headerRight}
             </View>
           </View>
           {shown.current.children}
@@ -165,7 +174,8 @@ const styles = StyleSheet.create((theme) => ({
     borderRadius: 2,
     backgroundColor: theme.colors.track,
   },
-  head: { gap: 4, paddingTop: 4, paddingHorizontal: 4 },
+  headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  head: { flex: 1, gap: 4, paddingTop: 4, paddingHorizontal: 4 },
   title: {
     fontSize: 18,
     lineHeight: 24,
