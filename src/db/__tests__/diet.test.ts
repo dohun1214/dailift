@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 
@@ -18,6 +18,7 @@ import {
   listFavorites,
   loggedDates,
   logsOn,
+  restoreFoodLog,
   setFavorite,
   updateCustomFood,
   updateFoodLogAmount,
@@ -127,6 +128,15 @@ describe('먹은 기록', () => {
     expect(loggedDates(db, '2026-10-01', '2026-10-31').size).toBe(0);
     const row = db.select().from(schema.foodLogs).where(eq(schema.foodLogs.id, id)).get();
     expect(row).toMatchObject({ deletedAt: 5, dirty: 1 });
+
+    // 취소: 지운 표시만 걷어 내고, 서버에도 다시 올리게 표시한다
+    db.run(sql`UPDATE food_logs SET dirty = 0`);
+    restoreFoodLog(db, id);
+    expect(logsOn(db, '2026-10-07')).toMatchObject([{ id, grams: 120, unit: null }]);
+    expect(db.select().from(schema.foodLogs).where(eq(schema.foodLogs.id, id)).get()).toMatchObject(
+      { deletedAt: null, dirty: 1 },
+    );
+    deleteFoodLog(db, id, 5);
     // 지운 뒤에 넣으면 다시 처음 자리부터
     const next = addFoodLog(
       db,

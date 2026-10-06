@@ -1058,6 +1058,7 @@
     "rowHint": "Opens the amount",
     "swipeHint": "Swipe left to delete",
     "deleteAction": "Delete",
+    "deleted": "Deleted {{name}}",
     "sourceNote": {
       "kr": "Nutrition values are estimates based on MFDS (Korea) and USDA data.",
       "usda": "Nutrition values are estimates based on USDA data."

@@ -1019,6 +1019,7 @@
     "rowHint": "누르면 양을 고쳐요",
     "swipeHint": "왼쪽으로 밀면 지워져요",
     "deleteAction": "삭제",
+    "deleted": "{{name}} 지웠어요",
     "sourceNote": {
       "kr": "영양 정보는 식약처 · USDA 자료를 기준으로 한 참고값이에요.",
       "usda": "영양 정보는 USDA 자료를 기준으로 한 참고값이에요."

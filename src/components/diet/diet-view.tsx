@@ -21,8 +21,13 @@ import { DateSheet } from './date-sheet';
 import { BigMacro, SmallMacro } from './macro';
 import { useDietFormat } from './use-diet-format';
 
+type Props = {
+  /** 음식 기록을 지운 바로 뒤에 부른다(화면 아래 '취소' 줄을 띄우는 데 쓴다) */
+  onDeleted?: (log: FoodLog) => void;
+};
+
 /** 영양 탭의 '식단' 구간: 날짜, 하루 합계와 목표, 끼니별 음식 */
-export function DietView() {
+export function DietView({ onDeleted }: Props) {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
   const fmt = useDietFormat();
@@ -47,6 +52,11 @@ export function DietView() {
   const openGoal = () => router.push('/diet-goal');
 
   const add = (meal: Meal) => router.push({ pathname: '/food-search', params: { date, meal } });
+
+  const remove = (log: FoodLog) => {
+    deleteFoodLog(db, log.id);
+    onDeleted?.(log);
+  };
 
   const edit = (log: FoodLog) => {
     // 영양값은 기록에 남긴 그때 값을 쓰고, 고를 수 있는 단위만 지금 음식 정보에서 다시 찾는다.
@@ -79,14 +89,14 @@ export function DietView() {
           const n = nutrientsFor(log, log.grams);
           const sub = `${fmt.amount(log, log.basis)} · ${t('diet.proteinShort', { n: fmt.int(n.protein) })}`;
           return (
-            <SwipeDelete key={log.id} onDelete={() => deleteFoodLog(db, log.id)}>
+            <SwipeDelete key={log.id} onDelete={() => remove(log)}>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${log.name}, ${sub}, ${fmt.int(n.kcal)} kcal`}
                 accessibilityHint={`${t('diet.rowHint')}. ${t('diet.swipeHint')}`}
                 accessibilityActions={[{ name: 'delete', label: t('diet.deleteAction') }]}
                 onAccessibilityAction={(e) => {
-                  if (e.nativeEvent.actionName === 'delete') deleteFoodLog(db, log.id);
+                  if (e.nativeEvent.actionName === 'delete') remove(log);
                 }}
                 onPress={() => edit(log)}
                 style={({ pressed }) => [
@@ -236,7 +246,7 @@ export function DietView() {
           setEditOpen(false);
         }}
         onDelete={() => {
-          if (editing) deleteFoodLog(db, editing.log.id);
+          if (editing) remove(editing.log);
           setEditOpen(false);
         }}
         onClose={() => setEditOpen(false)}
