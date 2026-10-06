@@ -149,6 +149,19 @@ export function resetForAccount(db: AppDatabase) {
   });
 }
 
+/**
+ * 이 표들만 처음부터 다시: 기기의 행을 모두 다시 보내고 처음부터 받는다.
+ * 식단 기록 백업에 새로 동의했을 때 쓴다(그만하면 서버가 행을 지우므로, 다시 동의하면 전부 다시 올려야 한다).
+ */
+export function resyncTables(db: AppDatabase, tables: readonly SyncedTableName[]) {
+  db.transaction((tx) => {
+    for (const table of tables) {
+      tx.run(sql`UPDATE ${ident(table)} SET dirty = 1 WHERE ${where(table, '1 = 1')}`);
+      tx.run(sql`DELETE FROM sync_state WHERE table_name = ${table}`);
+    }
+  });
+}
+
 /** `skip`: 서버와 주고받지 않는 표(동의가 없는 식단)는 세지 않는다 */
 export function pendingCount(db: AppDatabase, skip: readonly SyncedTableName[] = []): number {
   let n = 0;

@@ -1225,5 +1225,38 @@
       "title": "Today's diet",
       "a11y": "Today's diet, {{kcal}} kcal, {{protein}} g protein, open diet"
     }
+  },
+  "dietBackup": {
+    "title": "Diet backup",
+    "rowOn": "On",
+    "rowOff": "Off",
+    "askTitle": "Back up your diet log to your account?",
+    "askBody": "Right now it's stored only on this device. With backup, you can pick up where you left off on a new device.",
+    "more": "Learn more",
+    "keepOnDevice": "Keep on device",
+    "heading": "Back up your diet log\nto your account?",
+    "sub": "Your diet log is health-related information, so we ask for consent separately from your workout records.",
+    "info": {
+      "whatLabel": "What we store",
+      "what": "Food entries (date, meal, food, amount, nutrition), foods you created, favorites and sets",
+      "whyLabel": "What it's for",
+      "why": "Backing up your log and syncing it across devices",
+      "untilLabel": "How long",
+      "until": "Until you withdraw consent or delete your account",
+      "whereLabel": "Where",
+      "where": "Supabase servers (Seoul, South Korea)"
+    },
+    "noteOff": "You can use every diet feature without agreeing. Your log will then stay only on this device. You can withdraw consent anytime in Me.",
+    "noteOn": "If you stop the backup, your diet log is deleted from the server. The log on this device stays.",
+    "privacy": "View Privacy Policy",
+    "accept": "Agree and back up",
+    "onTitle": "Backup is on",
+    "onSince": "Agreed on {{date}}",
+    "stop": "Stop backup",
+    "stopTitle": "Stop backing up your diet log?",
+    "stopBody": "Your diet log is deleted from the server. The log on this device stays.",
+    "stopConfirm": "Stop",
+    "failedTitle": "Couldn't change it",
+    "failedBody": "Check your internet connection and try again."
   }
 }

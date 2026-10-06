@@ -15,6 +15,7 @@ import {
   pendingCount,
   type RemoteRow,
   resetForAccount,
+  resyncTables,
   type SyncedTableName,
   type SyncRemote,
   syncOnce,
@@ -280,6 +281,60 @@ describe('syncOnce', () => {
     expect(logsOn(b, '2026-10-07')).toEqual([]);
     await syncOnce(b, remote);
     expect(logsOn(b, '2026-10-07')).toMatchObject([{ name: '현미밥', grams: 210, unit: null }]);
+  });
+
+  it('백업을 그만했다가 다시 동의하면 식단 기록만 전부 다시 올린다', async () => {
+    const a = createDevice();
+    const remote = new FakeRemote();
+    const rice = {
+      src: 'mfds',
+      sid: 'D000123',
+      name: '현미밥',
+      basis: 'g',
+      kcal: 153,
+      protein: 3,
+      carb: 33,
+      fat: 1,
+      units: [],
+    } as const;
+    addFoodLog(
+      a,
+      { date: '2026-10-07', meal: 'lunch', item: rice, amount: { grams: 210, unit: null } },
+      makeId,
+    );
+    createSupplement(
+      a,
+      {
+        name: '오메가3',
+        dose: '',
+        timing: 'time',
+        timeMin: 540,
+        afterMin: 30,
+        notify: false,
+        renotify: false,
+        active: true,
+      },
+      makeId,
+    );
+    await syncOnce(a, remote);
+    expect(pendingCount(a)).toBe(0);
+
+    // 그만하기: 서버가 식단 행을 지운다. 기기의 기록은 그대로다.
+    remote.table('food_logs').clear();
+    const skip = schema.CONSENT_TABLES;
+    await syncOnce(a, remote, { skip });
+    expect(logsOn(a, '2026-10-07')).toHaveLength(1);
+    expect(remote.table('food_logs').size).toBe(0);
+
+    // 다시 동의: 식단 표만 처음부터
+    remote.pushes = [];
+    resyncTables(a, skip);
+    expect(pendingCount(a)).toBe(1);
+    await syncOnce(a, remote);
+    expect(remote.table('food_logs').size).toBe(1);
+    expect(remote.pushes.map((p) => p.table)).toEqual(['food_logs']);
+    expect(logsOn(a, '2026-10-07')).toHaveLength(1);
+    expect(pendingCount(a)).toBe(0);
   });
 
   it('수정하면 dirty가 자동으로 1이 된다', async () => {
