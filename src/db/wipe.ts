@@ -36,6 +36,8 @@ export function wipeUserData(db: AppDatabase): string[] {
       schema.supplements,
       schema.foodLogs,
       schema.foodFavorites,
+      schema.foodSetItems,
+      schema.foodSets,
       schema.foods,
       schema.syncState,
     ]) {
@@ -88,6 +90,14 @@ export function hasUserData(db: AppDatabase): boolean {
         .select({ id: schema.foodLogs.id })
         .from(schema.foodLogs)
         .where(isNull(schema.foodLogs.deletedAt))
+        .limit(1)
+        .all(),
+    ) ||
+    any(
+      db
+        .select({ id: schema.foodSets.id })
+        .from(schema.foodSets)
+        .where(isNull(schema.foodSets.deletedAt))
         .limit(1)
         .all(),
     ) ||

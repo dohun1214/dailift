@@ -33,6 +33,8 @@ type Props = {
   onSubmit: (amount: Amount) => void;
   /** 있으면 '삭제' 버튼을 같이 보여 준다(적은 음식을 고칠 때) */
   onDelete?: () => void;
+  /** 삭제 버튼 글자. 기본은 '삭제', 세트에서는 '빼기' */
+  deleteLabel?: string;
   onClose: () => void;
 };
 
@@ -47,6 +49,7 @@ export function AmountSheet({
   submitLabel,
   onSubmit,
   onDelete,
+  deleteLabel,
   onClose,
 }: Props) {
   const { t } = useTranslation();
@@ -210,7 +213,7 @@ export function AmountSheet({
             onPress={onDelete}
             style={({ pressed }) => [styles.delete, pressed && styles.pressed]}
           >
-            <Text style={styles.deleteText}>{t('diet.amount.delete')}</Text>
+            <Text style={styles.deleteText}>{deleteLabel ?? t('diet.amount.delete')}</Text>
           </Pressable>
           <View style={styles.submit}>
             <Button

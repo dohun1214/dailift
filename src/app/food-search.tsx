@@ -1,57 +1,76 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Pencil, Plus } from 'lucide-react-native';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Keyboard, Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { AmountSheet } from '@/components/diet/amount-sheet';
+import { SetPreviewSheet } from '@/components/diet/set-preview-sheet';
 import { useDietFormat } from '@/components/diet/use-diet-format';
 import {
+  ActionSheet,
   AppText,
+  Button,
   Chip,
   NoMatchCard,
   NoticeDialog,
   Screen,
   SearchCreateRow,
   Snackbar,
+  TextButton,
   TopBar,
 } from '@/components/ui';
 import { db } from '@/db/client';
 import { addFoodLog, canAddCustomFood, deleteFoodLog } from '@/db/diet';
+import { addItemsToMeal, canAddSet, deleteFoodLogs } from '@/db/diet-sets';
 import type { Meal } from '@/db/schema';
-import { useFoodLists } from '@/db/use-diet';
+import { useFoodLists, useFoodSets } from '@/db/use-diet';
 import { dateKey, parseDateKey } from '@/domain/date-key';
 import {
   type Amount,
   defaultAmount,
   type FoodItem,
+  type FoodSet,
   foodKey,
   LIMITS,
   MEALS,
   nutrientsFor,
+  type SetItem,
+  setTotal,
 } from '@/domain/diet';
 import { searchFoods } from '@/food/catalog';
+import { withAllUnits } from '@/food/full-item';
 import { catalogItem, loadCatalogItem } from '@/food/items';
 import { useFoodDb, useFoodSources } from '@/food/use-food-db';
-import { clearCreatedFood, createdFood } from '@/lib/created-food';
+import { clearCreatedFood, createdFood, takeSetSaved } from '@/lib/created-food';
 import { matchesSearch } from '@/lib/hangul';
+import { useSetDraft } from '@/stores/set-draft';
 
-type Tab = 'recent' | 'favorites' | 'mine';
-const TABS: readonly Tab[] = ['recent', 'favorites', 'mine'];
+type Tab = 'recent' | 'favorites' | 'mine' | 'sets';
+const TABS: readonly Tab[] = ['recent', 'favorites', 'mine', 'sets'];
 /** '추가했어요' 한 줄이 떠 있는 시간 */
 const ADDED_MS = 4000;
 const RESULT_LIMIT = 50;
 
 type Row = { item: FoodItem; amount: Amount; recent?: boolean };
 
-/** 음식 찾기: 끼니에 넣을 음식을 고른다. 줄을 누르면 양 창, +는 보이는 양으로 바로 추가. 추가해도 화면에 남는다. */
+/**
+ * 음식 찾기: 끼니에 넣을 음식을 고른다. 줄을 누르면 양 창, +는 보이는 양으로 바로 추가. 추가해도 화면에 남는다.
+ * `mode=set`으로 열면 고른 음식이 끼니가 아니라 만들고 있는 세트에 담긴다('세트에 담기').
+ */
 export default function FoodSearchScreen() {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
   const fmt = useDietFormat();
   // `q`: 처음 검색어. 화면에서는 쓰지 않고, 주소로 열어 확인할 때 쓴다(에뮬레이터에는 한글을 입력할 수 없다).
-  const params = useLocalSearchParams<{ date?: string; meal?: string; q?: string }>();
+  const params = useLocalSearchParams<{
+    date?: string;
+    meal?: string;
+    q?: string;
+    mode?: string;
+  }>();
+  const toSet = params.mode === 'set';
   const date = params.date && parseDateKey(params.date) ? params.date : dateKey(new Date());
   const meal: Meal = MEALS.find((m) => m === params.meal) ?? 'snack';
   const mealName = fmt.meal(meal);
@@ -59,19 +78,25 @@ export default function FoodSearchScreen() {
   const { db: foodDb, failed } = useFoodDb();
   const sources = useFoodSources();
   const { mine, recent, favorites } = useFoodLists();
+  const sets = useFoodSets();
   const [query, setQuery] = useState(params.q ?? '');
   const [tab, setTab] = useState<Tab>('recent');
   const [picked, setPicked] = useState<Row | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [added, setAdded] = useState<{ id: string; message: string } | null>(null);
-  const [full, setFull] = useState(false);
-  const addedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(
-    () => () => {
-      if (addedTimer.current) clearTimeout(addedTimer.current);
-    },
-    [],
+  // 방금 한 일을 알리는 한 줄. `key`가 바뀌면 새로 떠오른다.
+  const [added, setAdded] = useState<{ key: number; message: string; undo: () => void } | null>(
+    null,
   );
+  const addedKey = useRef(0);
+  const [notice, setNotice] = useState<'foods' | 'sets' | 'setItems' | null>(null);
+  const [noticeShown, setNoticeShown] = useState<'foods' | 'sets' | 'setItems'>('foods');
+  const [choosing, setChoosing] = useState(false);
+  const [preview, setPreview] = useState<FoodSet | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const warn = (kind: 'foods' | 'sets' | 'setItems') => {
+    setNoticeShown(kind);
+    setNotice(kind);
+  };
 
   const searching = query.trim().length > 0;
   const mineByKey = useMemo(() => new Map(mine.map((f) => [foodKey(f), f])), [mine]);
@@ -109,28 +134,33 @@ export default function FoodSearchScreen() {
       ? recent.map((r) => ({ ...r, recent: true }))
       : tab === 'favorites'
         ? favoriteRows
-        : mine.map((item) => ({ item, amount: defaultAmount(item) }));
+        : tab === 'mine'
+          ? mine.map((item) => ({ item, amount: defaultAmount(item) }))
+          : [];
 
-  const showAdded = (id: string, item: FoodItem, amount: Amount) => {
-    if (addedTimer.current) clearTimeout(addedTimer.current);
-    setAdded({
-      id,
-      message: t('diet.search.added', {
-        meal: mealName,
-        name: item.name,
-        amount: fmt.amount(amount, item.basis),
-      }),
-    });
-    addedTimer.current = setTimeout(() => setAdded(null), ADDED_MS);
+  const say = (message: string, undo: () => void) => {
+    addedKey.current += 1;
+    setAdded({ key: addedKey.current, message, undo });
   };
   const add = (item: FoodItem, amount: Amount) => {
+    const text = { name: item.name, amount: fmt.amount(amount, item.basis) };
+    if (toSet) {
+      if (!useSetDraft.getState().add(item, amount)) return warn('setItems');
+      say(t('diet.sets.putDone', text), () => useSetDraft.getState().removeLast());
+      return;
+    }
     const id = addFoodLog(db, { date, meal, item, amount });
-    showAdded(id, item, amount);
+    say(t('diet.search.added', { meal: mealName, ...text }), () => deleteFoodLog(db, id));
+  };
+  const addSet = (set: FoodSet, items: readonly SetItem[]) => {
+    if (items.length === 0) return;
+    const ids = addItemsToMeal(db, { date, meal, items });
+    say(t('diet.sets.added', { meal: mealName, name: set.name, count: items.length }), () =>
+      deleteFoodLogs(db, ids),
+    );
   };
   const undo = () => {
-    if (!added) return;
-    if (addedTimer.current) clearTimeout(addedTimer.current);
-    deleteFoodLog(db, added.id);
+    added?.undo();
     setAdded(null);
   };
 
@@ -138,21 +168,31 @@ export default function FoodSearchScreen() {
     (row: Row) => {
       Keyboard.dismiss();
       // 양 창에서는 고를 수 있는 단위를 모두 보여 준다(목록에는 기본 1회 양만 실려 있다).
-      let item = row.item;
-      if (item.src !== 'custom' && foodDb) {
-        const full_ = loadCatalogItem(foodDb, item.src, item.sid);
-        if (full_) item = { ...full_, units: mergeUnits(full_.units, row.amount) };
-      }
+      const item = withAllUnits(row.item, row.amount.unit, foodDb);
       setPicked({ item, amount: row.amount });
       setSheetOpen(true);
     },
     [foodDb],
   );
 
-  const create = (name: string | null = null) => {
-    if (!canAddCustomFood(db)) return setFull(true);
+  const createFood = (name: string | null = null) => {
+    if (!canAddCustomFood(db)) return warn('foods');
     router.push({ pathname: '/food/[id]', params: { id: 'new', ...(name ? { name } : {}) } });
   };
+  const createSet = () => {
+    if (!canAddSet(db)) return warn('sets');
+    router.push({ pathname: '/food-set/[id]', params: { id: 'new' } });
+  };
+  // 세트에 담는 중에는 음식만 만든다(세트 안에서 세트를 만들지 않는다).
+  const create = () => (toSet ? createFood() : setChoosing(true));
+  // 세트를 저장하고 돌아오면 세트 칩을 보여 준다.
+  useFocusEffect(
+    useCallback(() => {
+      if (!takeSetSaved()) return;
+      setQuery('');
+      setTab('sets');
+    }, []),
+  );
   // 음식을 만들고 돌아오면 그 음식의 양 창을 바로 연다.
   // 돌아온 직후에는 새 음식이 아직 목록에 안 실렸을 수 있어, 목록이 바뀔 때도 다시 본다.
   useFocusEffect(
@@ -187,16 +227,31 @@ export default function FoodSearchScreen() {
         : null;
 
   const name = query.trim().slice(0, LIMITS.foodName) || null;
+  const showSets = !searching && tab === 'sets' && !toSet;
   const loading = searching && !foodDb && !failed;
 
   return (
     <Screen
       avoidKeyboard
       dismissKeyboardOnDrag
-      header={<TopBar title={t('diet.search.title', { meal: mealName })} />}
+      header={
+        <TopBar
+          title={toSet ? t('diet.sets.pickTitle') : t('diet.search.title', { meal: mealName })}
+          trailing={
+            toSet ? <TextButton label={t('diet.sets.done')} onPress={() => router.back()} /> : null
+          }
+        />
+      }
       footer={
         added ? (
-          <Snackbar message={added.message} actionLabel={t('diet.search.undo')} onAction={undo} />
+          <Snackbar
+            key={added.key}
+            message={added.message}
+            actionLabel={t('diet.search.undo')}
+            onAction={undo}
+            onDismiss={() => setAdded((cur) => (cur?.key === added.key ? null : cur))}
+            autoHideMs={ADDED_MS}
+          />
         ) : undefined
       }
     >
@@ -214,7 +269,7 @@ export default function FoodSearchScreen() {
       </View>
       {searching ? null : (
         <View style={styles.chips} accessibilityRole="tablist">
-          {TABS.map((x) => (
+          {TABS.filter((x) => !(toSet && x === 'sets')).map((x) => (
             <Chip
               key={x}
               label={t(`diet.search.tab.${x}`)}
@@ -230,7 +285,69 @@ export default function FoodSearchScreen() {
       {searching && failed ? <AppText tone="secondary">{t('diet.search.failed')}</AppText> : null}
       {loading ? <AppText tone="secondary">{t('diet.search.loading')}</AppText> : null}
 
-      {rows.length > 0 ? (
+      {showSets ? (
+        sets.length > 0 ? (
+          <>
+            <View style={styles.list}>
+              {sets.map((set, i) => {
+                const total = setTotal(set.items);
+                const line = `${t('diet.sets.count', { count: set.items.length })} · ${fmt.int(total.kcal)} kcal · ${t('diet.proteinShort', { n: fmt.int(total.protein) })}`;
+                return (
+                  <View key={set.id} style={[styles.row, i < sets.length - 1 && styles.line]}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${set.name}, ${line}`}
+                      accessibilityHint={t('diet.sets.rowHint')}
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        setPreview(set);
+                        setPreviewOpen(true);
+                      }}
+                      style={({ pressed }) => [styles.rowBody, pressed && styles.pressed]}
+                    >
+                      <Text style={styles.name} numberOfLines={2}>
+                        {set.name}
+                      </Text>
+                      <Text style={styles.sub} numberOfLines={1}>
+                        {line}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t('diet.search.editA11y', { name: set.name })}
+                      onPress={() =>
+                        router.push({ pathname: '/food-set/[id]', params: { id: set.id } })
+                      }
+                      style={({ pressed }) => [styles.hit, pressed && styles.pressed]}
+                    >
+                      <Pencil size={18} color={theme.colors.text2} strokeWidth={1.8} />
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t('diet.search.quickAddA11y', { name: set.name })}
+                      onPress={() => addSet(set, set.items)}
+                      style={({ pressed }) => [styles.hit, pressed && styles.pressed]}
+                    >
+                      <View style={styles.plus}>
+                        <Plus size={16} color={theme.colors.text} strokeWidth={2.2} />
+                      </View>
+                    </Pressable>
+                  </View>
+                );
+              })}
+            </View>
+            <Text style={styles.hint}>{t('diet.sets.hint')}</Text>
+          </>
+        ) : (
+          <View style={styles.emptyCard}>
+            <View style={styles.emptyText}>
+              <Text style={styles.emptyTitle}>{t('diet.sets.emptyTitle')}</Text>
+              <Text style={styles.emptyBody}>{t('diet.sets.emptyBody')}</Text>
+            </View>
+            <Button label={t('diet.sets.create')} size="sm" icon={Plus} onPress={createSet} />
+          </View>
+        )
+      ) : rows.length > 0 ? (
         <View style={styles.list}>
           {rows.map((row, i) => {
             const { item } = row;
@@ -296,7 +413,7 @@ export default function FoodSearchScreen() {
             createLabel={
               name ? t('diet.search.createNamed', { name }) : t('diet.search.createA11y')
             }
-            onCreate={() => create(name)}
+            onCreate={() => createFood(name)}
           />
         )
       ) : (
@@ -307,32 +424,51 @@ export default function FoodSearchScreen() {
         visible={sheetOpen}
         item={picked?.item ?? null}
         initial={picked?.amount ?? NO_AMOUNT}
-        submitLabel={t('diet.amount.addTo', { meal: mealName })}
+        submitLabel={toSet ? t('diet.sets.put') : t('diet.amount.addTo', { meal: mealName })}
         onSubmit={(amount) => {
           if (picked) add(picked.item, amount);
           setSheetOpen(false);
         }}
         onClose={() => setSheetOpen(false)}
       />
+      <SetPreviewSheet
+        visible={previewOpen}
+        set={preview}
+        mealName={mealName}
+        foodDb={foodDb}
+        onAdd={(items) => {
+          if (preview) addSet(preview, items);
+          setPreviewOpen(false);
+        }}
+        onClose={() => setPreviewOpen(false)}
+      />
+      <ActionSheet
+        visible={choosing}
+        title={t('diet.sets.chooseTitle')}
+        actions={[
+          { label: t('diet.sets.chooseFood'), onPress: () => createFood(), afterClose: true },
+          { label: t('diet.sets.chooseSet'), onPress: createSet, afterClose: true },
+        ]}
+        cancelLabel={t('diet.cancel')}
+        onClose={() => setChoosing(false)}
+      />
       <NoticeDialog
-        visible={full}
-        title={t('diet.search.limitTitle', { max: LIMITS.customFoods })}
-        body={t('diet.search.limitBody')}
+        visible={notice !== null}
+        title={t(`diet.limit.${noticeShown}Title`, { max: LIMIT_OF[noticeShown] })}
+        body={t(`diet.limit.${noticeShown}Body`)}
         okLabel={t('common.ok')}
-        onClose={() => setFull(false)}
+        onClose={() => setNotice(null)}
       />
     </Screen>
   );
 }
 
 const NO_AMOUNT = { grams: 100, unit: null } as const;
-
-/** 지난번에 쓴 단위가 지금 목록에 없으면 앞에 끼워 넣는다 */
-function mergeUnits(units: FoodItem['units'], amount: Amount) {
-  const u = amount.unit;
-  if (!u || units.some((x) => x.name === u.name && x.grams === u.grams)) return units;
-  return [u, ...units];
-}
+const LIMIT_OF = {
+  foods: LIMITS.customFoods,
+  sets: LIMITS.sets,
+  setItems: LIMITS.setItems,
+} as const;
 
 const styles = StyleSheet.create((theme) => ({
   top: { paddingTop: 4 },
@@ -391,6 +527,37 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: theme.colors.surface2,
+  },
+  hint: {
+    paddingHorizontal: 6,
+    fontSize: 12,
+    lineHeight: 19,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.text2,
+  },
+  emptyCard: {
+    gap: 14,
+    paddingTop: 20,
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+    borderRadius: theme.radius.xl,
+    backgroundColor: theme.colors.surface,
+  },
+  emptyText: { gap: 4 },
+  emptyTitle: {
+    fontSize: 15,
+    lineHeight: 20,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.bold,
+    color: theme.colors.text,
+  },
+  emptyBody: {
+    fontSize: 13,
+    lineHeight: 19.5,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.text2,
   },
   empty: {
     paddingHorizontal: 6,

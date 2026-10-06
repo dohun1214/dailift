@@ -28,6 +28,7 @@ const SUPPLEMENT: SupplementInput = {
 
 import type { CustomFoodInput, FoodItem } from '@/domain/diet';
 import { addFoodLog, createCustomFood, deleteFoodLog, setFavorite } from '../diet';
+import { createSet, deleteSet } from '../diet-sets';
 
 const FOOD: FoodItem = {
   src: 'mfds',
@@ -113,7 +114,12 @@ describe('내보내기', () => {
     const keptLog = addFoodLog(db, entry, makeId);
     deleteFoodLog(db, addFoodLog(db, entry, makeId));
     setFavorite(db, 'mfds', FOOD.sid, true, 1, makeId);
+    const one = [{ item: FOOD, amount: { grams: 100, unit: null } }];
+    const keptSet = createSet(db, '세트', one, makeId);
+    deleteSet(db, createSet(db, '지울 세트', one, makeId) as string);
     const data = exportAllTables(db);
+    expect(data.food_sets?.map((r) => r.id)).toEqual([keptSet]);
+    expect(data.food_set_items?.map((r) => r.setId)).toEqual([keptSet]);
     expect(data.foods?.map((r) => r.id)).toEqual([foodId]);
     expect(data.food_logs?.map((r) => r.id)).toEqual([keptLog]);
     expect(data.food_favorites?.map((r) => r.sid)).toEqual([FOOD.sid]);

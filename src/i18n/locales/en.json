@@ -1093,12 +1093,14 @@
       "tab": {
         "recent": "Recent",
         "favorites": "Favorites",
-        "mine": "My foods"
+        "mine": "My foods",
+        "sets": "Sets"
       },
       "empty": {
         "recent": "Nothing logged yet. Search for a food above.",
         "favorites": "Tap the star in the amount sheet to keep foods here.",
-        "mine": "Foods that aren't listed can be added with Create."
+        "mine": "Foods that aren't listed can be added with Create.",
+        "sets": "No sets yet."
       },
       "noMatchTitle": "No food matches '{{query}}'",
       "noMatchBody": "For packaged products or supplements that aren't listed, create one from the nutrition label.",
@@ -1110,9 +1112,7 @@
       "added": "Added to {{meal}} · {{name}} {{amount}}",
       "undo": "Undo",
       "loading": "Opening the food list…",
-      "failed": "Couldn't open the food list. Try restarting the app.",
-      "limitTitle": "You can create up to {{max}} foods",
-      "limitBody": "Delete foods you no longer use, then try again."
+      "failed": "Couldn't open the food list. Try restarting the app."
     },
     "amount": {
       "addTo": "Add to {{meal}}",
@@ -1145,6 +1145,52 @@
       "deleteTitle": "Delete {{name}}?",
       "deleteBody": "It disappears from My foods. Entries you already logged stay.",
       "deleteConfirm": "Delete"
+    },
+    "sets": {
+      "count_one": "{{count}} food",
+      "count_other": "{{count}} foods",
+      "hint": "Tap + to add each food in the set to the meal. You can change or remove each one afterwards.",
+      "rowHint": "Shows the foods in the set",
+      "emptyTitle": "Save foods you often eat together",
+      "emptyBody": "Put several foods and their amounts in a set, then add them all at once next time.",
+      "create": "Create set",
+      "addN": "Add {{count}} to {{meal}}",
+      "previewHint": "Tap a food to change or remove it just for this time. The set stays the same.",
+      "itemHint": "Changes the amount for this time",
+      "useAmount": "Use this amount",
+      "remove": "Remove",
+      "added": "Added to {{meal}} · {{name}} ({{count}} foods)",
+      "chooseTitle": "Create",
+      "chooseFood": "Create a food",
+      "chooseSet": "Create a set",
+      "pickTitle": "Add to set",
+      "put": "Add to set",
+      "putDone": "Added to set · {{name}} {{amount}}",
+      "done": "Done",
+      "titleNew": "Create set",
+      "title": "Edit set",
+      "notFound": "Set not found",
+      "name": "Name",
+      "namePlaceholder": "e.g. Breakfast set",
+      "nameRequired": "Enter a name",
+      "items": "Foods",
+      "itemsCount": "{{count}}",
+      "itemsEmpty": "Use the button below to find foods and add them with an amount.",
+      "itemsRequired": "Add at least one food.",
+      "addFood": "Add food",
+      "note": "Tap a food to change its amount or remove it. Editing a set doesn't change entries you already logged.",
+      "delete": "Delete set",
+      "deleteTitle": "Delete {{name}}?",
+      "deleteBody": "It disappears from your sets. Entries you already logged stay.",
+      "deleteConfirm": "Delete"
+    },
+    "limit": {
+      "foodsTitle": "You can create up to {{max}} foods",
+      "foodsBody": "Delete foods you no longer use, then try again.",
+      "setsTitle": "You can create up to {{max}} sets",
+      "setsBody": "Delete sets you no longer use, then try again.",
+      "setItemsTitle": "A set can hold up to {{max}} foods",
+      "setItemsBody": "Remove a food or split the set in two."
     },
     "goal": {
       "title": "Diet goals",

@@ -314,6 +314,34 @@ export const foodFavorites = sqliteTable(
   (t) => [index('food_favorites_food_idx').on(t.src, t.sid)],
 );
 
+/** 세트: 자주 같이 먹는 음식을 양까지 묶어 둔 것. 끼니에 넣으면 안의 음식이 하나씩 기록으로 들어간다 */
+export const foodSets = sqliteTable('food_sets', {
+  ...syncColumns,
+  name: text('name').notNull(),
+});
+
+/** 세트에 담은 음식. 칸의 뜻은 `food_logs`와 같다(이름 · 100 g당 영양값 사본, 담은 양) */
+export const foodSetItems = sqliteTable(
+  'food_set_items',
+  {
+    ...syncColumns,
+    setId: text('set_id').notNull(),
+    position: integer('position').notNull().default(0),
+    src: text('src').$type<FoodSrc>().notNull(),
+    sid: text('sid').notNull(),
+    name: text('name').notNull(),
+    grams: real('grams').notNull(),
+    unitGrams: real('unit_grams'),
+    unitName: text('unit_name'),
+    basis: text('basis').$type<'g' | 'ml'>().notNull().default('g'),
+    kcal: real('kcal').notNull().default(0),
+    protein: real('protein').notNull().default(0),
+    carb: real('carb').notNull().default(0),
+    fat: real('fat').notNull().default(0),
+  },
+  (t) => [index('food_set_items_set_idx').on(t.setId, t.position)],
+);
+
 /** 동기화 커서 (로컬 전용). cursorUpdatedAt에는 서버 rev(당겨온 마지막 번호)를 담는다. */
 export const syncState = sqliteTable('sync_state', {
   tableName: text('table_name').primaryKey(),
@@ -339,10 +367,18 @@ export const SYNCED_TABLES = [
   'foods',
   'food_logs',
   'food_favorites',
+  'food_sets',
+  'food_set_items',
 ] as const;
 
 /**
  * 건강 데이터 동의가 있어야 서버와 주고받는 표(식단). 동의가 없으면 기기에만 둔다.
  * 동의 여부는 `stores/health-consent.ts`, 건너뛰는 곳은 `sync/manager.ts`.
  */
-export const CONSENT_TABLES = ['foods', 'food_logs', 'food_favorites'] as const;
+export const CONSENT_TABLES = [
+  'foods',
+  'food_logs',
+  'food_favorites',
+  'food_sets',
+  'food_set_items',
+] as const;

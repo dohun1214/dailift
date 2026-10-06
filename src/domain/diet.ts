@@ -46,6 +46,9 @@ export const LIMITS = {
   foodName: 40,
   servingName: 12,
   customFoods: 300,
+  sets: 50,
+  setItems: 20,
+  setName: 30,
   /** 100 g당 넣을 수 있는 가장 큰 값 */
   kcalPer100: 900,
   gramsPer100: 100,
@@ -244,6 +247,18 @@ export function withUnit(units: readonly FoodUnit[], unit: FoodUnit | null): Foo
 
 export const sameUnit = (a: FoodUnit | null, b: FoodUnit | null) =>
   a === b || (a !== null && b !== null && a.name === b.name && a.grams === b.grams);
+
+// ---------- 세트
+
+/** 세트에 담은 음식 하나: 음식과 그 양 */
+export type SetItem = { item: FoodItem; amount: Amount };
+
+export type FoodSet = { id: string; name: string; items: SetItem[]; createdAt: number };
+
+/** 세트(또는 담은 음식들)의 영양값 합계 */
+export function setTotal(items: readonly SetItem[]): Nutrients {
+  return sumNutrients(items.map(({ item, amount }) => nutrientsFor(item, amount.grams)));
+}
 
 // ---------- 직접 만든 음식
 

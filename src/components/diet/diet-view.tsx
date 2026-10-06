@@ -7,19 +7,12 @@ import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { Card } from '@/components/ui';
 import { db } from '@/db/client';
-import { customItem, deleteFoodLog, getCustomFood, updateFoodLogAmount } from '@/db/diet';
+import { deleteFoodLog, updateFoodLogAmount } from '@/db/diet';
 import type { Meal } from '@/db/schema';
 import { useDietDay, useDietTargets, useHasDietLogs } from '@/db/use-diet';
 import { dateKey, parseDateKey, shiftDateKey } from '@/domain/date-key';
-import {
-  type FoodItem,
-  type FoodLog,
-  logItem,
-  type MealGroup,
-  nutrientsFor,
-  withUnit,
-} from '@/domain/diet';
-import { loadCatalogItem } from '@/food/items';
+import { type FoodItem, type FoodLog, logItem, type MealGroup, nutrientsFor } from '@/domain/diet';
+import { withAllUnits } from '@/food/full-item';
 import { useFoodDb, useFoodSources } from '@/food/use-food-db';
 import { useToday } from '@/lib/use-today';
 
@@ -56,16 +49,8 @@ export function DietView() {
   const add = (meal: Meal) => router.push({ pathname: '/food-search', params: { date, meal } });
 
   const edit = (log: FoodLog) => {
-    // 단위를 고를 수 있게 지금 음식 정보를 다시 찾는다. 없어졌으면 기록에 남은 것만으로.
-    let found: FoodItem | null = null;
-    if (log.src === 'custom') {
-      const row = getCustomFood(db, log.sid);
-      found = row ? customItem(row) : null;
-    } else if (foodDb) {
-      found = loadCatalogItem(foodDb, log.src, log.sid);
-    }
-    // 영양값은 기록에 남긴 그때 값을 쓴다(음식 정보가 바뀌어도 이미 적은 것은 그대로).
-    const item = { ...logItem(log), units: withUnit(found?.units ?? [], log.unit) };
+    // 영양값은 기록에 남긴 그때 값을 쓰고, 고를 수 있는 단위만 지금 음식 정보에서 다시 찾는다.
+    const item = withAllUnits(logItem(log), log.unit, foodDb);
     setEditing({ log, item });
     setEditOpen(true);
   };
