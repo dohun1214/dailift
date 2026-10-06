@@ -16,6 +16,8 @@ export type FoodItem = Nutrients & {
   src: FoodSrc;
   sid: string;
   name: string;
+  /** 만든 회사 (가공식품만. 화면에 보이기만 하고 기록에는 남기지 않는다) */
+  maker?: string | null;
   basis: 'g' | 'ml';
   /** 고를 수 있는 1회 양 단위 (g 말고) */
   units: readonly FoodUnit[];

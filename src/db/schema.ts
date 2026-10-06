@@ -257,8 +257,10 @@ export const supplementLogs = sqliteTable(
 );
 
 export type Meal = 'breakfast' | 'lunch' | 'dinner' | 'snack';
-/** 음식이 어디서 왔는지: 앱에 넣은 DB(usda · mfds) 또는 직접 만든 음식(custom) */
-export type FoodSrc = 'usda' | 'mfds' | 'custom';
+/**
+ * 음식이 어디서 왔는지: 앱에 넣은 DB(usda · mfds), 서버에서 찾는 식약처 가공식품(mfdsp), 직접 만든 음식(custom)
+ */
+export type FoodSrc = 'usda' | 'mfds' | 'mfdsp' | 'custom';
 
 /** 직접 만든 음식. 영양값은 100 g당으로 둔다(화면에서 1회 제공량 기준으로 넣어도 바꿔서 저장) */
 export const foods = sqliteTable('foods', {
@@ -341,6 +343,26 @@ export const foodSetItems = sqliteTable(
   },
   (t) => [index('food_set_items_set_idx').on(t.setId, t.position)],
 );
+
+/**
+ * 서버에서 찾은 가공식품 가운데 이 기기에서 쓴 것의 사본 (로컬 전용, 동기화하지 않는다).
+ * 즐겨찾기 목록과 양 창의 단위(1개 · 1회)를 인터넷 없이 보여 주는 데 쓴다. 없으면 서버에서 다시 받는다.
+ */
+export const foodCache = sqliteTable('food_cache', {
+  sid: text('sid').primaryKey(),
+  name: text('name').notNull(),
+  maker: text('maker').notNull().default(''),
+  basis: text('basis').$type<'g' | 'ml'>().notNull().default('g'),
+  kcal: real('kcal').notNull().default(0),
+  protein: real('protein').notNull().default(0),
+  carb: real('carb').notNull().default(0),
+  fat: real('fat').notNull().default(0),
+  /** 식품중량(포장 하나) */
+  size: real('size'),
+  /** 1회 섭취참고량 */
+  serv: real('serv'),
+  fetchedAt: integer('fetched_at').notNull(),
+});
 
 /** 동기화 커서 (로컬 전용). cursorUpdatedAt에는 서버 rev(당겨온 마지막 번호)를 담는다. */
 export const syncState = sqliteTable('sync_state', {

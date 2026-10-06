@@ -57,6 +57,13 @@
       "when": 1791320581224,
       "tag": "0007_diet_sets",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1791329742184,
+      "tag": "0008_processed_food_cache",
+      "breakpoints": true
     }
   ]
 }

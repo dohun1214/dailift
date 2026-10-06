@@ -1027,7 +1027,8 @@
     "source": {
       "mfds": "식약처 식품영양성분 DB",
       "usda": "USDA FoodData Central",
-      "custom": "내 음식"
+      "custom": "내 음식",
+      "mfdsp": "식약처 가공식품"
     },
     "unit": {
       "serving": "1인분",
@@ -1184,6 +1185,17 @@
     "home": {
       "title": "오늘 식단",
       "a11y": "오늘 식단, 칼로리 {{kcal}} kcal, 단백질 {{protein}} g, 식단 열기"
+    },
+    "processed": {
+      "title": "가공식품",
+      "makerHint": "이름 아래는 만든 회사",
+      "loading": "가공식품을 찾고 있어요…",
+      "offline": "가공식품(편의점 · 마트 제품)은 인터넷에 연결돼 있을 때 찾을 수 있어요.",
+      "more": "가공식품 더 보기",
+      "moreLoading": "더 불러오는 중…",
+      "missing": "찾는 제품이 없나요?",
+      "create": "직접 만들기",
+      "rowA11y": "{{name}}, {{maker}}, {{line}}"
     }
   },
   "dietBackup": {
