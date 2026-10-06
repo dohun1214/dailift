@@ -1,18 +1,12 @@
 import { Equal, Trash2 } from 'lucide-react-native';
-import { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type LayoutChangeEvent, Pressable, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  type SharedValue,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { type SharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { scheduleOnRN } from 'react-native-worklets';
 
-type Layout = { y: number; h: number };
+import { type RowLayout, slotOffset, targetIndex, useDragReorder } from '@/lib/use-drag-reorder';
 
 export type WorkoutEditRow = { id: string; name: string; meta: string };
 
@@ -27,51 +21,28 @@ type Props = {
 /** 행 사이 간격 (styles.list의 gap과 같아야 한다) */
 const GAP = 10;
 
-/** 드래그한 행의 중심이 다른 행의 가운데를 넘으면 그 자리로 옮긴다. */
-function targetIndex(from: number, dy: number, layouts: readonly Layout[]): number {
-  'worklet';
-  const cur = layouts[from];
-  if (!cur) return from;
-  const center = cur.y + cur.h / 2 + dy;
-  for (let i = 0; i < from; i++) {
-    const l = layouts[i];
-    if (l && center < l.y + l.h / 2) return i;
-  }
-  for (let i = layouts.length - 1; i > from; i--) {
-    const l = layouts[i];
-    if (l && center > l.y + l.h / 2) return i;
-  }
-  return from;
-}
-
 /** 운동 중 종목 편집: 손잡이(또는 행을 꾹 눌러) 끌어서 순서 변경, 휴지통으로 삭제 */
 export function WorkoutEditList({ rows, highlightId, onMove, onRemove }: Props) {
-  const active = useSharedValue(-1);
-  const dy = useSharedValue(0);
-  const layouts = useSharedValue<Layout[]>([]);
-  const layoutRef = useRef<Layout[]>([]);
-
-  const setLayout = useCallback(
-    (index: number, e: LayoutChangeEvent) => {
-      const { y, height } = e.nativeEvent.layout;
-      layoutRef.current[index] = { y, h: height };
-      layoutRef.current.length = rows.length;
-      layouts.value = [...layoutRef.current];
-    },
-    [layouts, rows.length],
+  const { active, dy, dropTo, dragEpoch, epoch, layouts, setLayout, drop } = useDragReorder(
+    rows.map((r) => r.id),
+    onMove,
   );
 
   return (
     <View style={styles.list}>
       {rows.map((row, index) => (
         <Row
-          key={row.id}
+          key={`${row.id}:${epoch}`}
           row={row}
           index={index}
           count={rows.length}
           highlighted={row.id === highlightId}
           active={active}
           dy={dy}
+          dropTo={dropTo}
+          dragEpoch={dragEpoch}
+          epoch={epoch}
+          onDrop={drop}
           layouts={layouts}
           onLayout={setLayout}
           onMove={onMove}
@@ -89,7 +60,13 @@ type RowProps = {
   highlighted: boolean;
   active: SharedValue<number>;
   dy: SharedValue<number>;
-  layouts: SharedValue<Layout[]>;
+  /** 놓은 자리(새 순서로 다시 그려질 때까지 붙잡아 둔다) */
+  dropTo: SharedValue<number>;
+  /** 이 행의 세대와, 지금 끌기가 시작된 세대. 다르면 끌기 상태를 따르지 않는다 */
+  dragEpoch: SharedValue<number>;
+  epoch: number;
+  onDrop: (from: number, to: number) => void;
+  layouts: SharedValue<RowLayout[]>;
   onLayout: (index: number, e: LayoutChangeEvent) => void;
   onMove: (from: number, to: number) => void;
   onRemove: (id: string) => void;
@@ -102,6 +79,10 @@ function Row({
   highlighted,
   active,
   dy,
+  dropTo,
+  dragEpoch,
+  epoch,
+  onDrop,
   layouts,
   onLayout,
   onMove,
@@ -115,6 +96,8 @@ function Row({
     pan
       .onStart(() => {
         'worklet';
+        dropTo.value = -1;
+        dragEpoch.value = epoch;
         active.value = index;
         dy.value = 0;
       })
@@ -125,12 +108,21 @@ function Row({
       .onEnd(() => {
         'worklet';
         const to = targetIndex(index, dy.value, layouts.value);
-        active.value = -1;
-        dy.value = 0;
-        if (to !== index) scheduleOnRN(onMove, index, to);
+        if (to === index) {
+          active.value = -1;
+          dy.value = 0;
+          return;
+        }
+        // 놓은 자리에 붙여 두고, 목록이 새 순서로 그려지면 푼다(바로 풀면 옛 순서가 잠깐 보인다).
+        dropTo.value = to;
+        dy.value = withTiming(slotOffset(index, to, layouts.value), { duration: 120 }, () => {
+          'worklet';
+          scheduleOnRN(onDrop, index, to);
+        });
       })
       .onFinalize(() => {
         'worklet';
+        if (dropTo.value !== -1) return;
         active.value = -1;
         dy.value = 0;
       });
@@ -139,10 +131,10 @@ function Row({
   const rowPan = drag(Gesture.Pan().activateAfterLongPress(250));
 
   const animated = useAnimatedStyle(() => {
-    const from = active.value;
+    const from = dragEpoch.value === epoch ? active.value : -1;
     if (from === -1) return { transform: [{ translateY: 0 }], zIndex: 0 };
     if (from === index) return { transform: [{ translateY: dy.value }], zIndex: 10 };
-    const to = targetIndex(from, dy.value, layouts.value);
+    const to = dropTo.value !== -1 ? dropTo.value : targetIndex(from, dy.value, layouts.value);
     const h = (layouts.value[from]?.h ?? 0) + GAP;
     let shift = 0;
     if (from < to && index > from && index <= to) shift = -h;
@@ -154,7 +146,8 @@ function Row({
   const raised = theme.colors.surface2;
   const flat = theme.colors.surface;
   const lifted = useAnimatedStyle(() => {
-    const on = active.value === index || (highlighted && active.value === -1);
+    const from = dragEpoch.value === epoch ? active.value : -1;
+    const on = from === index || (highlighted && from === -1);
     return { borderColor: on ? accent : 'transparent', backgroundColor: on ? raised : flat };
   });
 
