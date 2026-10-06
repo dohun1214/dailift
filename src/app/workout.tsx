@@ -235,7 +235,7 @@ export default function WorkoutScreen() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: 칸이 바뀔 때마다 본다
   useEffect(() => {
     if (!fieldKey || !keyboardVisible) return;
-    const handle = setTimeout(reveal, 120);
+    const handle = setTimeout(() => reveal(), 120);
     return () => clearTimeout(handle);
   }, [fieldKey]);
   // 이 화면으로 바로 열렸으면(잠금 화면의 휴식 표시) 홈에서 '진행 중인 운동' 안내를 다시 하지 않는다.
@@ -616,6 +616,7 @@ export default function WorkoutScreen() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          scrollToOverflowEnabled
         >
           <FieldNavProvider value={fieldNav.nav}>
             {exercises.length === 0 ? (

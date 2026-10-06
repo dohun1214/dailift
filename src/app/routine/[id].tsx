@@ -265,6 +265,7 @@ export default function RoutineEditScreen() {
     >
       <Screen
         revealInputs
+        dismissKeyboardOnDrag
         header={
           <TopBar
             title={isNew ? t('routines.edit.newTitle') : t('routines.edit.title')}

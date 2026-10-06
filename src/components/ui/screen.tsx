@@ -22,7 +22,7 @@ type Props = {
   avoidKeyboard?: boolean;
   /** 키보드 처리를 화면이 직접 할 때(밖에서 KeyboardAvoidingView로 감쌌을 때): 가려진 입력칸만 올려 준다 */
   revealInputs?: boolean;
-  /** 검색 화면이면 true: 목록을 끌면 키보드가 내려간다 */
+  /** 목록을 끌면 키보드가 내려간다(검색 화면, 입력칸이 여러 개인 편집 화면) */
   dismissKeyboardOnDrag?: boolean;
 };
 
@@ -54,6 +54,8 @@ export function Screen({
             { paddingBottom: footer ? 16 : bottom + 28 },
           ]}
           keyboardShouldPersistTaps="handled"
+          // 키보드가 올라오는 동안 미리 올려 둘 수 있게(화면이 줄기 전에는 끝을 넘는 위치다)
+          scrollToOverflowEnabled={avoidKeyboard || revealInputs}
           keyboardDismissMode={dismissKeyboardOnDrag ? 'on-drag' : 'none'}
         >
           {children}
