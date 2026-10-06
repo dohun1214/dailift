@@ -36,7 +36,15 @@ export function revealFocusedInput() {
  * 화면이 키보드만큼 줄어드는 것(KeyboardAvoidingView)만으로는 아래쪽 칸이 따라 올라오지 않는다(iOS).
  * 이미 보이는 칸, 이 스크롤 영역 밖의 칸(다른 창 · 다른 화면)은 건드리지 않는다.
  */
-export function useKeyboardReveal(scrollRef: RefObject<ScrollView | null>, enabled = true) {
+export function useKeyboardReveal(
+  scrollRef: RefObject<ScrollView | null>,
+  enabled = true,
+  /**
+   * 키보드가 화면 아래 버튼을 그대로 덮고, 스크롤 영역은 키보드 바로 위에 붙는 줄(이 높이)까지만 줄어드는 화면이면 그 줄의 높이.
+   * 안 주면 스크롤 영역이 키보드 높이만큼 줄어드는 화면(아래 버튼이 키보드 위로 따라 올라오는 화면)으로 본다.
+   */
+  barAboveKeyboard?: number,
+) {
   const navigation = useNavigation();
 
   /**
@@ -55,9 +63,17 @@ export function useKeyboardReveal(scrollRef: RefObject<ScrollView | null>, enabl
       const { measureLayout } = input;
       input.measureInWindow((_x, y, _w, h) => {
         scroll.measureInWindow?.((_sx, sy, _sw, sh) => {
-          // 스크롤 영역이 키보드 자리까지 내려와 있으면 아직 줄기 전이다 → 키보드 높이만큼 줄어든다.
-          const shrink = rising && sy + sh > rising.top + 1 ? rising.height : 0;
-          const visible = sh - shrink;
+          // 키보드가 다 올라왔을 때 스크롤 영역의 아래쪽이 어디일지.
+          // 스크롤 영역이 키보드 자리까지 내려와 있으면 아직 줄기 전이다.
+          const bottom = sy + sh;
+          const after = !rising
+            ? bottom
+            : barAboveKeyboard !== undefined
+              ? Math.min(bottom, rising.top - barAboveKeyboard)
+              : bottom > rising.top + 1
+                ? bottom - rising.height
+                : bottom;
+          const visible = after - sy;
           if (!(h > 0) || !(visible > 0)) return;
           // 이미 보인다
           if (y + h + GAP <= sy + visible) return;
@@ -75,7 +91,7 @@ export function useKeyboardReveal(scrollRef: RefObject<ScrollView | null>, enabl
       });
       return true;
     },
-    [scrollRef, navigation],
+    [scrollRef, navigation, barAboveKeyboard],
   );
 
   useEffect(() => {

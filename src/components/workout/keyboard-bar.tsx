@@ -1,6 +1,7 @@
 import { Check, ChevronsDown } from 'lucide-react-native';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, Text, View } from 'react-native';
+import { Animated, Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { TextButton } from '@/components/ui/text-button';
@@ -16,12 +17,20 @@ type Props = {
   onDone: () => void;
 };
 
+/** 줄의 높이(styles.bar와 같아야 한다) */
+export const KEYBOARD_BAR_HEIGHT = 48;
+
 /** 숫자 키보드 바로 위에 붙는 줄: 지금 칸 이름 · 남은 세트에도 적용 · 다음 · 완료 */
 export function KeyboardBar({ label, onApply, applied, onNext, onDone }: Props) {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
+  // 키보드보다 조금 먼저 제자리에 나타나므로 살짝 떠오르듯 보인다.
+  const opacity = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(opacity, { toValue: 1, duration: 160, useNativeDriver: true }).start();
+  }, [opacity]);
   return (
-    <View style={styles.bar}>
+    <Animated.View style={[styles.bar, { opacity }]}>
       <Text style={styles.label} numberOfLines={1}>
         {label}
       </Text>
@@ -49,13 +58,13 @@ export function KeyboardBar({ label, onApply, applied, onNext, onDone }: Props) 
       </View>
       <TextButton label={t('workout.keyboard.next')} tone="muted" onPress={onNext} />
       <TextButton label={t('workout.keyboard.done')} onPress={onDone} />
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create((theme) => ({
   bar: {
-    height: 48,
+    height: KEYBOARD_BAR_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
