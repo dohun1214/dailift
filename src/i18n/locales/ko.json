@@ -870,7 +870,14 @@
     "fontsValue": "Onest · IBM Plex Sans KR (OFL)",
     "groupOss": "오픈소스 라이선스",
     "hint": "Dailift는 아래 오픈소스 소프트웨어를 사용해요. 항목을 누르면 라이선스 전문을 볼 수 있어요.",
-    "homepage": "홈페이지 열기"
+    "homepage": "홈페이지 열기",
+    "foodUsda": "USDA FoodData Central",
+    "foodMfds": "식품의약품안전처 식품영양성분 DB",
+    "foodUsdaLicense": "퍼블릭 도메인(CC0)",
+    "foodMfdsLicense": "공공데이터(이용 제한 없음)",
+    "foodCount_other": "음식 영양 정보 {{n}}개 · {{license}}",
+    "foodLoading": "음식 영양 정보 · {{license}}",
+    "foodFailed": "음식 영양 정보를 불러오지 못했어요"
   },
   "duration": {
     "min": "{{m}}분",
