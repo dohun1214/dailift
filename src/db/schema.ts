@@ -219,6 +219,43 @@ export const bodyMetrics = sqliteTable(
   (t) => [index('body_metrics_measured_idx').on(t.measuredAt)],
 );
 
+export type SupplementTiming = 'time' | 'after_workout';
+
+/** 영양제. 복용 시각이 정해진 것(`time`)과 운동을 마친 뒤 먹는 것(`after_workout`) 두 가지 */
+export const supplements = sqliteTable('supplements', {
+  ...syncColumns,
+  name: text('name').notNull(),
+  /** 사용자가 적은 그대로 ("1,000 mg", "2정"). 계산에 쓰지 않는다 */
+  dose: text('dose'),
+  timing: text('timing').$type<SupplementTiming>().notNull().default('time'),
+  /** 정해진 시각: 자정부터 몇 분째인지 (오전 9:00 = 540) */
+  timeMin: integer('time_min').notNull().default(540),
+  /** 운동 후: 운동을 마치고 몇 분 뒤인지 */
+  afterMin: integer('after_min').notNull().default(30),
+  notify: integer('notify').notNull().default(1),
+  /** 한 시간 뒤에도 체크가 없으면 한 번 더 알린다 */
+  renotify: integer('renotify').notNull().default(1),
+  /** 0이면 목록 · 알림에서 빠진다(기록은 남는다) */
+  active: integer('active').notNull().default(1),
+  sortOrder: integer('sort_order').notNull().default(0),
+});
+
+/**
+ * 영양제를 먹은 기록. 하루에 영양제마다 한 줄(체크를 풀면 지운 것으로 표시).
+ * 날짜는 기기 현지 날짜 글자(`YYYY-MM-DD`)로 둔다 — 시각만 두면 여행 · 자정에 다른 날로 넘어간다.
+ * 유니크 인덱스는 걸지 않는다(두 기기에서 같은 날 체크하면 줄이 둘 생길 수 있어, 읽을 때 영양제 단위로 센다).
+ */
+export const supplementLogs = sqliteTable(
+  'supplement_logs',
+  {
+    ...syncColumns,
+    supplementId: text('supplement_id').notNull(),
+    date: text('date').notNull(),
+    takenAt: integer('taken_at').notNull(),
+  },
+  (t) => [index('supplement_logs_date_idx').on(t.date, t.supplementId)],
+);
+
 /** 동기화 커서 (로컬 전용). cursorUpdatedAt에는 서버 rev(당겨온 마지막 번호)를 담는다. */
 export const syncState = sqliteTable('sync_state', {
   tableName: text('table_name').primaryKey(),
@@ -239,4 +276,6 @@ export const SYNCED_TABLES = [
   'sets',
   'workout_photos',
   'body_metrics',
+  'supplements',
+  'supplement_logs',
 ] as const;

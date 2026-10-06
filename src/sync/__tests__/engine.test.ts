@@ -6,6 +6,7 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { copyTemplate } from '@/db/routines';
 import * as schema from '@/db/schema';
 import { seedReferenceData } from '@/db/seed';
+import { createSupplement, getSupplement, setSupplementTaken, takenOn } from '@/db/supplements';
 import { finishWorkout, setCompleted, startWorkout, updateSet } from '@/db/workout';
 
 import {
@@ -207,6 +208,39 @@ describe('syncOnce', () => {
     expect(pendingCount(a)).toBe(total);
     const other = new FakeRemote();
     expect((await syncOnce(a, other)).pushed).toBe(total);
+  });
+
+  it('영양제와 복용 체크가 다른 기기로 가고, 체크를 풀면 그것도 간다', async () => {
+    const a = createDevice();
+    const b = createDevice();
+    const remote = new FakeRemote();
+    const id = createSupplement(
+      a,
+      {
+        name: '오메가3',
+        dose: '1,000 mg',
+        timing: 'time',
+        timeMin: 540,
+        afterMin: 30,
+        notify: true,
+        renotify: false,
+        active: true,
+      },
+      makeId,
+    );
+    setSupplementTaken(a, id, '2026-10-06', true, 1, makeId);
+    await syncOnce(a, remote);
+    await syncOnce(b, remote);
+    expect(getSupplement(b, id)).toMatchObject({ name: '오메가3', timeMin: 540, renotify: false });
+    expect(takenOn(b, '2026-10-06')).toEqual(new Set([id]));
+    // 부모(영양제)를 자식(체크)보다 먼저 보낸다
+    const order = remote.pushes.map((p) => p.table);
+    expect(order.indexOf('supplements')).toBeLessThan(order.indexOf('supplement_logs'));
+
+    setSupplementTaken(b, id, '2026-10-06', false, FUTURE, makeId);
+    await syncOnce(b, remote);
+    await syncOnce(a, remote);
+    expect(takenOn(a, '2026-10-06').size).toBe(0);
   });
 
   it('수정하면 dirty가 자동으로 1이 된다', async () => {

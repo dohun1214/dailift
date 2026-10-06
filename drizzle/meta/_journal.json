@@ -36,6 +36,13 @@
       "when": 1791148673802,
       "tag": "0004_set_plan",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791296035576,
+      "tag": "0005_supplements",
+      "breakpoints": true
     }
   ]
 }

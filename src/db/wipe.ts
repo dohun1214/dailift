@@ -4,7 +4,7 @@ import * as schema from './schema';
 import type { AppDatabase } from './seed';
 
 /**
- * 이 기기의 사용자 데이터를 모두 지운다(루틴·운동 기록·커스텀 종목·체성분·동기화 커서).
+ * 이 기기의 사용자 데이터를 모두 지운다(루틴·운동 기록·커스텀 종목·체성분·영양제·동기화 커서).
  * 기본 종목·근육 같은 참조 데이터는 남긴다. 지운 사진의 파일 경로를 돌려준다(파일은 호출한 쪽에서 삭제).
  * 게스트 데이터는 서버에 없으므로 툼스톤 없이 바로 지운다.
  */
@@ -32,6 +32,8 @@ export function wipeUserData(db: AppDatabase): string[] {
       schema.routines,
       schema.routineGroups,
       schema.bodyMetrics,
+      schema.supplementLogs,
+      schema.supplements,
       schema.syncState,
     ]) {
       // 조건 없이 통째로 지우면 SQLite가 '변경 알림'을 보내지 않아 열려 있는 화면이 옛 기록을 그대로 보여 준다.
@@ -42,7 +44,7 @@ export function wipeUserData(db: AppDatabase): string[] {
   });
 }
 
-/** 이 기기에 사용자가 만든, 지워지지 않은 기록(루틴·운동·직접 만든 종목·체성분)이 있는지 */
+/** 이 기기에 사용자가 만든, 지워지지 않은 기록(루틴·운동·직접 만든 종목·체성분·영양제)이 있는지 */
 export function hasUserData(db: AppDatabase): boolean {
   const any = (rows: unknown[]) => rows.length > 0;
   return (
@@ -67,6 +69,14 @@ export function hasUserData(db: AppDatabase): boolean {
         .select({ id: schema.bodyMetrics.id })
         .from(schema.bodyMetrics)
         .where(isNull(schema.bodyMetrics.deletedAt))
+        .limit(1)
+        .all(),
+    ) ||
+    any(
+      db
+        .select({ id: schema.supplements.id })
+        .from(schema.supplements)
+        .where(isNull(schema.supplements.deletedAt))
         .limit(1)
         .all(),
     ) ||

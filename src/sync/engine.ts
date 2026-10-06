@@ -31,6 +31,8 @@ const TABLES: Record<SyncedTableName, SQLiteTable> = {
   sets: schema.sets,
   workout_photos: schema.workoutPhotos,
   body_metrics: schema.bodyMetrics,
+  supplements: schema.supplements,
+  supplement_logs: schema.supplementLogs,
 };
 
 /** 기기에만 있는 컬럼(서버로 보내지 않고, 받을 때 덮지 않음) */

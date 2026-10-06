@@ -100,10 +100,10 @@ npm test
 - 화면 `src/app/workout-summary/[id].tsx`(운동 완료 직후·히스토리 공용, "완료"는 뒤로 갈 곳이 있으면 back). 데이터는 `src/db/summary.ts`의 `loadSummary`(완료 세트·근육·이 운동 전까지의 최고 기록).
 - 계산은 `src/domain/session-summary.ts`: 볼륨은 본세트 무게×횟수(표시 단위로 환산), 근육 점수는 주동 1 · 협응 0.5, 단계는 최대 대비 ⅔ 이상 집중 · ⅓ 이상 주요 · 나머지 보조(근육맵 투명도 1 / 0.6 / 0.3).
 - '한 운동' 카드(#47): `loadSummary().exercises`(종목별 완료 세트) → `groupSetsByWeight`로 같은 무게를 이어 묶어 한 줄(`62.5kg × 10 · 9 · 9`, 맨몸은 `12 · 10회`, 시간 종목은 시간). 워밍업은 빼고 본 세트가 있는 종목만. 접는 카드이고 기본은 접힘, 마지막 상태를 `settings.summaryExercisesOpen`에 기억한다.
-- 메모는 입력을 멈추고 0.5초 뒤·화면을 떠날 때 저장. 사진은 expo-image-picker로 고르거나 찍어 앱 폴더(documentDirectory/photos)에 복사하고 `workout_photos`에 상대 경로를 저장한다(서버 동기화 안 함). 길게 눌러 삭제.
+- 메모는 입력을 멈추고 0.5초 뒤·화면을 떠날 때 저장. 사진은 expo-image-picker로 고르거나 찍어 앱 폴더(documentDirectory/photos)에 복사하고 `workout_photos`에 상대 경로를 저장한다(로그인하면 줄인 사본을 서버 저장소에 올린다 — `src/sync/photos.ts`). 길게 눌러 삭제.
 
 ## 히스토리
-- 기록 탭 `src/app/(tabs)/log.tsx`: 히스토리 | 통계 세그먼트. 목록은 `useHistory`(완료 운동 + 완료 세트 live) → `buildHistory`(오래된 순으로 최고 기록을 쌓아 세션별 PR 개수 계산, 요약 화면과 같은 기준) → `groupByMonth`.
+- 기록 탭 `src/app/(tabs)/log.tsx`: 히스토리 | 통계 | 종목 세그먼트. 목록은 `useHistory`(완료 운동 + 완료 세트 live) → `buildHistory`(오래된 순으로 최고 기록을 쌓아 세션별 PR 개수 계산, 요약 화면과 같은 기준) → `groupByMonth`.
 - 각 줄에 한 종목 이름을 보여 준다(#47): `HistoryItem.exerciseIds`(본 세트를 기록한 종목, 한 순서대로) → 두 개까지 이름 + '외 N'.
 - 행을 누르면 요약(`/workout-summary/[id]`), 길게 누르면 수정·삭제 시트. 수정(`/workout-edit/[id]`)은 바꾸는 즉시 저장, 새 세트는 바로 완료 상태, 나갈 때 `cleanupRecordedWorkout`로 완료 해제 세트·빈 종목 정리. 삭제는 툼스톤 + 사진 파일 삭제.
 
@@ -123,7 +123,7 @@ npm test
 ## 홈
 - `src/app/(tabs)/index.tsx`, 계산은 `src/domain/home.ts`. 주 시작은 월요일.
 - 주간 스트립(`week-strip.tsx`): 오늘 = 검정, 완료한 날 = 채움, 루틴 계획일 = 점. 오늘 루틴은 로테이션 다음 순서(`todaysRoutine`), 운동 중이면 '운동 이어하기'.
-- 통계 카드: 이번 주 운동 횟수 / 주 목표(`workoutsThisWeek`), 연속 기록(목표를 채운 연속 주). 시안의 '오늘 영양제' 카드는 M2(영양제)까지 연속 기록으로 대체.
+- 통계 카드: 이번 주 운동 횟수 / 주 목표(`workoutsThisWeek`), 연속 기록(목표를 채운 연속 주). 그 아래 '오늘 영양제' 카드(`supplement-card.tsx`)는 사용 중인 영양제가 있을 때만 보인다.
 - 오늘 마친 운동이 있으면(`todaysWorkout`) '운동 시작' 대신 완료 카드(기록 보기 / 운동 더 하기)를 보여 준다. '운동 시작'·'운동 더 하기'는 `RoutinePickSheet`(루틴 선택 또는 빈 운동)를 연다(#41).
 - 홈의 '지금'은 `useToday()`로 잡는다(화면 포커스·앱 복귀 때 갱신). 마운트 때 한 번만 잡으면 방금 마친 운동이 이번 주 횟수에서 빠지고, 앱을 켜 둔 채 날짜가 바뀌면 어제 화면이 남는다.
 - 운동 중 카드(#51, `components/home/live-workout-card.tsx`): 지금 종목 · 몇 세트째 · 무게×횟수, 전체 진행 막대, 다음 종목, 쉬는 동안 남은 휴식 시간. 지금 종목은 마지막으로 세트를 완료한 종목(세트가 남아 있을 때), 아니면 세트가 남은 첫 종목(`workoutProgress`). 1초마다 다시 그리는 부분을 이 컴포넌트 안에 가둔다.
@@ -146,6 +146,19 @@ npm test
 - 계정 삭제(`/account-delete`) → Edge Function `delete-account`(`supabase/functions/delete-account`, JWT 검증, 서비스 롤로 본인 계정 삭제) → 기기 데이터 삭제(`lib/wipe-device.ts`) → 시작 화면.
 - Supabase 대시보드 Google 제공자: Client IDs 칸에 `웹ID,iOS ID`(쉼표), Skip nonce check 켬. Apple: Client IDs `com.dohun1214.dailift`.
 - Google 로그인이 동작하려면 Google Cloud OAuth 클라이언트(웹·Android·iOS)와 Supabase Google 제공자 설정이 필요하다. 웹·iOS 클라이언트 ID를 `src/config.ts`에, iOS URL 스킴(`com.googleusercontent.apps.…`)을 app.json 플러그인 옵션 `iosUrlScheme`에 넣는다. Android 개발용 SHA-1은 Expo 기본 debug.keystore(5E:8F:16:…:F6:25), 스토어용은 #17에서 추가.
+
+## 영양제 (#95)
+- 영양 탭 `src/app/(tabs)/nutrition.tsx`: 식단 | 영양제 세그먼트(식단은 아직 '준비 중'). 목록은 `src/components/supplements/supplements-view.tsx`, 추가 · 편집은 `src/app/supplement/[id].tsx`(`new`면 추가).
+- 표: `supplements`(이름, 용량 글자, `timing` = `time` | `after_workout`, `time_min` = 자정부터 몇 분, `after_min`, `notify` · `renotify` · `active`), `supplement_logs`(영양제 id, 날짜 `YYYY-MM-DD`(기기 현지), 먹은 시각). 체크를 풀면 그날 그 영양제의 줄을 모두 지운 것으로 표시하고, 다시 체크하면 그 줄을 되살린다. 유니크 인덱스가 없으므로 먹은 수는 영양제 단위로 센다.
+- 계산은 `src/domain/supplements.ts`(순수 함수): 오늘 목록(`todayList`), 지난 7일(`lastSevenDays` — 지금 사용 중인 영양제만, 그날까지 등록돼 있던 것을 분모로), 알림 계획(`planNotifications`).
+- 알림(`src/lib/supplement-notifications.ts`): 전부 기기 알림. **`syncSupplementNotifications()` 하나가 예약된 영양제 알림을 지금 상태에 맞춘다** — 계획과 예약된 것을 id로 비교해 달라진 것만 지우고 건다. 영양제 알림은 `data.kind = 'supplement'`로 구분하고 휴식 타이머 알림은 건드리지 않는다(`cancelAllScheduledNotificationsAsync`를 쓰지 않는다).
+  - 정해진 시각: 같은 시각의 영양제를 묶어 **요일마다 반복 알림 7개**(+ 한 시간 뒤 '다시 알림' 7개). 앱을 열지 않아도 계속 울린다. 오늘 그 묶음에서 하나라도 체크하면 오늘 요일 몫만 빼고, 남은 영양제가 있으면 그 이름만 담은 한 번짜리를 건다. 뺀 요일 알림은 그 시각이 지난 뒤 다시 맞출 때 돌아온다.
+  - iOS는 예약 알림이 앱당 64개까지라 60개를 넘으면 늦은 시각의 묶음부터 '매일 반복' 하나로 줄인다(이 묶음은 체크해도 그날 알림이 온다).
+  - 운동 후: 오늘 마친 운동의 끝난 시각 + N분에 한 번(+ 한 시간 뒤 한 번 더). 운동을 마치면 `workouts`가 바뀌어 저절로 다시 맞춰진다(운동 화면에서 따로 부르지 않는다).
+  - 언제 맞추나(`useSupplementNotifications`, 루트): 앱을 켤 때, 앞으로 올 때, `supplements` · `supplement_logs` · `workouts`가 바뀔 때(동기화로 받은 것 · 모두 지우기 포함), 언어를 바꿀 때. 영양제 알림을 누르면 영양 탭의 영양제를 연다.
+  - 권한은 알림을 켠 영양제를 저장할 때 처음 묻는다. 거절해 둔 기기에서는 편집 화면에 안내와 '설정 열기'를 보여 준다. 권한이 없으면 걸려 있던 영양제 알림을 지운다.
+- 복용 시각은 앱 안의 창(`time-sheet.tsx`, 5분 단위)에서 고른다. 시스템 시계 창은 네이티브 패키지가 필요해 쓰지 않았다.
+- 효능 문구는 쓰지 않는다. 목록 아래에 면책 문구를 둔다.
 
 ## 서버 동기화
 - 서버 테이블은 기기 SYNCED_TABLES와 같은 컬럼 + `user_id`(기본값 auth.uid(), auth.users on delete cascade) + `rev`. RLS로 본인 행만 select/insert/update(삭제는 툼스톤, 계정 삭제 시 cascade). SQL은 `supabase/migrations/`.
@@ -179,7 +192,7 @@ npm test
 
 ## 심사 없는 업데이트 — EAS Update (#45)
 - `expo-updates`. app.json `updates.url`(프로젝트 ID) · `runtimeVersion: { policy: "appVersion" }`, eas.json 빌드 프로필에 `channel`(production / preview). 앱은 켤 때 새 수정본을 받아 두고 **다음에 켤 때** 적용한다.
-- 내보내기: `eas update --channel production --environment production --message "<무엇을 고쳤는지>"` (`EXPO_TOKEN` 필요). 먼저 `--channel preview`로 내보내 preview 빌드에서 확인한 뒤 production으로 내보낸다. 되돌리기는 `eas update:rollback`.
+- 내보내기: `eas update --channel production --platform ios --environment production --message "<what changed>"` (`EXPO_TOKEN` 필요). `--platform ios`를 빼면 web까지 묶다가 expo-sqlite의 wasm을 찾지 못해 실패한다. 메시지는 영문으로(Windows에서 한글이 깨진다). 먼저 `--channel preview`로 내보내 preview 빌드에서 확인한 뒤 production으로 내보낸다. 되돌리기는 `eas update:rollback`.
 - 규칙
   - 이 방법으로는 **버그 수정과 작은 개선만** 내보낸다. 새 기능이나 앱 성격이 바뀌는 변경은 스토어 심사로 낸다(스토어 정책).
   - 수정본은 app.json `version`이 같은 빌드에만 내려간다. **네이티브가 바뀌면**(패키지 추가·삭제, Expo SDK 업그레이드, app.json의 플러그인·권한·아이콘 변경) 반드시 `version`을 올리고 새 빌드를 심사에 낸다. 안 올리면 예전 빌드가 맞지 않는 수정본을 받아 죽을 수 있다.

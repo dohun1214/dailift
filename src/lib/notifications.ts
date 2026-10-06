@@ -19,9 +19,10 @@ export function configureNotifications() {
   });
 }
 
-async function ensureChannel(name: string) {
+/** 안드로이드 알림 채널을 만든다(이미 있으면 이름만 맞춘다). iOS는 채널이 없다. */
+export async function ensureChannel(id: string, name: string) {
   if (Platform.OS !== 'android') return;
-  await Notifications.setNotificationChannelAsync(REST_CHANNEL, {
+  await Notifications.setNotificationChannelAsync(id, {
     name,
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 300, 150, 300],
@@ -38,12 +39,22 @@ export async function notificationsAllowed(): Promise<boolean> {
 }
 
 /** 권한이 없으면 처음 쓸 때 맥락 안에서 요청한다. 거절하면 false */
-async function ensurePermission(): Promise<boolean> {
+export async function ensurePermission(): Promise<boolean> {
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) return true;
   if (!current.canAskAgain) return false;
   const next = await Notifications.requestPermissionsAsync();
   return next.granted;
+}
+
+/** 사용자가 알림을 거절해 둔 상태인지(아직 묻지 않은 상태는 아니다) */
+export async function notificationsDenied(): Promise<boolean> {
+  try {
+    const current = await Notifications.getPermissionsAsync();
+    return !current.granted && current.status !== Notifications.PermissionStatus.UNDETERMINED;
+  } catch {
+    return false;
+  }
 }
 
 /** 휴식 종료 알림 예약. 실패하면 null (앱을 보고 있을 때의 진동만 동작) */
@@ -53,7 +64,7 @@ export async function scheduleRestEnd(
 ): Promise<string | null> {
   try {
     if (seconds < 1 || !(await ensurePermission())) return null;
-    await ensureChannel(text.channel);
+    await ensureChannel(REST_CHANNEL, text.channel);
     return await Notifications.scheduleNotificationAsync({
       content: { title: text.title, body: text.body, data: { kind: 'rest' }, sound: true },
       trigger: {
@@ -87,7 +98,7 @@ export async function presentRestEnd(
   try {
     await cancelScheduled(scheduledId);
     if (!(await notificationsAllowed())) return;
-    await ensureChannel(text.channel);
+    await ensureChannel(REST_CHANNEL, text.channel);
     await Notifications.scheduleNotificationAsync({
       content: { title: text.title, body: text.body, data: { kind: 'rest' }, sound: true },
       trigger: { channelId: REST_CHANNEL },
