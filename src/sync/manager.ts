@@ -10,14 +10,15 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { db } from '@/db/client';
-import { SYNCED_TABLES } from '@/db/schema';
+import { CONSENT_TABLES, SYNCED_TABLES } from '@/db/schema';
 import { hasUserData, wipeUserData } from '@/db/wipe';
 import { kvStorage } from '@/lib/kv-storage';
 import { removePhotoFile } from '@/lib/photos';
 import { useAuth } from '@/stores/auth';
-import { consentSkippedTables } from '@/stores/health-consent';
+import { consentSkippedTables, useHealthConsent } from '@/stores/health-consent';
 
-import { pendingCount, resetForAccount, syncOnce } from './engine';
+import { fetchDietConsent, saveDietConsent } from './consent-remote';
+import { pendingCount, resetForAccount, resyncTables, syncOnce } from './engine';
 import { syncPhotoFiles } from './photos';
 import { devicePhotoFiles, supabasePhotoStore } from './supabase-photos';
 import { supabaseRemote } from './supabase-remote';
@@ -76,6 +77,8 @@ async function run(userId: string) {
     // 다른 계정이 남긴 것이 지운 흔적뿐이면(보이는 기록 없음) 묻지 않고 치운다.
     if (last) for (const path of wipeUserData(db)) removePhotoFile(path);
     resetForAccount(db);
+    // 동의는 계정마다 다르다. 새 계정의 것은 아래에서 서버에 물어본다.
+    useHealthConsent.getState().reset();
     Storage.setItemSync(ACCOUNT_KEY, userId);
   }
   if (useSync.getState().otherAccount) useSync.setState({ otherAccount: false });
@@ -83,6 +86,8 @@ async function run(userId: string) {
   try {
     // 새 사진 파일을 먼저 올리고 → 행 동기화 → 받은 사진 내려받기·지운 사진 정리
     await syncPhotoFiles(db, userId, supabasePhotoStore, devicePhotoFiles);
+    // 다른 기기에서 식단 백업에 동의했거나 그만했을 수 있다.
+    applyDietConsent(await fetchDietConsent());
     await syncOnce(db, supabaseRemote, { skip: consentSkippedTables() });
     await syncPhotoFiles(db, userId, supabasePhotoStore, devicePhotoFiles);
     useSync.getState().done(Date.now());
@@ -90,6 +95,16 @@ async function run(userId: string) {
     console.warn('[sync] failed', e);
     useSync.getState().setStatus('error');
   }
+}
+
+/**
+ * 서버에 적힌 식단 백업 동의에 이 기기를 맞춘다.
+ * 동의가 새로 생겼으면 식단 표를 처음부터 다시 주고받게 한다(기기의 기록을 모두 올리고, 서버의 것을 모두 받는다).
+ */
+function applyDietConsent(acceptedAt: number | null) {
+  const consent = useHealthConsent.getState();
+  if (acceptedAt !== null && consent.dietAcceptedAt === null) resyncTables(db, CONSENT_TABLES);
+  if (acceptedAt !== consent.dietAcceptedAt || !consent.known) consent.setDiet(acceptedAt);
 }
 
 /** 지금 동기화(로그인 안 했으면 아무것도 안 함). 끝나면 resolve. */
@@ -129,11 +144,27 @@ export function resumeSync() {
   paused = false;
 }
 
+/**
+ * 식단 기록 백업에 동의하거나(true) 그만한다(false). 서버에 먼저 적고, 되면 기기에 반영한다.
+ * 그만하면 서버의 식단 기록은 지워지고 기기의 기록은 그대로 남는다. 실패하면 던진다(바뀐 것 없음).
+ */
+export async function setDietBackup(accepted: boolean): Promise<void> {
+  // 돌고 있는 동기화가 옛 동의 상태로 식단을 보내거나, 옛 값을 다시 덮어쓰지 않게 멈추고 한다.
+  await pauseSync();
+  try {
+    applyDietConsent(await saveDietConsent(accepted));
+  } finally {
+    resumeSync();
+  }
+  if (accepted) void syncNow();
+}
+
 /** 다른 계정의 기록이 남은 기기에서: 기기 기록을 지우고 지금 계정의 기록을 받는다. */
 export function replaceWithCurrentAccount(): Promise<void> {
   const userId = useAuth.getState().session?.user.id;
   if (!userId) return Promise.resolve();
   for (const path of wipeUserData(db)) removePhotoFile(path);
+  useHealthConsent.getState().reset();
   Storage.setItemSync(ACCOUNT_KEY, userId);
   useSync.setState({ otherAccount: false, lastSyncedAt: null });
   return syncNow();

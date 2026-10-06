@@ -26,6 +26,7 @@ import { openLegal, openSupportMail } from '@/lib/links';
 import { hideRestLive } from '@/lib/rest-live';
 import { wipeDevice } from '@/lib/wipe-device';
 import { accountInfo, useAuth } from '@/stores/auth';
+import { useHealthConsent } from '@/stores/health-consent';
 import { useProfile } from '@/stores/profile';
 import { useSettings } from '@/stores/settings';
 import { pauseSync, resumeSync, syncNow, useSync } from '@/sync/manager';
@@ -59,6 +60,7 @@ export default function MeScreen() {
     return t('sync.daysAgo', { count: Math.floor(hours / 24) });
   };
   const sync = useSync();
+  const dietBackupOn = useHealthConsent((c) => c.dietAcceptedAt !== null);
   const syncLabel = !account
     ? t('sync.off')
     : sync.status === 'syncing'
@@ -371,6 +373,13 @@ export default function MeScreen() {
             value={syncLabel}
             onPress={() => (account ? void syncNow() : router.push('/account-link'))}
           />
+          {account ? (
+            <ListRow
+              label={t('dietBackup.title')}
+              value={t(dietBackupOn ? 'dietBackup.rowOn' : 'dietBackup.rowOff')}
+              onPress={() => router.push('/diet-backup')}
+            />
+          ) : null}
           <ListRow label={t('exportData.row')} onPress={exportSheet.open} />
         </ListSection>
 
