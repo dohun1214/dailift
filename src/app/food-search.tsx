@@ -446,8 +446,18 @@ export default function FoodSearchScreen() {
         visible={choosing}
         title={t('diet.sets.chooseTitle')}
         actions={[
-          { label: t('diet.sets.chooseFood'), onPress: () => createFood(), afterClose: true },
-          { label: t('diet.sets.chooseSet'), onPress: createSet, afterClose: true },
+          {
+            label: t('diet.sets.chooseFood'),
+            description: t('diet.sets.chooseFoodDesc'),
+            onPress: () => createFood(),
+            afterClose: true,
+          },
+          {
+            label: t('diet.sets.chooseSet'),
+            description: t('diet.sets.chooseSetDesc'),
+            onPress: createSet,
+            afterClose: true,
+          },
         ]}
         cancelLabel={t('diet.cancel')}
         onClose={() => setChoosing(false)}

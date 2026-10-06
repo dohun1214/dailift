@@ -17,6 +17,7 @@ export { NoMatchCard, SearchCreateRow } from './search-create';
 export { SearchField } from './search-field';
 export { Segmented, type SegmentOption } from './segmented';
 export { Snackbar } from './snackbar';
+export { SwipeDelete } from './swipe-delete';
 export { TabButton } from './tab-button';
 export { AppText } from './text';
 export { TextButton } from './text-button';

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import { Card } from '@/components/ui';
+import { Card, SwipeDelete } from '@/components/ui';
 import { db } from '@/db/client';
 import { deleteFoodLog, updateFoodLogAmount } from '@/db/diet';
 import type { Meal } from '@/db/schema';
@@ -79,31 +79,36 @@ export function DietView() {
           const n = nutrientsFor(log, log.grams);
           const sub = `${fmt.amount(log, log.basis)} · ${t('diet.proteinShort', { n: fmt.int(n.protein) })}`;
           return (
-            <Pressable
-              key={log.id}
-              accessibilityRole="button"
-              accessibilityLabel={`${log.name}, ${sub}, ${fmt.int(n.kcal)} kcal`}
-              accessibilityHint={t('diet.rowHint')}
-              onPress={() => edit(log)}
-              style={({ pressed }) => [
-                styles.food,
-                i < logs.length - 1 && styles.line,
-                pressed && styles.pressed,
-              ]}
-            >
-              <View style={styles.foodBody}>
-                <Text style={styles.foodName} numberOfLines={1}>
-                  {log.name}
+            <SwipeDelete key={log.id} onDelete={() => deleteFoodLog(db, log.id)}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${log.name}, ${sub}, ${fmt.int(n.kcal)} kcal`}
+                accessibilityHint={`${t('diet.rowHint')}. ${t('diet.swipeHint')}`}
+                accessibilityActions={[{ name: 'delete', label: t('diet.deleteAction') }]}
+                onAccessibilityAction={(e) => {
+                  if (e.nativeEvent.actionName === 'delete') deleteFoodLog(db, log.id);
+                }}
+                onPress={() => edit(log)}
+                style={({ pressed }) => [
+                  styles.food,
+                  i < logs.length - 1 && styles.line,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <View style={styles.foodBody}>
+                  <Text style={styles.foodName} numberOfLines={1}>
+                    {log.name}
+                  </Text>
+                  <Text style={styles.foodSub} numberOfLines={1}>
+                    {sub}
+                  </Text>
+                </View>
+                <Text style={styles.foodKcal}>
+                  {fmt.int(n.kcal)}
+                  <Text style={styles.foodKcalUnit}> kcal</Text>
                 </Text>
-                <Text style={styles.foodSub} numberOfLines={1}>
-                  {sub}
-                </Text>
-              </View>
-              <Text style={styles.foodKcal}>
-                {fmt.int(n.kcal)}
-                <Text style={styles.foodKcalUnit}> kcal</Text>
-              </Text>
-            </Pressable>
+              </Pressable>
+            </SwipeDelete>
           );
         })}
       </Card>
@@ -351,9 +356,17 @@ const styles = StyleSheet.create((theme) => ({
     fontFamily: theme.fonts.regular,
     color: theme.colors.text2,
   },
-  meal: { paddingVertical: 2, paddingLeft: 18, paddingRight: 6 },
+  // 음식 줄이 카드 끝에서 끝까지 밀리도록 가로 여백은 안의 줄들이 갖는다.
+  meal: { paddingVertical: 2, overflow: 'hidden' },
   line: { borderBottomWidth: 1, borderBottomColor: theme.colors.line },
-  mealHead: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  mealHead: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginLeft: 18,
+    marginRight: 6,
+  },
   mealName: {
     flex: 1,
     fontSize: 15,
@@ -389,7 +402,8 @@ const styles = StyleSheet.create((theme) => ({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginRight: 10,
+    marginLeft: 18,
+    marginRight: 16,
   },
   foodBody: { flex: 1, minWidth: 0, gap: 2 },
   foodName: {
