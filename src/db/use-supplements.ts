@@ -2,16 +2,16 @@ import { and, gte, isNull } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useMemo } from 'react';
 
-import { dateKey, lastSevenDays, todayList } from '@/domain/supplements';
+import { dateKey, thisWeek, todayList, weekStart } from '@/domain/supplements';
 
 import { db } from './client';
 import * as schema from './schema';
 import { toSupplement } from './supplements';
 
-/** 영양제 화면 · 홈 카드에 쓰는 것: 오늘 목록과 지난 7일. DB가 바뀌면 다시 계산된다. */
+/** 영양제 화면 · 홈 카드에 쓰는 것: 오늘 목록과 이번 주(월–일). DB가 바뀌면 다시 계산된다. */
 export function useSupplements(today: Date) {
   const todayKey = dateKey(today);
-  const from = dateKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6));
+  const from = dateKey(weekStart(today));
   const { data: rows } = useLiveQuery(
     db.select().from(schema.supplements).where(isNull(schema.supplements.deletedAt)),
   );
@@ -33,7 +33,7 @@ export function useSupplements(today: Date) {
     return {
       todayKey,
       ...todayList(supplements, taken),
-      week: lastSevenDays(supplements, logs, new Date(y, m - 1, d)),
+      week: thisWeek(supplements, logs, new Date(y, m - 1, d)),
     };
   }, [rows, logs, todayKey]);
 }
