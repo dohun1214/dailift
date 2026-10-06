@@ -8,6 +8,8 @@ import { SHEET_CLOSED_MS, useSheetMotion } from './use-sheet-motion';
 
 export type SheetAction = {
   label: string;
+  /** 이름 아래에 작게 붙는 설명 */
+  description?: string;
   onPress: () => void;
   destructive?: boolean;
   /** 지금 고른 값이면 오른쪽에 체크 */
@@ -79,7 +81,10 @@ export function ActionSheet({ visible, title, actions, cancelLabel, onClose }: P
                   pressed && styles.pressed,
                 ]}
               >
-                <Text style={[styles.itemText, a.destructive && styles.danger]}>{a.label}</Text>
+                <View style={[styles.itemBody, a.description ? styles.itemBodyTall : null]}>
+                  <Text style={[styles.itemText, a.destructive && styles.danger]}>{a.label}</Text>
+                  {a.description ? <Text style={styles.itemDesc}>{a.description}</Text> : null}
+                </View>
                 {a.selected ? (
                   <Check size={18} color={theme.colors.text} strokeWidth={2.2} />
                 ) : null}
@@ -122,8 +127,16 @@ const styles = StyleSheet.create((theme) => ({
   },
   item: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 8 },
   line: { borderTopWidth: 1, borderTopColor: theme.colors.line },
+  itemBody: { flex: 1, gap: 2 },
+  itemBodyTall: { paddingVertical: 10 },
+  itemDesc: {
+    fontSize: 12,
+    lineHeight: 17,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.text2,
+  },
   itemText: {
-    flex: 1,
     fontSize: 16,
     lineHeight: 21,
     includeFontPadding: false,

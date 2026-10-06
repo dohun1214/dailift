@@ -1017,6 +1017,8 @@
     "proteinShort": "단백질 {{n}} g",
     "per100": "100 {{basis}}당",
     "rowHint": "누르면 양을 고쳐요",
+    "swipeHint": "왼쪽으로 밀면 지워져요",
+    "deleteAction": "삭제",
     "sourceNote": {
       "kr": "영양 정보는 식약처 · USDA 자료를 기준으로 한 참고값이에요.",
       "usda": "영양 정보는 USDA 자료를 기준으로 한 참고값이에요."
@@ -1122,7 +1124,9 @@
       "added": "{{meal}}에 추가했어요 · {{name}} (음식 {{count}}개)",
       "chooseTitle": "만들기",
       "chooseFood": "음식 만들기",
+      "chooseFoodDesc": "목록에 없는 음식을 영양성분표를 보고 넣어요",
       "chooseSet": "세트 만들기",
+      "chooseSetDesc": "자주 같이 먹는 음식을 묶어 한 번에 넣어요",
       "pickTitle": "세트에 담기",
       "put": "세트에 담기",
       "putDone": "세트에 담았어요 · {{name}} {{amount}}",

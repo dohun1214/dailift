@@ -1056,6 +1056,8 @@
     "proteinShort": "{{n}} g protein",
     "per100": "per 100 {{basis}}",
     "rowHint": "Opens the amount",
+    "swipeHint": "Swipe left to delete",
+    "deleteAction": "Delete",
     "sourceNote": {
       "kr": "Nutrition values are estimates based on MFDS (Korea) and USDA data.",
       "usda": "Nutrition values are estimates based on USDA data."
@@ -1162,7 +1164,9 @@
       "added": "Added to {{meal}} · {{name}} ({{count}} foods)",
       "chooseTitle": "Create",
       "chooseFood": "Create a food",
+      "chooseFoodDesc": "Add a food that isn't listed, from its nutrition label",
       "chooseSet": "Create a set",
+      "chooseSetDesc": "Group foods you often eat together and add them at once",
       "pickTitle": "Add to set",
       "put": "Add to set",
       "putDone": "Added to set · {{name}} {{amount}}",
