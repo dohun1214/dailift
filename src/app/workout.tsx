@@ -8,6 +8,7 @@ import {
   BackHandler,
   Keyboard,
   KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -229,6 +230,11 @@ export default function WorkoutScreen() {
     });
   const fieldNav = useFieldNav(fieldOrder);
   const fieldKey = fieldNav.current?.key;
+  // 입력 중이면 아래 버튼 대신 키보드 위 줄을 보인다.
+  // iOS는 칸을 누른 순간(키보드가 움직이기 전)에 바꾼다 — 키보드가 올라오기 시작한 뒤에 바꾸면
+  // 아래 버튼이 키보드를 따라 올라오다가 사라지는 것이 잠깐 보인다.
+  // Android는 키보드만 닫고 칸은 그대로일 수 있어서(뒤로 가기) 키보드가 보일 때만.
+  const typing = fieldNav.current !== null && (Platform.OS === 'ios' || keyboardVisible);
   // 입력 중인 칸이 키보드 뒤에 있으면 보이는 곳까지 올린다. '다음'으로 칸을 옮길 때도.
   const scrollRef = useRef<ScrollView>(null);
   const { reveal } = useKeyboardReveal(scrollRef);
@@ -748,7 +754,7 @@ export default function WorkoutScreen() {
           </Pressable>
         </ScrollView>
 
-        {keyboardVisible && fieldNav.current ? (
+        {typing && fieldNav.current ? (
           <KeyboardBar
             label={fieldNav.current.label}
             onApply={canApply ? applyToRest : undefined}

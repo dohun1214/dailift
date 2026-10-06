@@ -104,7 +104,8 @@ export function useKeyboardReveal(scrollRef: RefObject<ScrollView | null>, enabl
               if (tries <= EARLY_RETRIES) earlyTimer = setTimeout(attempt, EARLY_RETRY_MS);
             };
             if (earlyTimer) clearTimeout(earlyTimer);
-            attempt();
+            // 포커스로 화면이 바뀌는 곳(운동 화면의 아래 버튼 → 키보드 위 줄)이 먼저 그려진 뒤에 잰다.
+            earlyTimer = setTimeout(attempt, 0);
           })
         : null;
     const again = () => reveal();

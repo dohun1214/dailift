@@ -1,21 +1,15 @@
 import { ChevronDown, ChevronRight, Equal, Trash2 } from 'lucide-react-native';
-import { type ReactNode, useCallback, useRef } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type LayoutChangeEvent, Pressable, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import Animated, {
-  type SharedValue,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { type SharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import type { DraftItem } from '@/domain/routine-draft';
-
-type Layout = { y: number; h: number };
+import { type RowLayout, slotOffset, targetIndex, useDragReorder } from '@/lib/use-drag-reorder';
 
 export type EditRowInfo = {
   item: DraftItem;
@@ -33,23 +27,6 @@ type Props = {
   renderFields: (item: DraftItem) => ReactNode;
 };
 
-/** 드래그한 행의 중심이 다른 행의 가운데를 넘으면 그 자리로 옮긴다. */
-function targetIndex(from: number, dy: number, layouts: readonly Layout[]): number {
-  'worklet';
-  const cur = layouts[from];
-  if (!cur) return from;
-  const center = cur.y + cur.h / 2 + dy;
-  for (let i = 0; i < from; i++) {
-    const l = layouts[i];
-    if (l && center < l.y + l.h / 2) return i;
-  }
-  for (let i = layouts.length - 1; i > from; i--) {
-    const l = layouts[i];
-    if (l && center > l.y + l.h / 2) return i;
-  }
-  return from;
-}
-
 /** 루틴 편집의 종목 목록: 손잡이로 순서 변경, 왼쪽으로 밀어 삭제, 눌러서 펼치기 */
 export function ExerciseEditList({
   rows,
@@ -59,26 +36,16 @@ export function ExerciseEditList({
   onRemove,
   renderFields,
 }: Props) {
-  const active = useSharedValue(-1);
-  const dy = useSharedValue(0);
-  const layouts = useSharedValue<Layout[]>([]);
-  const layoutRef = useRef<Layout[]>([]);
-
-  const setLayout = useCallback(
-    (index: number, e: LayoutChangeEvent) => {
-      const { y, height } = e.nativeEvent.layout;
-      layoutRef.current[index] = { y, h: height };
-      layoutRef.current.length = rows.length;
-      layouts.value = [...layoutRef.current];
-    },
-    [layouts, rows.length],
+  const { active, dy, dropTo, dragEpoch, epoch, layouts, setLayout, drop } = useDragReorder(
+    rows.map((r) => r.item.key),
+    onMove,
   );
 
   return (
     <View>
       {rows.map((row, index) => (
         <EditRow
-          key={row.item.key}
+          key={`${row.item.key}:${epoch}`}
           row={row}
           index={index}
           count={rows.length}
@@ -86,6 +53,10 @@ export function ExerciseEditList({
           expanded={expandedKey === row.item.key}
           active={active}
           dy={dy}
+          dropTo={dropTo}
+          dragEpoch={dragEpoch}
+          epoch={epoch}
+          onDrop={drop}
           layouts={layouts}
           onLayout={setLayout}
           onToggle={onToggle}
@@ -106,7 +77,13 @@ type RowProps = {
   expanded: boolean;
   active: SharedValue<number>;
   dy: SharedValue<number>;
-  layouts: SharedValue<Layout[]>;
+  /** 놓은 자리(새 순서로 다시 그려질 때까지 붙잡아 둔다) */
+  dropTo: SharedValue<number>;
+  /** 이 행의 세대와, 지금 끌기가 시작된 세대. 다르면 끌기 상태를 따르지 않는다 */
+  dragEpoch: SharedValue<number>;
+  epoch: number;
+  onDrop: (from: number, to: number) => void;
+  layouts: SharedValue<RowLayout[]>;
   onLayout: (index: number, e: LayoutChangeEvent) => void;
   onToggle: (key: string) => void;
   onMove: (from: number, to: number) => void;
@@ -122,6 +99,10 @@ function EditRow({
   expanded,
   active,
   dy,
+  dropTo,
+  dragEpoch,
+  epoch,
+  onDrop,
   layouts,
   onLayout,
   onToggle,
@@ -136,6 +117,8 @@ function EditRow({
   const pan = Gesture.Pan()
     .minDistance(0)
     .onStart(() => {
+      dropTo.value = -1;
+      dragEpoch.value = epoch;
       active.value = index;
       dy.value = 0;
     })
@@ -144,20 +127,28 @@ function EditRow({
     })
     .onEnd(() => {
       const to = targetIndex(index, dy.value, layouts.value);
-      active.value = -1;
-      dy.value = 0;
-      if (to !== index) scheduleOnRN(onMove, index, to);
+      if (to === index) {
+        active.value = -1;
+        dy.value = 0;
+        return;
+      }
+      // 놓은 자리에 붙여 두고, 목록이 새 순서로 그려지면 푼다(바로 풀면 옛 순서가 잠깐 보인다).
+      dropTo.value = to;
+      dy.value = withTiming(slotOffset(index, to, layouts.value), { duration: 120 }, () => {
+        scheduleOnRN(onDrop, index, to);
+      });
     })
     .onFinalize(() => {
+      if (dropTo.value !== -1) return;
       active.value = -1;
       dy.value = 0;
     });
 
   const animated = useAnimatedStyle(() => {
-    const from = active.value;
+    const from = dragEpoch.value === epoch ? active.value : -1;
     if (from === -1) return { transform: [{ translateY: 0 }], zIndex: 0, opacity: 1 };
     if (from === index) return { transform: [{ translateY: dy.value }], zIndex: 10, opacity: 0.92 };
-    const to = targetIndex(from, dy.value, layouts.value);
+    const to = dropTo.value !== -1 ? dropTo.value : targetIndex(from, dy.value, layouts.value);
     const h = layouts.value[from]?.h ?? 0;
     let shift = 0;
     if (from < to && index > from && index <= to) shift = -h;
