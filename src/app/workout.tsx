@@ -608,10 +608,11 @@ export default function WorkoutScreen() {
     );
   }
 
-  // 아래 버튼들. iOS에서는 입력 중에도 제자리에 두고(키보드 뒤에 가려진다) 보이지만 않게 한다.
+  // 아래 버튼들. iOS에서는 입력 중에도 제자리에 그대로 둔다(키보드 뒤에 가려진다).
+  // 숨기지 않는다 — 키보드가 덮기 전에 먼저 사라지는 것도 깜빡임으로 보인다.
   const footer = (
     <View
-      style={[styles.footer, { paddingBottom: insets.bottom + 24 }, typing && styles.footerHidden]}
+      style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}
       pointerEvents={typing ? 'none' : 'auto'}
     >
       {undoBar}
@@ -1077,5 +1078,4 @@ const styles = StyleSheet.create((theme) => ({
   },
   suggestStrong: { fontFamily: theme.fonts.semibold, color: theme.colors.text },
   footer: { gap: 10, paddingTop: 10, paddingHorizontal: 16 },
-  footerHidden: { opacity: 0 },
 }));
