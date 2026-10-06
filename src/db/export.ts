@@ -81,6 +81,8 @@ const TABLES = {
   sets: schema.sets,
   workout_photos: schema.workoutPhotos,
   body_metrics: schema.bodyMetrics,
+  supplements: schema.supplements,
+  supplement_logs: schema.supplementLogs,
 } as const satisfies Record<(typeof SYNCED_TABLES)[number], unknown>;
 
 /** 전체 백업: 지우지 않은 사용자 행 전부(기본 종목 제외, 기기 전용 표시 컬럼 제외) */
@@ -129,6 +131,16 @@ export function exportAllTables(db: AppDatabase): Record<string, Record<string, 
     .select()
     .from(TABLES.body_metrics)
     .where(isNull(TABLES.body_metrics.deletedAt))
+    .all();
+  out.supplements = db
+    .select()
+    .from(TABLES.supplements)
+    .where(isNull(TABLES.supplements.deletedAt))
+    .all();
+  out.supplement_logs = db
+    .select()
+    .from(TABLES.supplement_logs)
+    .where(isNull(TABLES.supplement_logs.deletedAt))
     .all();
   for (const rows of Object.values(out)) {
     for (const r of rows) {

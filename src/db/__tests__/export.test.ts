@@ -7,7 +7,24 @@ import { createCustomExercise } from '../routine-editor';
 import { copyTemplate } from '../routines';
 import * as schema from '../schema';
 import { seedReferenceData } from '../seed';
+import {
+  createSupplement,
+  deleteSupplement,
+  type SupplementInput,
+  setSupplementTaken,
+} from '../supplements';
 import { finishWorkout, setCompleted, startWorkout, updateSet } from '../workout';
+
+const SUPPLEMENT: SupplementInput = {
+  name: '오메가3',
+  dose: '',
+  timing: 'time',
+  timeMin: 540,
+  afterMin: 30,
+  notify: true,
+  renotify: true,
+  active: true,
+};
 
 function createTestDb() {
   const sqlite = new Database(':memory:');
@@ -56,7 +73,14 @@ describe('내보내기', () => {
       },
       makeId,
     );
+    const kept = createSupplement(db, SUPPLEMENT, makeId);
+    const gone = createSupplement(db, SUPPLEMENT, makeId);
+    setSupplementTaken(db, kept, '2026-10-06', true, 1, makeId);
+    setSupplementTaken(db, gone, '2026-10-06', true, 1, makeId);
+    deleteSupplement(db, gone, 2);
     const data = exportAllTables(db);
+    expect(data.supplements?.map((r) => r.id)).toEqual([kept]);
+    expect(data.supplement_logs?.map((r) => r.supplementId)).toEqual([kept]);
     expect(data.exercises).toHaveLength(1);
     expect(data.exercise_muscles).toHaveLength(1);
     expect(Object.keys(data.exercises?.[0] ?? {})).not.toContain('dirty');

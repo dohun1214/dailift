@@ -11,6 +11,7 @@ import { AccountSwitchDialog } from '@/components/account-switch-dialog';
 import { DatabaseProvider } from '@/db/provider';
 import { startAuth } from '@/lib/auth';
 import { configureNotifications } from '@/lib/notifications';
+import { useSupplementNotifications } from '@/lib/use-supplement-notifications';
 import { useRestTimerAlarm } from '@/stores/use-rest-timer-alarm';
 import { startSync } from '@/sync/manager';
 import { useAppFonts } from '@/theme/use-app-fonts';
@@ -21,6 +22,12 @@ startSync();
 
 void SplashScreen.preventAutoHideAsync();
 configureNotifications();
+
+/** 영양제 알림 맞추기 · 알림을 눌렀을 때 화면 열기. DB가 준비된 뒤에 돌아야 해서 DatabaseProvider 안에 둔다. */
+function SupplementNotifications() {
+  useSupplementNotifications();
+  return null;
+}
 
 export default function RootLayout() {
   useApplyTheme();
@@ -51,6 +58,7 @@ export default function RootLayout() {
           <Stack.Screen name="routine/[id]" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="exercise-picker" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="exercise-new" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="supplement/[id]" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen
             name="workout"
             options={{ animation: 'slide_from_bottom', gestureEnabled: false }}
@@ -62,6 +70,7 @@ export default function RootLayout() {
           <Stack.Screen name="account-delete" />
         </Stack>
         <AccountSwitchDialog />
+        <SupplementNotifications />
       </DatabaseProvider>
     </GestureHandlerRootView>
   );

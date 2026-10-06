@@ -11,6 +11,7 @@ import { type DayRoutine, DaySheet } from '@/components/home/day-sheet';
 import { LiveWorkoutCard } from '@/components/home/live-workout-card';
 import { MuscleSetsCard } from '@/components/home/muscle-sets-card';
 import { type PickRoutine, RoutinePickSheet } from '@/components/home/routine-pick-sheet';
+import { SupplementCard } from '@/components/home/supplement-card';
 import { WeekRange } from '@/components/home/week-range';
 import { WeekStrip } from '@/components/home/week-strip';
 import { Badge, Button, ConfirmDialog, Screen } from '@/components/ui';
@@ -418,6 +419,8 @@ export default function HomeScreen() {
             </Pressable>
           )}
         </View>
+
+        <SupplementCard now={now} />
 
         <MuscleSetsCard
           rows={muscleRows}
