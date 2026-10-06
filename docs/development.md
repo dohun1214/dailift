@@ -165,6 +165,11 @@ npm test
 - 들어 있는 것(2026-10 기준 20,074개, 3.6MB): USDA 13,224(FNDDS 5,431 + SR Legacy 7,793), 식약처 6,850(음식 1,970 + 원재료 2,913 + 업체 음식 1,967). 식약처 데이터를 다듬는 규칙은 스크립트에 있다 — 밑줄로 이어진 이름은 쉼표로, 같은 이름이 여러 조사에 있으면 하나만(가정식 → 외식 → 급식 순), 수산물의 지역 · 월별 표본은 하나만(대표 평균 우선), 탄수화물 · 지방이 비어 있는 업체 음식(약 13,000개)은 뺌, 업체 음식은 이름 뒤에 ` · 업체`, 마실 것만 ml.
 - 구조: `foods`(src `usda|mfds`, sid = 출처의 id, pri = 출처 안 순서, name, cho = 초성, 100g(ml)당 kcal · protein · carb · fat, basis `g|ml`, serving · serving_name), `portions`(가정 단위 — USDA만), `meta`(출처별 개수). 검색 색인(FTS)은 두지 않았다 — 이름을 LIKE로 훑어도 몇 ms라서 파일을 키우지 않는 쪽을 골랐다.
 - 여는 곳 `src/food/food-db.ts`(`openFoodDb` — 처음 한 번 `importDatabaseFromAssetAsync`로 복사), 훅 `use-food-db.ts`(`useFoodDb`, `useFoodSources`), 찾기 `catalog.ts`(`searchFoods` · `findFood` · `foodPortions` · `foodCounts` — 열린 DB만 받으므로 테스트는 better-sqlite3로 실제 파일을 연다).
+- **가공식품(편의점 · 마트 제품)은 서버에서 찾는다(#111)**: 식약처 가공식품 314,327개는 앱에 넣으면 64MB라 서버 표 `processed_foods`(약 104MB)에 두었다. 한국 지역에서만, 인터넷이 있을 때, 검색어가 두 글자 이상일 때 기본 음식 아래에 "가공식품" 묶음으로 이어 붙인다.
+  - 서버(`supabase/migrations/20261007000004_processed_foods.sql`): 누구나 읽기만(게스트 포함), 찾기는 함수 `search_processed_foods(q, lim, off)` — 이름 · 제조사에서 띄어쓰기 · 쉼표를 뺀 `skey`(생성 칸, trigram GIN 색인)에 낱말이 모두 들어 있는 것, 순서는 같은 이름 → 검색어로 시작 → 짧은 이름. 초성 검색은 없다.
+  - 자료 만들기 · 올리기: PC에서 `.\.expo\mfds-fetch.ps1 -api process`(원본 340MB) → `node scripts/build-processed-foods.mjs`(TSV) → 넣기 정책 "temp load"를 잠깐 열고 `LOAD_TOKEN=… node scripts/load-processed-foods.mjs` → 정책을 `with check (false)`로 닫는다(스크립트 머리말).
+  - 앱: `src/domain/processed-food.ts`(음식 모양으로 바꾸기 — 단위는 1개 = 식품중량, 1회 = 섭취참고량. 처음 양은 1개, 포장 무게가 없으면 100 g), `src/food/processed-remote.ts`(서버 부르기), `src/food/use-processed-search.ts`(350ms 기다렸다 찾기 · 30개씩 더 보기 · 늦게 온 응답 버리기). 출처 값은 `mfdsp`.
+  - 기록에는 다른 음식처럼 이름 · 영양값 사본이 남는다(만든 회사는 남기지 않는다). 고르거나 넣은 가공식품은 기기 전용 표 `food_cache`에 적어 둔다 — 즐겨찾기 목록, 양 창의 단위, 만든 회사 표시를 인터넷 없이 쓰려고. 다른 기기에서 즐겨찾기한 것은 음식 찾기를 열 때 서버에서 받아 채운다.
 - 출처 규칙 `src/domain/food-search.ts`: 기기 지역이 KR이면 식약처 먼저 + USDA, 그 밖에는 USDA만(고르는 설정 없음). 검색어의 낱말은 모두 들어 있어야 하고, 순서는 출처 → 같은 이름 → 검색어로 시작하고 끊김 → 검색어로 시작 → 낱말의 처음 → 그 밖 → pri → 짧은 이름. 한글은 띄어쓰기 · 밑줄을 빼고 견주고, 초성이 섞이면 초성 칸에서 넓게 찾은 뒤 `matchesSearch`로 거른다.
 - 기록에는 음식 DB의 줄 번호(`id`)가 아니라 `src` + `sid`와 영양값 사본을 남긴다(DB를 새로 만들면 줄 번호가 바뀐다).
 - 데이터 출처 화면(`settings/licenses.tsx`)은 이 기기에서 보이는 출처만 적고 음식 수를 DB에서 읽어 보여 준다.

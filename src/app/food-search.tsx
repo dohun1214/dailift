@@ -1,8 +1,8 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Pencil, Plus } from 'lucide-react-native';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Keyboard, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Keyboard, Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { AmountSheet } from '@/components/diet/amount-sheet';
@@ -24,8 +24,9 @@ import {
 import { db } from '@/db/client';
 import { addFoodLog, canAddCustomFood, deleteFoodLog } from '@/db/diet';
 import { addItemsToMeal, canAddSet, deleteFoodLogs } from '@/db/diet-sets';
+import { cacheProcessedFoods } from '@/db/food-cache';
 import type { Meal } from '@/db/schema';
-import { useFoodLists, useFoodSets } from '@/db/use-diet';
+import { useFoodLists, useFoodSets, useProcessedCache } from '@/db/use-diet';
 import { dateKey, parseDateKey } from '@/domain/date-key';
 import {
   type Amount,
@@ -39,10 +40,13 @@ import {
   type SetItem,
   setTotal,
 } from '@/domain/diet';
+import { processedDefaultAmount, processedItem } from '@/domain/processed-food';
 import { searchFoods } from '@/food/catalog';
 import { withAllUnits } from '@/food/full-item';
 import { catalogItem, loadCatalogItem } from '@/food/items';
+import { fetchProcessedFoods } from '@/food/processed-remote';
 import { useFoodDb, useFoodSources } from '@/food/use-food-db';
+import { useProcessedSearch } from '@/food/use-processed-search';
 import { clearCreatedFood, createdFood, takeSetSaved } from '@/lib/created-food';
 import { matchesSearch } from '@/lib/hangul';
 import { useSetDraft } from '@/stores/set-draft';
@@ -79,6 +83,7 @@ export default function FoodSearchScreen() {
   const sources = useFoodSources();
   const { mine, recent, favorites } = useFoodLists();
   const sets = useFoodSets();
+  const cache = useProcessedCache();
   const [query, setQuery] = useState(params.q ?? '');
   const [tab, setTab] = useState<Tab>('recent');
   const [picked, setPicked] = useState<Row | null>(null);
@@ -100,17 +105,57 @@ export default function FoodSearchScreen() {
 
   const searching = query.trim().length > 0;
   const mineByKey = useMemo(() => new Map(mine.map((f) => [foodKey(f), f])), [mine]);
+  // 가공식품(서버 검색)은 식약처 자료라 한국에서만 보인다.
+  const processed = useProcessedSearch(query, sources.includes('mfds'));
+  const processedBySid = useMemo(
+    () => new Map(processed.rows.map((f) => [f.sid, f])),
+    [processed.rows],
+  );
+  const processedRows = useMemo<Row[]>(
+    () =>
+      processed.rows.map((f) => {
+        const item = processedItem(f);
+        return { item, amount: processedDefaultAmount(item) };
+      }),
+    [processed.rows],
+  );
+  /** 고르거나 넣은 가공식품은 기기에 적어 둔다(즐겨찾기 목록 · 양 창의 단위를 인터넷 없이 쓰려고) */
+  const remember = (item: FoodItem) => {
+    const found = item.src === 'mfdsp' ? processedBySid.get(item.sid) : undefined;
+    if (found) cacheProcessedFoods(db, [found]);
+  };
+
+  // 즐겨찾기한 가공식품의 사본이 이 기기에 없으면(다른 기기에서 즐겨찾기) 서버에서 받아 둔다. 한 번만 해 본다.
+  const asked = useRef(new Set<string>());
+  useEffect(() => {
+    const missing = favorites
+      .filter((f) => f.src === 'mfdsp' && !cache.has(f.sid) && !asked.current.has(f.sid))
+      .map((f) => f.sid);
+    if (missing.length === 0) return;
+    for (const sid of missing) asked.current.add(sid);
+    fetchProcessedFoods(missing)
+      .then((rows) => cacheProcessedFoods(db, rows))
+      .catch(() => undefined);
+  }, [favorites, cache]);
 
   const favoriteRows = useMemo<Row[]>(() => {
     const out: Row[] = [];
     for (const f of favorites) {
       let item: FoodItem | null = null;
       if (f.src === 'custom') item = mineByKey.get(foodKey(f)) ?? null;
-      else if (foodDb) item = loadCatalogItem(foodDb, f.src, f.sid);
-      if (item) out.push({ item, amount: defaultAmount(item) });
+      else if (f.src === 'mfdsp') {
+        const row = cache.get(f.sid);
+        item = row ? processedItem(row) : null;
+      } else if (foodDb) item = loadCatalogItem(foodDb, f.src, f.sid);
+      if (item) {
+        out.push({
+          item,
+          amount: item.src === 'mfdsp' ? processedDefaultAmount(item) : defaultAmount(item),
+        });
+      }
     }
     return out;
-  }, [favorites, mineByKey, foodDb]);
+  }, [favorites, mineByKey, foodDb, cache]);
 
   const results = useMemo<Row[]>(() => {
     if (!searching) return [];
@@ -143,6 +188,7 @@ export default function FoodSearchScreen() {
     setAdded({ key: addedKey.current, message, undo });
   };
   const add = (item: FoodItem, amount: Amount) => {
+    remember(item);
     const text = { name: item.name, amount: fmt.amount(amount, item.basis) };
     if (toSet) {
       if (!useSetDraft.getState().add(item, amount)) return warn('setItems');
@@ -167,12 +213,15 @@ export default function FoodSearchScreen() {
   const open = useCallback(
     (row: Row) => {
       Keyboard.dismiss();
+      // 양 창에서 즐겨찾기를 누를 수 있으니 먼저 적어 둔다.
+      const found = row.item.src === 'mfdsp' ? processedBySid.get(row.item.sid) : undefined;
+      if (found) cacheProcessedFoods(db, [found]);
       // 양 창에서는 고를 수 있는 단위를 모두 보여 준다(목록에는 기본 1회 양만 실려 있다).
       const item = withAllUnits(row.item, row.amount.unit, foodDb);
       setPicked({ item, amount: row.amount });
       setSheetOpen(true);
     },
-    [foodDb],
+    [foodDb, processedBySid],
   );
 
   const createFood = (name: string | null = null) => {
@@ -225,6 +274,71 @@ export default function FoodSearchScreen() {
       : item.src === 'usda' && sources.includes('mfds')
         ? 'USDA'
         : null;
+
+  /** 만든 회사: 찾은 것에는 실려 있고, 최근 · 즐겨찾기는 기기의 사본에서 찾는다 */
+  const makerOf = (item: FoodItem) =>
+    item.maker || (item.src === 'mfdsp' ? cache.get(item.sid)?.maker || null : null);
+
+  const renderRow = (row: Row, last: boolean) => {
+    const { item } = row;
+    const line = sub(row);
+    const label = tag(item);
+    const maker = makerOf(item);
+    return (
+      <View key={foodKey(item)} style={[styles.row, !last && styles.line]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            maker
+              ? t('diet.processed.rowA11y', { name: item.name, maker, line })
+              : `${item.name}, ${line}`
+          }
+          accessibilityHint={t('diet.search.rowHint')}
+          onPress={() => open(row)}
+          style={({ pressed }) => [styles.rowBody, pressed && styles.pressed]}
+        >
+          <Text style={styles.name} numberOfLines={2}>
+            {item.name}
+          </Text>
+          {maker ? (
+            <Text style={styles.maker} numberOfLines={1}>
+              {maker}
+            </Text>
+          ) : null}
+          <View style={styles.subRow}>
+            <Text style={styles.sub} numberOfLines={1}>
+              {line}
+            </Text>
+            {label ? (
+              <View style={styles.tag}>
+                <Text style={styles.tagText}>{label}</Text>
+              </View>
+            ) : null}
+          </View>
+        </Pressable>
+        {item.src === 'custom' && !searching && tab === 'mine' ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('diet.search.editA11y', { name: item.name })}
+            onPress={() => router.push({ pathname: '/food/[id]', params: { id: item.sid } })}
+            style={({ pressed }) => [styles.hit, pressed && styles.pressed]}
+          >
+            <Pencil size={18} color={theme.colors.text2} strokeWidth={1.8} />
+          </Pressable>
+        ) : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('diet.search.quickAddA11y', { name: item.name })}
+          onPress={() => add(item, row.amount)}
+          style={({ pressed }) => [styles.hit, pressed && styles.pressed]}
+        >
+          <View style={styles.plus}>
+            <Plus size={16} color={theme.colors.text} strokeWidth={2.2} />
+          </View>
+        </Pressable>
+      </View>
+    );
+  };
 
   const name = query.trim().slice(0, LIMITS.foodName) || null;
   const showSets = !searching && tab === 'sets' && !toSet;
@@ -349,64 +463,13 @@ export default function FoodSearchScreen() {
         )
       ) : rows.length > 0 ? (
         <View style={styles.list}>
-          {rows.map((row, i) => {
-            const { item } = row;
-            const line = sub(row);
-            const label = tag(item);
-            return (
-              <View
-                key={`${foodKey(item)}`}
-                style={[styles.row, i < rows.length - 1 && styles.line]}
-              >
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${item.name}, ${line}`}
-                  accessibilityHint={t('diet.search.rowHint')}
-                  onPress={() => open(row)}
-                  style={({ pressed }) => [styles.rowBody, pressed && styles.pressed]}
-                >
-                  <Text style={styles.name} numberOfLines={2}>
-                    {item.name}
-                  </Text>
-                  <View style={styles.subRow}>
-                    <Text style={styles.sub} numberOfLines={1}>
-                      {line}
-                    </Text>
-                    {label ? (
-                      <View style={styles.tag}>
-                        <Text style={styles.tagText}>{label}</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                </Pressable>
-                {item.src === 'custom' && !searching && tab === 'mine' ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t('diet.search.editA11y', { name: item.name })}
-                    onPress={() =>
-                      router.push({ pathname: '/food/[id]', params: { id: item.sid } })
-                    }
-                    style={({ pressed }) => [styles.hit, pressed && styles.pressed]}
-                  >
-                    <Pencil size={18} color={theme.colors.text2} strokeWidth={1.8} />
-                  </Pressable>
-                ) : null}
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t('diet.search.quickAddA11y', { name: item.name })}
-                  onPress={() => add(item, row.amount)}
-                  style={({ pressed }) => [styles.hit, pressed && styles.pressed]}
-                >
-                  <View style={styles.plus}>
-                    <Plus size={16} color={theme.colors.text} strokeWidth={2.2} />
-                  </View>
-                </Pressable>
-              </View>
-            );
-          })}
+          {rows.map((row, i) => renderRow(row, i === rows.length - 1))}
         </View>
       ) : searching ? (
-        loading || (failed && mine.length === 0) ? null : (
+        loading ||
+        (failed && mine.length === 0) ||
+        processed.status === 'loading' ||
+        processedRows.length > 0 ? null : (
           <NoMatchCard
             title={t('diet.search.noMatchTitle', { query: query.trim() })}
             body={t('diet.search.noMatchBody')}
@@ -419,6 +482,59 @@ export default function FoodSearchScreen() {
       ) : (
         <Text style={styles.empty}>{t(`diet.search.empty.${tab}`)}</Text>
       )}
+
+      {searching && processed.status !== 'idle' ? (
+        processed.status === 'loading' ? (
+          <>
+            <Text style={styles.section}>{t('diet.processed.title')}</Text>
+            <View style={styles.note}>
+              <ActivityIndicator size="small" color={theme.colors.text2} />
+              <Text style={styles.noteText}>{t('diet.processed.loading')}</Text>
+            </View>
+          </>
+        ) : processed.status === 'failed' ? (
+          <>
+            <Text style={styles.section}>{t('diet.processed.title')}</Text>
+            <View style={styles.note}>
+              <Text style={styles.noteText}>{t('diet.processed.offline')}</Text>
+            </View>
+          </>
+        ) : processedRows.length > 0 ? (
+          <>
+            <View style={styles.sectionRow}>
+              <Text style={[styles.section, styles.sectionGrow]}>{t('diet.processed.title')}</Text>
+              <Text style={styles.sectionHint}>{t('diet.processed.makerHint')}</Text>
+            </View>
+            <View style={styles.list}>
+              {processedRows.map((row, i) => renderRow(row, i === processedRows.length - 1))}
+            </View>
+            {processed.more ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: processed.loadingMore }}
+                disabled={processed.loadingMore}
+                onPress={processed.loadMore}
+                style={({ pressed }) => [styles.more, pressed && styles.pressed]}
+              >
+                <Text style={styles.moreText}>
+                  {t(processed.loadingMore ? 'diet.processed.moreLoading' : 'diet.processed.more')}
+                </Text>
+              </Pressable>
+            ) : null}
+            <View style={styles.missing}>
+              <Text style={styles.missingText}>{t('diet.processed.missing')}</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => createFood(name)}
+                style={({ pressed }) => [styles.missingButton, pressed && styles.pressed]}
+              >
+                <Plus size={16} color={theme.colors.text} strokeWidth={2.2} />
+                <Text style={styles.missingButtonText}>{t('diet.processed.create')}</Text>
+              </Pressable>
+            </View>
+          </>
+        ) : null
+      ) : null}
 
       <AmountSheet
         visible={sheetOpen}
@@ -523,6 +639,99 @@ const styles = StyleSheet.create((theme) => ({
     includeFontPadding: false,
     fontFamily: theme.fonts.semibold,
     color: theme.colors.text2,
+  },
+  maker: {
+    fontSize: 12,
+    lineHeight: 16,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.medium,
+    color: theme.colors.text2,
+  },
+  sectionRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  sectionGrow: { flex: 1 },
+  section: {
+    paddingHorizontal: 6,
+    paddingTop: 6,
+    fontSize: 13,
+    lineHeight: 17,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.semibold,
+    color: theme.colors.text2,
+  },
+  sectionHint: {
+    paddingRight: 6,
+    fontSize: 12,
+    lineHeight: 16,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.text2,
+  },
+  note: {
+    minHeight: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: theme.radius.xl,
+    backgroundColor: theme.colors.surface,
+  },
+  noteText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19.5,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.text2,
+  },
+  more: {
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.surface,
+  },
+  moreText: {
+    fontSize: 14,
+    lineHeight: 19,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.bold,
+    color: theme.colors.text,
+  },
+  missing: {
+    minHeight: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    paddingLeft: 18,
+    paddingRight: 10,
+    borderRadius: theme.radius.xl,
+    backgroundColor: theme.colors.surface,
+  },
+  missingText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 19,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.text2,
+  },
+  missingButton: {
+    height: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: theme.colors.surface2,
+  },
+  missingButtonText: {
+    fontSize: 14,
+    lineHeight: 19,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.bold,
+    color: theme.colors.text,
   },
   hit: {
     width: theme.hitSize,

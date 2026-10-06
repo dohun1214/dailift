@@ -111,7 +111,7 @@ export function AmountSheet({
       title={item.name}
       titleLines={2}
       subtitle={t('diet.amount.source', {
-        source: fmt.source(item.src),
+        source: item.maker ? `${item.maker} · ${fmt.source(item.src)}` : fmt.source(item.src),
         basis,
         kcal: fmt.int(item.kcal),
       })}

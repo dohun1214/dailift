@@ -1066,7 +1066,8 @@
     "source": {
       "mfds": "MFDS Food Composition DB",
       "usda": "USDA FoodData Central",
-      "custom": "My food"
+      "custom": "My food",
+      "mfdsp": "MFDS packaged foods"
     },
     "unit": {
       "serving": "1 serving",
@@ -1224,6 +1225,17 @@
     "home": {
       "title": "Today's diet",
       "a11y": "Today's diet, {{kcal}} kcal, {{protein}} g protein, open diet"
+    },
+    "processed": {
+      "title": "Packaged foods",
+      "makerHint": "Maker shown under the name",
+      "loading": "Searching packaged foods…",
+      "offline": "Packaged foods (store and supermarket products) can be searched when you're online.",
+      "more": "More packaged foods",
+      "moreLoading": "Loading more…",
+      "missing": "Can't find your product?",
+      "create": "Create it",
+      "rowA11y": "{{name}}, {{maker}}, {{line}}"
     }
   },
   "dietBackup": {

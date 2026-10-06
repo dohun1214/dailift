@@ -39,6 +39,7 @@ export function wipeUserData(db: AppDatabase): string[] {
       schema.foodSetItems,
       schema.foodSets,
       schema.foods,
+      schema.foodCache,
       schema.syncState,
     ]) {
       // 조건 없이 통째로 지우면 SQLite가 '변경 알림'을 보내지 않아 열려 있는 화면이 옛 기록을 그대로 보여 준다.
