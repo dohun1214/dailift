@@ -264,10 +264,9 @@ export default function WorkoutScreen() {
   // 유산소는 세트가 아니라서 '남은 세트'로 치지 않는다(카드가 늘 펼쳐져 있고, 안 잰 것은 끝낼 때 조용히 빠진다).
   const pendingOf = (we: WorkoutExerciseWithSets) =>
     isCardio(we) ? 0 : we.sets.filter((s) => s.completedAt === null).length;
+  // 남은 세트가 하나도 없으면 펼쳐 둘 '지금 종목'이 없다: 모두 접힌다(눌러서 다시 펼 수 있다).
   const active =
-    exercises.find((e) => e.id === activeId) ??
-    exercises.find((e) => pendingOf(e) > 0) ??
-    exercises[0];
+    exercises.find((e) => e.id === activeId) ?? exercises.find((e) => pendingOf(e) > 0);
 
   useEffect(() => {
     if (activeId && !exercises.some((e) => e.id === activeId)) setActiveId(null);
@@ -375,8 +374,8 @@ export default function WorkoutScreen() {
       stopRest();
     }
     if (leftHere === 0) {
-      // 다 끝낸 종목은 접고, 남은 종목이 있으면 그걸 지금 종목으로
-      if (next) setActiveId(next.id);
+      // 다 끝낸 종목은 접고, 남은 종목이 있으면 그걸 지금 종목으로. 마지막 종목까지 끝냈으면 그것도 접는다.
+      setActiveId(next ? next.id : null);
       setOpenIds((ids) => ids.filter((id) => id !== we.id && id !== next?.id));
     }
   };
