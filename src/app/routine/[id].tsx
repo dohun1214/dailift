@@ -10,6 +10,7 @@ import { ExerciseEditList, NumberField, PlanEditor, RangeField } from '@/compone
 import { AppText, Card, Screen, TextButton, TextField, TopBar } from '@/components/ui';
 import { db } from '@/db/client';
 import {
+  cardioExerciseIds,
   defaultRestFor,
   deleteRoutine,
   emptyRoutineDraft,
@@ -19,6 +20,7 @@ import {
 } from '@/db/routine-editor';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
 import {
+  cardioTarget,
   type DraftError,
   type DraftItem,
   isDraftChanged,
@@ -94,14 +96,23 @@ export default function RoutineEditScreen() {
   };
 
   const isTimeExercise = (exerciseId: string) => catalog.byId.get(exerciseId)?.type === 'time';
+  const isCardioExercise = (exerciseId: string) => catalog.byId.get(exerciseId)?.type === 'cardio';
 
   const addExercises = () => {
     openExercisePicker((ids) => {
       const rests = defaultRestFor(db, ids, useSettings.getState().defaultRestSec);
       // 고르는 화면에서 방금 만든 종목은 이 화면의 목록에 아직 없다 → DB에서 읽는다.
       const timed = timeExerciseIds(db, ids);
+      const cardio = cardioExerciseIds(db, ids);
       const added = ids.map((exerciseId) =>
-        newDraftItem(newId(), exerciseId, weightUnit, rests.get(exerciseId), timed.has(exerciseId)),
+        newDraftItem(
+          newId(),
+          exerciseId,
+          weightUnit,
+          rests.get(exerciseId),
+          timed.has(exerciseId),
+          cardio.has(exerciseId),
+        ),
       );
       setError(null);
       setDraft((d) => (d ? { ...d, items: [...d.items, ...added] } : d));
@@ -109,11 +120,14 @@ export default function RoutineEditScreen() {
   };
 
   const save = () => {
-    const problem = validateDraft(draft, isTimeExercise);
+    const problem = validateDraft(draft, isTimeExercise, isCardioExercise);
     if (problem) {
       setError(problem);
       if (problem === 'itemInvalid') {
-        const bad = draft.items.find((i) => itemIssue(i, isTimeExercise(i.exerciseId)) !== null);
+        const bad = draft.items.find(
+          (i) =>
+            itemIssue(i, isTimeExercise(i.exerciseId), isCardioExercise(i.exerciseId)) !== null,
+        );
         if (bad) setExpandedKey(bad.key);
       }
       return;
@@ -143,7 +157,12 @@ export default function RoutineEditScreen() {
     const ex = catalog.byId.get(item.exerciseId);
     const metaKey = ex?.type === 'time' ? 'routines.edit.rowMetaTime' : 'routines.edit.rowMeta';
     let meta: string;
-    if (item.plan) {
+    if (ex?.type === 'cardio') {
+      meta =
+        item.repMax > 0
+          ? t('cardio.rowMeta', { minutes: Math.round(item.repMax / 60) })
+          : t('cardio.rowMetaNone');
+    } else if (item.plan) {
       // 세트별로 정한 종목: 워밍업 1 · 3세트 · 60–65kg · 휴식 90초
       const sum = planSummary(item.plan);
       const weight = sum.weight
@@ -187,6 +206,25 @@ export default function RoutineEditScreen() {
   const renderFields = (item: DraftItem) => {
     const type = catalog.byId.get(item.exerciseId)?.type ?? 'weight_reps';
     const isTime = type === 'time';
+    if (type === 'cardio') {
+      // 유산소: 세트 · 횟수 · 휴식 대신 목표 시간 하나(0이면 목표 없이 재기만)
+      const bad = itemIssue(item, false, true) !== null;
+      return (
+        <View style={styles.fields}>
+          <View style={styles.fieldRow}>
+            <NumberField
+              label={t('cardio.targetLabel')}
+              unit={t('cardio.targetUnit')}
+              value={Math.round(item.repMax / 60)}
+              invalid={bad}
+              onChange={(v) => updateItem(item.key, cardioTarget(v))}
+            />
+            <Text style={styles.cardioHint}>{t('cardio.targetHint')}</Text>
+          </View>
+          {bad ? <Text style={styles.error}>{t('routines.edit.errors.cardio')}</Text> : null}
+        </View>
+      );
+    }
     const issue = itemIssue(item, isTime);
     const rest = (
       <NumberField
@@ -406,6 +444,16 @@ const styles = StyleSheet.create((theme) => ({
     color: theme.colors.danger,
   },
   errorPad: { paddingHorizontal: 6 },
+  cardioHint: {
+    flex: 1,
+    alignSelf: 'flex-end',
+    paddingBottom: 14,
+    fontSize: 12,
+    lineHeight: 17,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.text2,
+  },
   delete: { height: 48, alignItems: 'center', justifyContent: 'center' },
   deleteText: {
     fontSize: 15,

@@ -1,4 +1,5 @@
 import {
+  cardioSeconds,
   groupSetsByWeight,
   muscleCredits,
   muscleLevels,
@@ -35,6 +36,19 @@ describe('sessionStats', () => {
     const s = sessionStats(sets, 0, 58 * 60000, 'kg');
     // 45lb → 20.5kg(0.5 단위 반올림)
     expect(s).toEqual({ minutes: 58, sets: 3, volume: 60 * 18 + 205 });
+  });
+
+  it('유산소는 세트 · 볼륨에 넣지 않고 시간만 따로 더한다', () => {
+    const sets = [
+      set('a', 60, 10),
+      set('run', null, null, { cardio: true, durationSec: 1500 }),
+      set('bike', null, null, { cardio: true, durationSec: 600 }),
+      set('row', null, null, { cardio: true, durationSec: 300, completed: false }),
+    ];
+    expect(sessionStats(sets, 0, 60 * 60000, 'kg')).toEqual({ minutes: 60, sets: 1, volume: 600 });
+    expect(cardioSeconds(sets)).toBe(2100);
+    const musclesOf = new Map([['run', [{ muscleId: 'quads', role: 'primary' as const }]]]);
+    expect(muscleCredits(sets, musclesOf).size).toBe(0);
   });
 });
 

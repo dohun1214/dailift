@@ -1,5 +1,5 @@
 /** 세션 요약 계산: 통계, 부위 자극 단계, PR 목록. 모두 순수 함수. */
-import type { MuscleRole, SetKind, WeightUnit } from '@/db/schema';
+import type { DistanceUnit, MuscleRole, SetKind, WeightUnit } from '@/db/schema';
 
 import { toKg } from '@/lib/number';
 
@@ -12,6 +12,9 @@ export type SummarySet = {
   reps: number | null;
   unit: WeightUnit;
   completed: boolean;
+  /** 유산소 한 줄. 세트 수 · 볼륨 · 근육 점수 · PR에는 넣지 않고 시간만 따로 더한다 */
+  cardio?: boolean;
+  durationSec?: number | null;
 };
 
 /** 기록 상세에 보여 줄 세트 하나 */
@@ -21,6 +24,11 @@ export type RecordedSet = {
   unit: WeightUnit;
   reps: number | null;
   durationSec: number | null;
+  /** 유산소에서 골라 적은 것 */
+  distance?: number | null;
+  distanceUnit?: DistanceUnit;
+  speed?: number | null;
+  incline?: number | null;
 };
 
 export type SetGroup = { weight: number | null; unit: WeightUnit; reps: number[] };
@@ -44,7 +52,12 @@ export function groupSetsByWeight(sets: readonly RecordedSet[]): SetGroup[] {
 /** 협응근은 주동근의 절반으로 센다(볼륨 계산 규칙과 같음) */
 const ROLE_CREDIT: Record<MuscleRole, number> = { primary: 1, secondary: 0.5 };
 
-const counted = (s: SummarySet) => s.completed && s.kind !== 'warmup';
+const counted = (s: SummarySet) => s.completed && s.kind !== 'warmup' && !s.cardio;
+
+/** 기록한 유산소 시간 합(초) */
+export function cardioSeconds(sets: readonly SummarySet[]): number {
+  return sets.reduce((n, s) => n + (s.cardio && s.completed ? (s.durationSec ?? 0) : 0), 0);
+}
 
 /** 운동 시간(분, 반올림), 본세트 수, 볼륨(무게×횟수 합, 표시 단위로 환산) */
 export function sessionStats(

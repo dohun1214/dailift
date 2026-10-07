@@ -41,6 +41,7 @@ import {
   workoutsOn,
   workoutsThisWeek,
 } from '@/domain/home';
+import { formatClock } from '@/domain/rest-timer';
 import type { SummarySet } from '@/domain/session-summary';
 import { resolveSetTargets, type TargetGroup } from '@/domain/set-targets';
 import { BALANCE_GROUPS, groupBalance } from '@/domain/stats';
@@ -116,6 +117,25 @@ export default function HomeScreen() {
     months.flatMap((m) => m.items),
     now,
   );
+  // 유산소만 한 날에는 '0세트 · 0kg' 대신 유산소 시간을 보여 준다(기록 탭과 같은 규칙).
+  const doneCardio =
+    doneToday && doneToday.cardioSec > 0
+      ? t('cardio.history', { time: formatClock(doneToday.cardioSec) })
+      : null;
+  const doneBase = doneToday
+    ? t('history.meta', {
+        minutes: doneToday.minutes,
+        sets: t('summary.setCount', { count: doneToday.sets }),
+        volume: `${doneToday.volume.toLocaleString(locale)}${unit}`,
+      })
+    : '';
+  const doneMeta = !doneToday
+    ? ''
+    : doneCardio && doneToday.sets === 0
+      ? `${t('duration.min', { m: doneToday.minutes })} · ${doneCardio}`
+      : doneCardio
+        ? `${doneBase} · ${doneCardio}`
+        : doneBase;
   const { data: doneItems } = useLiveQuery(
     db
       .select({ exerciseId: schema.workoutExercises.exerciseId })
@@ -255,7 +275,8 @@ export default function HomeScreen() {
 
   const namesLine = joinNames(todayItems.map((i) => i.exerciseId));
   const doneNamesLine = joinNames(doneItems.map((i) => i.exerciseId));
-  const totalSets = todayItems.reduce((n, i) => n + i.targetSets, 0);
+  // 루틴 요약의 세트 수를 쓴다(유산소는 세트로 세지 않는다).
+  const totalSets = today?.setCount ?? 0;
 
   const prName = pr ? (catalog.byId.get(pr.entry.exerciseId)?.name ?? '') : '';
   const prValue = pr
@@ -315,13 +336,7 @@ export default function HomeScreen() {
               <View>
                 <Badge label={t('home.doneBadge')} kind="solid" />
               </View>
-              <Text style={styles.metaText}>
-                {t('history.meta', {
-                  minutes: doneToday.minutes,
-                  sets: t('summary.setCount', { count: doneToday.sets }),
-                  volume: `${doneToday.volume.toLocaleString(locale)}${unit}`,
-                })}
-              </Text>
+              <Text style={styles.metaText}>{doneMeta}</Text>
             </View>
             <View style={styles.todayBody}>
               <Text style={styles.routineName}>{doneToday.name}</Text>

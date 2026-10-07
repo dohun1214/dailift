@@ -163,29 +163,30 @@ export function createCustomExercise(
 ): string {
   const name = input.name.trim();
   if (!name) throw new Error('name required');
-  if (input.primary.length === 0) throw new Error('primary muscle required');
+  // 유산소는 근육을 지정하지 않는다.
+  if (input.type !== 'cardio' && input.primary.length === 0)
+    throw new Error('primary muscle required');
   const id = makeId();
   const secondary = input.secondary.filter((m) => !input.primary.includes(m));
   db.transaction((tx) => {
     tx.insert(schema.exercises)
       .values({ id, isCustom: 1, name, type: input.type, equipment: input.equipment })
       .run();
-    tx.insert(schema.exerciseMuscles)
-      .values([
-        ...input.primary.map((muscleId) => ({
-          id: makeId(),
-          exerciseId: id,
-          muscleId,
-          role: 'primary' as const,
-        })),
-        ...secondary.map((muscleId) => ({
-          id: makeId(),
-          exerciseId: id,
-          muscleId,
-          role: 'secondary' as const,
-        })),
-      ])
-      .run();
+    const muscles = [
+      ...input.primary.map((muscleId) => ({
+        id: makeId(),
+        exerciseId: id,
+        muscleId,
+        role: 'primary' as const,
+      })),
+      ...secondary.map((muscleId) => ({
+        id: makeId(),
+        exerciseId: id,
+        muscleId,
+        role: 'secondary' as const,
+      })),
+    ];
+    if (muscles.length > 0) tx.insert(schema.exerciseMuscles).values(muscles).run();
   });
   return id;
 }
@@ -253,6 +254,17 @@ export function defaultRestFor(
     .where(inArray(schema.exercises.id, [...ids]))
     .all();
   return new Map(rows.map((r) => [r.id, restSec ?? (r.type === 'weight_reps' ? 90 : 60)]));
+}
+
+/** 종목 id 목록 → 유산소 종목들 (방금 만든 종목도 맞게 나오도록 DB에서 바로 읽는다) */
+export function cardioExerciseIds(db: AppDatabase, ids: readonly string[]): Set<string> {
+  if (ids.length === 0) return new Set();
+  const rows = db
+    .select({ id: schema.exercises.id, type: schema.exercises.type })
+    .from(schema.exercises)
+    .where(inArray(schema.exercises.id, [...ids]))
+    .all();
+  return new Set(rows.filter((r) => r.type === 'cardio').map((r) => r.id));
 }
 
 /** 종목 id 목록 → 시간으로 재는 종목들. 방금 만든 종목도 맞게 나오도록 DB에서 바로 읽는다. */

@@ -38,7 +38,12 @@ type Props = { exerciseId: string; name: string; type: ExerciseType };
 
 const RECENT = 3;
 const MORE = 10;
-const KIND = { weight_reps: 'weight', bodyweight_reps: 'reps', time: 'time' } as const;
+const KIND = {
+  weight_reps: 'weight',
+  bodyweight_reps: 'reps',
+  time: 'time',
+  cardio: 'time',
+} as const;
 const fmt = (n: number) => String(Math.round(n * 100) / 100);
 
 /** 종목 상세의 내 기록: 값 전환(최고·추정 1RM·합계), 기간, 추이 그래프, 최근 기록 */

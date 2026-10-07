@@ -1,7 +1,16 @@
 import * as Haptics from 'expo-haptics';
 import { useKeepAwake } from 'expo-keep-awake';
 import { Redirect, router } from 'expo-router';
-import { ArrowLeftRight, ChevronDown, Ellipsis, Equal, Plus, Trash2, X } from 'lucide-react-native';
+import {
+  ArrowLeftRight,
+  ChevronDown,
+  Ellipsis,
+  Equal,
+  Plus,
+  Timer,
+  Trash2,
+  X,
+} from 'lucide-react-native';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import {
@@ -28,7 +37,11 @@ import {
 import { SHEET_NEXT_MS } from '@/components/ui/use-sheet-motion';
 import {
   ActiveExerciseCard,
+  CardioCard,
+  type CardioState,
+  CardioTimeSheet,
   CollapsedExerciseCard,
+  cardioFieldKeys,
   FieldNavProvider,
   KEYBOARD_BAR_HEIGHT,
   KeyboardBar,
@@ -62,6 +75,7 @@ import {
   finishWorkout,
   lastSessions,
   moveWorkoutExercise,
+  recordCardio,
   replaceWorkoutExercise,
   restoreWorkoutExercise,
   routineHasExercise,
@@ -69,6 +83,7 @@ import {
   setWorkoutExerciseRest,
   updateSet,
 } from '@/db/workout';
+import { timerElapsed } from '@/domain/cardio';
 import { formatClock, splitDuration } from '@/domain/rest-timer';
 import { planAchieved, type SetPlan } from '@/domain/set-plan';
 import {
@@ -90,6 +105,7 @@ import { object as objectJosa } from '@/lib/josa';
 import { markRecoveryAsked } from '@/lib/recovery-flag';
 import { useKeyboardReveal } from '@/lib/use-keyboard-reveal';
 import { useNow } from '@/lib/use-now';
+import { useCardioTimer } from '@/stores/cardio-timer';
 import { openExercisePicker } from '@/stores/exercise-picker';
 import { useRestTimer } from '@/stores/rest-timer';
 import { useRoutineUpdate } from '@/stores/routine-update';
@@ -168,6 +184,10 @@ export default function WorkoutScreen() {
   const [applied, setApplied] = useState<{ key: string; text: string } | null>(null);
   // ⋯를 누른 종목 카드
   const [exerciseMenu, setExerciseMenu] = useState<{ id: string; name: string } | null>(null);
+  // 유산소 스톱워치(세트 id별)와 시간을 직접 적는 창
+  const timers = useCardioTimer((s) => s.timers);
+  const [timeFor, setTimeFor] = useState<{ setId: string; name: string; value: number | null }>();
+  const [timeOpen, setTimeOpen] = useState(false);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hintSeen = useSettings((s) => s.editHintSeen);
   const markHintSeen = useSettings((s) => s.markEditHintSeen);
@@ -214,9 +234,12 @@ export default function WorkoutScreen() {
     return map;
   }, [exerciseKey, unit, routineId]);
 
-  // 펼칠 종목: 고른 게 없으면 아직 안 끝난 첫 종목
+  const isCardio = (we: WorkoutExerciseWithSets) =>
+    catalog.byId.get(we.exerciseId)?.type === 'cardio';
+  // 펼칠 종목: 고른 게 없으면 아직 안 끝난 첫 종목.
+  // 유산소는 세트가 아니라서 '남은 세트'로 치지 않는다(카드가 늘 펼쳐져 있고, 안 잰 것은 끝낼 때 조용히 빠진다).
   const pendingOf = (we: WorkoutExerciseWithSets) =>
-    we.sets.filter((s) => s.completedAt === null).length;
+    isCardio(we) ? 0 : we.sets.filter((s) => s.completedAt === null).length;
   const active =
     exercises.find((e) => e.id === activeId) ??
     exercises.find((e) => pendingOf(e) > 0) ??
@@ -237,6 +260,11 @@ export default function WorkoutScreen() {
       const type = catalog.byId.get(we.exerciseId)?.type ?? 'weight_reps';
       return we.sets.flatMap((s) => setFieldKeys(s.id, type));
     });
+  // 유산소 카드는 늘 펼쳐져 있다: 거리 · 속도 · 경사 칸도 '다음'으로 옮겨 다닌다.
+  for (const we of exercises) {
+    const [first] = we.sets;
+    if (first && isCardio(we)) fieldOrder.push(...cardioFieldKeys(first.id));
+  }
   const fieldNav = useFieldNav(fieldOrder);
   const fieldKey = fieldNav.current?.key;
   // 입력 중이면 키보드 위에 '다음 · 완료' 줄을 보인다.
@@ -374,6 +402,13 @@ export default function WorkoutScreen() {
     const type = catalog.byId.get(we.exerciseId)?.type ?? 'weight_reps';
     const working = we.sets.filter((s) => s.kind !== 'warmup');
     const done = working.filter((s) => s.completedAt !== null).length;
+    if (type === 'cardio') {
+      const sec = working.reduce(
+        (n, s) => n + (s.completedAt !== null ? (s.durationSec ?? 0) : 0),
+        0,
+      );
+      return sec > 0 ? formatClock(sec) : t('exercises.cardio');
+    }
     return done > 0
       ? t('workout.collapsedDone', { done, count: working.length })
       : t(type === 'time' ? 'workout.collapsedMetaTime' : 'workout.collapsedMeta', {
@@ -391,6 +426,9 @@ export default function WorkoutScreen() {
 
   /** 종목을 지우고 잠깐 '되돌리기'를 띄운다. */
   const deleteExercise = (id: string, name: string) => {
+    // 재고 있던 유산소였으면 스톱워치도 지운다.
+    const gone = exercises.find((e) => e.id === id);
+    if (gone) useCardioTimer.getState().clear(gone.sets.map((x) => x.id));
     const deletedAt = deleteWorkoutExercise(db, id);
     if (undoTimer.current) clearTimeout(undoTimer.current);
     setUndo({ id, name, deletedAt });
@@ -452,10 +490,50 @@ export default function WorkoutScreen() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
   };
 
-  const addExercises = () =>
-    openExercisePicker((ids) => {
-      addExercisesToWorkout(db, currentWorkout.id, ids, unit, undefined, workoutDefaults());
-    });
+  /** `cardio`: 종목 추가 창을 유산소만 보이게 연다 */
+  const addExercises = (cardio = false) =>
+    openExercisePicker(
+      (ids) => {
+        addExercisesToWorkout(db, currentWorkout.id, ids, unit, undefined, workoutDefaults());
+      },
+      { cardio },
+    );
+
+  // ---- 유산소: 스톱워치로 재서 끝냈을 때 세트에 적는다
+  const cardioState = (set: WorkoutExerciseWithSets['sets'][number]): CardioState => {
+    const timer = timers[set.id];
+    if (timer) return timer.startedAt === null ? 'paused' : 'running';
+    return set.completedAt !== null ? 'done' : 'idle';
+  };
+  const cardioSeconds = (set: WorkoutExerciseWithSets['sets'][number]) => {
+    const timer = timers[set.id];
+    return timer ? timerElapsed(timer, now) : set.completedAt !== null ? (set.durationSec ?? 0) : 0;
+  };
+  const finishCardio = (setId: string) => {
+    const sec = useCardioTimer.getState().take(setId);
+    if (sec !== null && recordCardio(db, setId, sec)) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    }
+  };
+  /** 기록한 뒤 이어서 재기: 기록을 풀고 그 시간부터 다시 잰다 */
+  const continueCardio = (setId: string, durationSec: number) => {
+    setCompleted(db, setId, false);
+    useCardioTimer.getState().start(setId, durationSec);
+  };
+  const saveCardioTime = (setId: string, durationSec: number) => {
+    useCardioTimer.getState().clear([setId]);
+    recordCardio(db, setId, durationSec);
+  };
+  /** 운동을 끝낼 때 재고 있던(멈춰 둔 것 포함) 유산소를 그 시간으로 기록한다 */
+  const settleCardio = () => {
+    for (const we of exercises) {
+      if (!isCardio(we)) continue;
+      for (const set of we.sets) {
+        if (timers[set.id]) finishCardio(set.id);
+      }
+    }
+    useCardioTimer.getState().clear();
+  };
 
   /** 이 종목을 다른 종목으로 바꾼다(완료한 세트는 그대로 두고 남은 세트만 새 종목으로). */
   const replaceExercise = (id: string) => {
@@ -487,6 +565,7 @@ export default function WorkoutScreen() {
     ending.current = true;
     stopRest();
     setFinished(true);
+    useCardioTimer.getState().clear();
     discardWorkout(db, currentWorkout.id);
     leave();
   };
@@ -498,6 +577,7 @@ export default function WorkoutScreen() {
     const at = Date.now();
     stopRest();
     setFinished(true);
+    settleCardio();
     // 루틴과 다르게 했는지는 끝내기 전에 본다(끝내면 안 한 세트 · 종목이 지워진다).
     useRoutineUpdate.getState().set(pendingRoutineUpdate(db, currentWorkout.id, unit));
     finishWorkout(db, currentWorkout.id, at, last > 0 && isStaleWorkout(last, at) ? last : at);
@@ -505,8 +585,12 @@ export default function WorkoutScreen() {
   };
   const discard = () => ask({ kind: 'discard' });
   const finish = () => {
+    // 재고 있는 유산소는 끝내면 기록되므로 한 것으로 친다.
     const done = exercises.reduce(
-      (n, e) => n + e.sets.filter((s) => s.completedAt !== null).length,
+      (n, e) =>
+        n +
+        e.sets.filter((s) => s.completedAt !== null || (isCardio(e) && cardioSeconds(s) > 0))
+          .length,
       0,
     );
     const pending = exercises.reduce((n, e) => n + pendingOf(e), 0);
@@ -600,7 +684,7 @@ export default function WorkoutScreen() {
             variant="secondary"
             size="md"
             icon={Plus}
-            onPress={addExercises}
+            onPress={() => addExercises()}
           />
         </View>
         {dialogs}
@@ -652,6 +736,49 @@ export default function WorkoutScreen() {
               const info = catalog.byId.get(we.exerciseId);
               const type = info?.type ?? 'weight_reps';
               const working = we.sets.filter((s) => s.kind !== 'warmup');
+              const [cardioSet] = we.sets;
+              if (type === 'cardio' && cardioSet) {
+                const name = info?.name ?? '';
+                return (
+                  <CardioCard
+                    key={we.id}
+                    position={t('workout.position', {
+                      index: index + 1,
+                      total: exercises.length,
+                      group: t('exercises.cardio'),
+                    })}
+                    name={name}
+                    state={cardioState(cardioSet)}
+                    seconds={cardioSeconds(cardioSet)}
+                    targetSec={we.repMax}
+                    distanceUnit={cardioSet.distanceUnit}
+                    values={{
+                      distance: cardioSet.distance,
+                      speed: cardioSet.speed,
+                      incline: cardioSet.incline,
+                    }}
+                    navId={cardioSet.id}
+                    onChange={(field, value) => updateSet(db, cardioSet.id, { [field]: value })}
+                    onStart={() => useCardioTimer.getState().start(cardioSet.id)}
+                    onPause={() => useCardioTimer.getState().pause(cardioSet.id)}
+                    onFinish={() => finishCardio(cardioSet.id)}
+                    onContinue={() => continueCardio(cardioSet.id, cardioSet.durationSec ?? 0)}
+                    onEditTime={() => {
+                      setTimeFor({
+                        setId: cardioSet.id,
+                        name,
+                        value: cardioSet.completedAt !== null ? cardioSet.durationSec : null,
+                      });
+                      setTimeOpen(true);
+                    }}
+                    onNamePress={() =>
+                      router.push({ pathname: '/exercise/[id]', params: { id: we.exerciseId } })
+                    }
+                    onLongPress={() => enterEdit(we.id)}
+                    onMenuPress={() => setExerciseMenu({ id: we.id, name })}
+                  />
+                );
+              }
               const extra = we.id !== active?.id;
               if (extra && !openIds.includes(we.id)) {
                 return (
@@ -764,14 +891,28 @@ export default function WorkoutScreen() {
               </Pressable>
             </View>
           ) : null}
-          <Pressable
-            accessibilityRole="button"
-            onPress={addExercises}
-            style={({ pressed }) => [styles.addExercise, pressed && styles.pressed]}
-          >
-            <Plus size={18} color={theme.colors.text} strokeWidth={1.8} />
-            <Text style={styles.addExerciseText}>{t('workout.addExercise')}</Text>
-          </Pressable>
+          <View style={styles.addRow}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => addExercises()}
+              style={({ pressed }) => [styles.addExercise, pressed && styles.pressed]}
+            >
+              <Plus size={18} color={theme.colors.text} strokeWidth={1.8} />
+              <Text style={styles.addExerciseText} numberOfLines={1}>
+                {t('workout.addExercise')}
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => addExercises(true)}
+              style={({ pressed }) => [styles.addExercise, pressed && styles.pressed]}
+            >
+              <Plus size={18} color={theme.colors.text} strokeWidth={1.8} />
+              <Text style={styles.addExerciseText} numberOfLines={1}>
+                {t('workout.addCardio')}
+              </Text>
+            </Pressable>
+          </View>
         </ScrollView>
 
         {typing && fieldNav.current ? (
@@ -794,7 +935,8 @@ export default function WorkoutScreen() {
         cancelLabel={t('workout.menu.cancel')}
         onClose={() => setMenuOpen(false)}
         items={[
-          { label: t('workout.menu.addExercise'), icon: Plus, onPress: addExercises },
+          { label: t('workout.menu.addExercise'), icon: Plus, onPress: () => addExercises() },
+          { label: t('workout.addCardio'), icon: Timer, onPress: () => addExercises(true) },
           ...(exercises.length > 0
             ? [
                 {
@@ -850,6 +992,15 @@ export default function WorkoutScreen() {
       />
       {dialogs}
       {confirmDialog}
+      <CardioTimeSheet
+        visible={timeOpen}
+        name={timeFor?.name ?? ''}
+        value={timeFor?.value ?? null}
+        onClose={() => setTimeOpen(false)}
+        onSave={(sec) => {
+          if (timeFor) saveCardioTime(timeFor.setId, sec);
+        }}
+      />
 
       <ActionSheet
         visible={setMenu !== null}
@@ -1020,7 +1171,9 @@ const styles = StyleSheet.create((theme) => ({
     fontFamily: theme.fonts.regular,
     color: theme.colors.text2,
   },
+  addRow: { flexDirection: 'row', gap: 8 },
   addExercise: {
+    flex: 1,
     height: 52,
     flexDirection: 'row',
     alignItems: 'center',

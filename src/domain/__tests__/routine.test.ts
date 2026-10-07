@@ -14,6 +14,20 @@ describe('estimateMinutes', () => {
     );
   });
 
+  it('유산소는 세트 대신 목표 시간을 더한다', () => {
+    // 목표 20분(1200초) + 전환 180초 = 23분 → 25
+    expect(estimateMinutes([{ targetSets: 1, restSec: 0, cardioSec: 1200 }])).toBe(25);
+    // 근력 12분 + 유산소 23분 = 35분
+    expect(
+      estimateMinutes([
+        { targetSets: 4, restSec: 120 },
+        { targetSets: 1, restSec: 0, cardioSec: 1200 },
+      ]),
+    ).toBe(35);
+    // 목표가 없으면(0) 전환 시간만 → 최소 5분
+    expect(estimateMinutes([{ targetSets: 1, restSec: 0, cardioSec: 0 }])).toBe(5);
+  });
+
   it('최소 5분', () => {
     expect(estimateMinutes([{ targetSets: 1, restSec: 0 }])).toBe(5);
   });
@@ -34,6 +48,18 @@ describe('buildRoutineSections', () => {
     weekdays: 0,
     sortOrder,
     createdAt,
+  });
+
+  it('유산소는 종목 수에는 들어가고 세트 수에는 들어가지 않는다', () => {
+    const [section] = buildRoutineSections(
+      [],
+      [r('a', null, 0)],
+      [
+        { routineId: 'a', targetSets: 3, restSec: 90, cardioSec: null },
+        { routineId: 'a', targetSets: 1, restSec: 0, cardioSec: 1200 },
+      ],
+    );
+    expect(section?.routines[0]).toMatchObject({ exerciseCount: 2, setCount: 3, minutes: 30 });
   });
 
   it('묶음 순서대로, 빈 묶음은 빼고, 단독 루틴은 마지막', () => {

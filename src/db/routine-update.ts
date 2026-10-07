@@ -74,19 +74,32 @@ export function pendingRoutineUpdate(
     .all()
     .map((r) => r.set);
 
+  // 유산소는 세트 계획이 없어 견주지 않는다(루틴에 넣고 빼는 것은 루틴 편집에서 한다).
+  const cardio = new Set(
+    db
+      .select({ id: schema.exercises.id })
+      .from(schema.exercises)
+      .where(eq(schema.exercises.type, 'cardio'))
+      .all()
+      .map((r) => r.id),
+  );
   const changes = routineChanges(
-    items.map((i) => ({ id: i.id, exerciseId: i.exerciseId, plan: parseSetPlan(i.setPlan) })),
-    exercises.map((e) => {
-      const own = sets.filter((x) => x.workoutExerciseId === e.id);
-      const done = own.filter((x) => x.completedAt !== null);
-      return {
-        exerciseId: e.exerciseId,
-        restSec: e.restSec,
-        sets: own,
-        doneCount: done.length,
-        doneWorking: done.filter((x) => x.kind !== 'warmup').length,
-      };
-    }),
+    items
+      .filter((i) => !cardio.has(i.exerciseId))
+      .map((i) => ({ id: i.id, exerciseId: i.exerciseId, plan: parseSetPlan(i.setPlan) })),
+    exercises
+      .filter((e) => !cardio.has(e.exerciseId))
+      .map((e) => {
+        const own = sets.filter((x) => x.workoutExerciseId === e.id);
+        const done = own.filter((x) => x.completedAt !== null);
+        return {
+          exerciseId: e.exerciseId,
+          restSec: e.restSec,
+          sets: own,
+          doneCount: done.length,
+          doneWorking: done.filter((x) => x.kind !== 'warmup').length,
+        };
+      }),
     unit,
   );
   if (changes.length === 0) return null;

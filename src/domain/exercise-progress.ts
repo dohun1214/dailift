@@ -49,7 +49,8 @@ export function exerciseSessions(
     let add: number;
     let e1rm: number | null = null;
     let weight: number | null = null;
-    if (type === 'time') {
+    // 유산소도 시간으로 본다(그날 최고 = 가장 길게 한 시간, 합계 = 그날 한 시간).
+    if (type === 'time' || type === 'cardio') {
       if (!s.durationSec || s.durationSec <= 0) continue;
       value = s.durationSec;
       add = s.durationSec;

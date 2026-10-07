@@ -1,6 +1,9 @@
 /** 루틴 목록·요약에 쓰는 순수 계산. */
 
-type ExerciseLoad = { targetSets: number; restSec: number };
+/** cardioSec: 유산소 종목이면 목표 시간(초, 0 = 목표 없음). 근력 종목이면 없다(null). */
+type ExerciseLoad = { targetSets: number; restSec: number; cardioSec?: number | null };
+
+const isCardioLoad = (e: ExerciseLoad) => e.cardioSec != null;
 
 /** 한 세트 수행 시간(초)과 종목 전환 시간(초) 가정값 */
 const WORK_SEC_PER_SET = 45;
@@ -8,15 +11,16 @@ const TRANSITION_SEC = 180;
 
 /**
  * 예상 소요 시간(분, 5분 단위 반올림). 세트 수행 + 세트 사이 휴식 + 종목 전환.
- * 종목이 없으면 0.
+ * 유산소는 세트 대신 목표 시간을 더한다(목표가 없으면 전환 시간만). 종목이 없으면 0.
  */
 export function estimateMinutes(exercises: readonly ExerciseLoad[]): number {
   if (exercises.length === 0) return 0;
   const sec = exercises.reduce(
     (sum, e) =>
       sum +
-      e.targetSets * WORK_SEC_PER_SET +
-      Math.max(0, e.targetSets - 1) * e.restSec +
+      (isCardioLoad(e)
+        ? (e.cardioSec ?? 0)
+        : e.targetSets * WORK_SEC_PER_SET + Math.max(0, e.targetSets - 1) * e.restSec) +
       TRANSITION_SEC,
     0,
   );
@@ -74,7 +78,8 @@ export function buildRoutineSections(
     return {
       ...r,
       exerciseCount: list.length,
-      setCount: list.reduce((n, e) => n + e.targetSets, 0),
+      // 유산소는 세트로 세지 않는다.
+      setCount: list.reduce((n, e) => n + (isCardioLoad(e) ? 0 : e.targetSets), 0),
       minutes: estimateMinutes(list),
     };
   };

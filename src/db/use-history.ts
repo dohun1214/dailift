@@ -24,6 +24,8 @@ export function useHistory(unit: schema.WeightUnit) {
         weight: schema.sets.weight,
         reps: schema.sets.reps,
         unit: schema.sets.weightUnit,
+        durationSec: schema.sets.durationSec,
+        type: schema.exercises.type,
         exercisePosition: schema.workoutExercises.position,
         setPosition: schema.sets.position,
       })
@@ -33,6 +35,7 @@ export function useHistory(unit: schema.WeightUnit) {
         eq(schema.workoutExercises.id, schema.sets.workoutExerciseId),
       )
       .innerJoin(schema.workouts, eq(schema.workouts.id, schema.workoutExercises.workoutId))
+      .leftJoin(schema.exercises, eq(schema.exercises.id, schema.workoutExercises.exerciseId))
       .where(
         and(
           eq(schema.workouts.status, 'completed'),
@@ -58,6 +61,8 @@ export function useHistory(unit: schema.WeightUnit) {
         reps: r.reps,
         unit: r.unit,
         completed: true,
+        cardio: r.type === 'cardio',
+        durationSec: r.durationSec,
       };
       const list = byWorkout.get(r.workoutId);
       if (list) list.push(set);

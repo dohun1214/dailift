@@ -10,13 +10,24 @@ type CreateHandler = (exerciseId: string) => void;
 let onPick: PickHandler | null = null;
 let onCreate: CreateHandler | null = null;
 let single = false;
+let cardio = false;
 
-/** `single`: 하나만 고른다(종목 바꾸기). 아니면 여러 개를 골라 추가한다. */
-export function openExercisePicker(handler: PickHandler, options: { single?: boolean } = {}) {
+/**
+ * `single`: 하나만 고른다(종목 바꾸기). 아니면 여러 개를 골라 추가한다.
+ * `cardio`: 유산소만 보이게 연다('유산소 추가'). 칩을 눌러 다른 부위로 바꿀 수 있다.
+ */
+export function openExercisePicker(
+  handler: PickHandler,
+  options: { single?: boolean; cardio?: boolean } = {},
+) {
   onPick = handler;
   single = options.single === true;
+  cardio = options.cardio === true;
   router.push('/exercise-picker');
 }
+
+/** 지금 열린 종목 검색이 유산소만 보이게 열렸는지 */
+export const pickerStartsCardio = () => cardio;
 
 /** 지금 열린 종목 검색이 하나만 고르는 화면인지 */
 export const pickerIsSingle = () => single;

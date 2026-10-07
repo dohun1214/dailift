@@ -2469,6 +2469,134 @@ export const EXERCISE_GUIDES: Readonly<Record<string, ExerciseGuide>> = {
       'Return slowly, finish your reps, then switch sides.',
     ],
   },
+  treadmill: {
+    ko: [
+      '안전 클립을 옷에 걸고 벨트 양옆 발판에 서요.',
+      '느린 속도로 시작해 벨트 가운데에서 걸어요.',
+      '몸이 풀리면 속도나 경사를 조금씩 올려요.',
+      '손잡이에 기대지 않고 팔을 자연스럽게 흔들어요.',
+      '끝낼 때는 속도를 천천히 낮춘 뒤 벨트가 멈추면 내려와요.',
+    ],
+    en: [
+      'Clip the safety key to your clothes and stand on the side rails.',
+      'Start slow and walk in the middle of the belt.',
+      'Once warm, raise the speed or incline a little at a time.',
+      'Swing your arms naturally instead of leaning on the handles.',
+      'To finish, slow down gradually and step off once the belt stops.',
+    ],
+  },
+  stationary_bike: {
+    ko: [
+      '안장을 골반 높이쯤으로 맞춰요.',
+      '페달이 가장 아래일 때 무릎이 살짝 굽혀지는지 확인해요.',
+      '가벼운 저항으로 시작해 일정한 속도로 밟아요.',
+      '상체는 편하게 세우고 어깨에 힘을 빼요.',
+      '끝낼 때는 저항을 낮추고 천천히 밟다가 멈춰요.',
+    ],
+    en: [
+      'Set the saddle at about hip height.',
+      'Check that your knee stays slightly bent at the bottom of the pedal stroke.',
+      'Start with light resistance and pedal at a steady pace.',
+      'Keep your torso relaxed and your shoulders loose.',
+      'To finish, lower the resistance and spin easily before stopping.',
+    ],
+  },
+  stair_climber: {
+    ko: [
+      '손잡이를 가볍게 잡고 계단에 올라서요.',
+      '느린 속도로 시작해요.',
+      '발 전체로 계단을 디디며 올라가요.',
+      '손잡이에 체중을 싣지 않고 상체를 세워요.',
+      '끝낼 때는 속도를 낮추고 계단이 멈춘 뒤 내려와요.',
+    ],
+    en: [
+      'Hold the rails lightly and step onto the stairs.',
+      'Start at a slow speed.',
+      'Place your whole foot on each step as you climb.',
+      'Stay upright without putting your weight on the rails.',
+      'To finish, slow down and step off once the stairs stop.',
+    ],
+  },
+  elliptical: {
+    ko: [
+      '발판에 올라서 손잡이를 잡아요.',
+      '발을 발판에 붙인 채 앞뒤로 부드럽게 밀어요.',
+      '팔은 손잡이를 밀고 당기며 함께 움직여요.',
+      '상체를 세우고 무릎이 안으로 모이지 않게 해요.',
+      '끝낼 때는 저항을 낮추고 천천히 멈춰요.',
+    ],
+    en: [
+      'Step onto the pedals and hold the handles.',
+      'Keep your feet flat on the pedals and glide smoothly.',
+      'Push and pull the handles in rhythm with your legs.',
+      'Stay upright and keep your knees from caving in.',
+      'To finish, lower the resistance and slow to a stop.',
+    ],
+  },
+  rowing_machine: {
+    ko: [
+      '발을 발판에 끈으로 고정하고 손잡이를 잡아요.',
+      '무릎을 굽히고 팔을 뻗은 자세에서 시작해요.',
+      '다리로 먼저 밀고, 상체를 뒤로 젖힌 뒤 손잡이를 명치로 당겨요.',
+      '돌아갈 때는 팔, 상체, 다리 순서로 풀어요.',
+      '등을 곧게 편 채 일정한 리듬으로 반복해요.',
+    ],
+    en: [
+      'Strap your feet in and grab the handle.',
+      'Start with your knees bent and arms straight.',
+      'Push with your legs first, lean back, then pull the handle to your lower ribs.',
+      'Return in order: arms, torso, then legs.',
+      'Keep your back straight and repeat at a steady rhythm.',
+    ],
+  },
+  walking: {
+    ko: [
+      '편한 신발을 신고 어깨를 펴고 서요.',
+      '시선은 앞을 보고 턱을 살짝 당겨요.',
+      '발뒤꿈치부터 디디고 발끝으로 밀어요.',
+      '팔을 자연스럽게 앞뒤로 흔들어요.',
+      '숨이 조금 찰 정도의 속도를 유지해요.',
+    ],
+    en: [
+      'Wear comfortable shoes and stand tall with your shoulders back.',
+      'Look ahead with your chin slightly tucked.',
+      'Land on your heel and push off with your toes.',
+      'Swing your arms naturally.',
+      'Keep a pace that leaves you slightly out of breath.',
+    ],
+  },
+  running: {
+    ko: [
+      '가볍게 걷거나 천천히 뛰며 몸을 풀어요.',
+      '상체를 살짝 앞으로 기울이고 시선은 앞을 봐요.',
+      '발이 몸 바로 아래에 닿게 짧은 보폭으로 뛰어요.',
+      '팔꿈치를 굽혀 앞뒤로 가볍게 흔들어요.',
+      '끝낼 때는 천천히 속도를 줄여 걸어요.',
+    ],
+    en: [
+      'Warm up with a brisk walk or easy jog.',
+      'Lean slightly forward and look ahead.',
+      'Take short strides so your feet land under your body.',
+      'Bend your elbows and swing your arms lightly.',
+      'To finish, slow down gradually to a walk.',
+    ],
+  },
+  jump_rope: {
+    ko: [
+      '줄 길이를 맞춰요. 줄 가운데를 밟았을 때 손잡이가 겨드랑이쯤 오면 돼요.',
+      '팔꿈치를 옆구리에 붙이고 손목으로 줄을 돌려요.',
+      '발 앞쪽으로 낮게 뛰어요.',
+      '무릎을 살짝 굽혀 부드럽게 착지해요.',
+      '시선은 앞을 보고 일정한 리듬을 유지해요.',
+    ],
+    en: [
+      'Size the rope: standing on its middle, the handles should reach about your armpits.',
+      'Keep your elbows by your sides and turn the rope with your wrists.',
+      'Jump low on the balls of your feet.',
+      'Land softly with your knees slightly bent.',
+      'Look ahead and keep a steady rhythm.',
+    ],
+  },
 };
 
 export function guideFor(exerciseId: string): ExerciseGuide | undefined {

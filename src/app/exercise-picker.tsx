@@ -15,6 +15,7 @@ import {
   deliverPickedExercises,
   openExerciseCreator,
   pickerIsSingle,
+  pickerStartsCardio,
 } from '@/stores/exercise-picker';
 
 const GROUPS: readonly MuscleGroup[] = ['chest', 'back', 'shoulders', 'legs', 'arms', 'core'];
@@ -29,14 +30,20 @@ export default function ExercisePickerScreen() {
   const lang = useAppLanguage();
   const catalog = useExerciseCatalog(lang);
   const [query, setQuery] = useState('');
-  const [group, setGroup] = useState<MuscleGroup | null>(null);
+  // '유산소 추가'로 열면 유산소만 보이게 시작한다
+  const [group, setGroup] = useState<MuscleGroup | 'cardio' | null>(() =>
+    pickerStartsCardio() ? 'cardio' : null,
+  );
   const [selected, setSelected] = useState<string[]>([]);
   // 화면이 열릴 때 정해진다
   const [single] = useState(pickerIsSingle);
+  const [cardioFirst] = useState(pickerStartsCardio);
 
   const filter = useMemo(
     () => (e: CatalogExercise) =>
-      (group === null || e.primaryGroups.includes(group)) && matchesSearch(query, e.searchNames),
+      (group === null ||
+        (group === 'cardio' ? e.type === 'cardio' : e.primaryGroups.includes(group))) &&
+      matchesSearch(query, e.searchNames),
     [group, query],
   );
   const base = catalog.base.filter(filter);
@@ -47,7 +54,11 @@ export default function ExercisePickerScreen() {
 
   const meta = (e: CatalogExercise) =>
     [
-      e.primaryGroups[0] ? t(`exercises.group.${e.primaryGroups[0]}`) : null,
+      e.type === 'cardio'
+        ? t('exercises.cardio')
+        : e.primaryGroups[0]
+          ? t(`exercises.group.${e.primaryGroups[0]}`)
+          : null,
       t(`exercises.equipment.${e.equipment}`),
     ]
       .filter(Boolean)
@@ -74,6 +85,16 @@ export default function ExercisePickerScreen() {
   };
   const searching = query.trim().length > 0;
   const none = base.length === 0 && custom.length === 0;
+
+  // '유산소 추가'로 열었으면 유산소 칩을 앞에 둔다(줄 끝에 있으면 화면 밖이라 골라진 것이 안 보인다).
+  const cardioChip = (
+    <Chip
+      key="cardio"
+      label={t('exercises.cardio')}
+      selected={group === 'cardio'}
+      onPress={() => setGroup((cur) => (cur === 'cardio' ? null : 'cardio'))}
+    />
+  );
 
   const renderSection = (title: string, list: CatalogExercise[]) =>
     list.length === 0 ? null : (
@@ -115,7 +136,13 @@ export default function ExercisePickerScreen() {
       dismissKeyboardOnDrag
       header={
         <TopBar
-          title={t(single ? 'exercises.pickerTitleReplace' : 'exercises.pickerTitle')}
+          title={t(
+            single
+              ? 'exercises.pickerTitleReplace'
+              : cardioFirst
+                ? 'workout.addCardio'
+                : 'exercises.pickerTitle',
+          )}
           leading="close"
         />
       }
@@ -148,6 +175,7 @@ export default function ExercisePickerScreen() {
           selected={group === null}
           onPress={() => setGroup(null)}
         />
+        {cardioFirst ? cardioChip : null}
         {GROUPS.map((g) => (
           <Chip
             key={g}
@@ -156,6 +184,7 @@ export default function ExercisePickerScreen() {
             onPress={() => setGroup((cur) => (cur === g ? null : g))}
           />
         ))}
+        {cardioFirst ? null : cardioChip}
       </ScrollView>
 
       {renderSection(t('exercises.base'), base)}

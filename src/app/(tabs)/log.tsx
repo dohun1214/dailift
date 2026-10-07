@@ -13,6 +13,7 @@ import { deleteWorkout } from '@/db/history';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
 import { useHistory } from '@/db/use-history';
 import type { HistoryItem } from '@/domain/history';
+import { formatClock } from '@/domain/rest-timer';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { removePhotoFile } from '@/lib/photos';
 import { useSettings } from '@/stores/settings';
@@ -47,12 +48,17 @@ export default function LogScreen() {
     weekday: 'long',
   });
 
-  const meta = (i: HistoryItem) =>
-    t('history.meta', {
+  const meta = (i: HistoryItem) => {
+    const cardio = i.cardioSec > 0 ? t('cardio.history', { time: formatClock(i.cardioSec) }) : null;
+    // 유산소만 한 날에는 '0세트 · 0kg'을 보이지 않는다.
+    if (cardio && i.sets === 0) return `${t('duration.min', { m: i.minutes })} · ${cardio}`;
+    const base = t('history.meta', {
       minutes: i.minutes,
       sets: t('summary.setCount', { count: i.sets }),
       volume: `${i.volume.toLocaleString(locale)}${unit}`,
     });
+    return cardio ? `${base} · ${cardio}` : base;
+  };
 
   const exercisesLine = (i: HistoryItem) => {
     const names = i.exerciseIds.map((id) => catalog.byId.get(id)?.name ?? '').filter(Boolean);

@@ -32,7 +32,8 @@ import { deleteWorkout } from '@/db/history';
 import * as schema from '@/db/schema';
 import { addWorkoutPhoto, deleteWorkoutPhoto, loadSummary, setWorkoutNote } from '@/db/summary';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
-import { splitDuration } from '@/domain/rest-timer';
+import { cardioExtras } from '@/domain/cardio';
+import { formatClock, splitDuration } from '@/domain/rest-timer';
 import {
   groupSetsByWeight,
   muscleCredits,
@@ -188,8 +189,37 @@ export default function WorkoutSummaryScreen() {
     if (m > 0 && rest > 0) return t('duration.minSec', { m, s: rest });
     return m > 0 ? t('duration.min', { m }) : t('duration.sec', { s: rest });
   };
-  // 한 운동: 본 세트가 있는 종목만, 종목마다 세트 수와 한 줄 기록
+  // 유산소: 종목마다 시간과 골라 적은 거리 · 속도 · 경사. 유산소를 한 날에만 카드가 보인다.
+  const cardioRows = summary.exercises.flatMap((ex) => {
+    if (!ex.cardio) return [];
+    const sec = ex.sets.reduce((n, x) => n + (x.durationSec ?? 0), 0);
+    if (sec <= 0) return [];
+    const [first] = ex.sets;
+    const extras = first
+      ? cardioExtras(
+          {
+            distance: first.distance ?? null,
+            distanceUnit: first.distanceUnit ?? 'km',
+            speed: first.speed ?? null,
+            incline: first.incline ?? null,
+          },
+          (value) => t('cardio.inclineValue', { value }),
+        )
+      : [];
+    return [
+      {
+        id: ex.id,
+        name: catalog.byId.get(ex.exerciseId)?.name ?? '',
+        sec,
+        time: formatClock(sec),
+        extras: extras.join(' · '),
+      },
+    ];
+  });
+  const cardioTotal = formatDuration(cardioRows.reduce((n, r) => n + r.sec, 0));
+  // 한 운동: 본 세트가 있는 종목만, 종목마다 세트 수와 한 줄 기록 (유산소는 위 카드에 따로)
   const exerciseRows = summary.exercises.flatMap((ex) => {
+    if (ex.cardio) return [];
     const info = catalog.byId.get(ex.exerciseId);
     const working = ex.sets.filter((x) => x.kind !== 'warmup');
     if (working.length === 0) return [];
@@ -258,6 +288,33 @@ export default function WorkoutSummaryScreen() {
           </View>
         ))}
       </View>
+
+      {cardioRows.length > 0 ? (
+        <View style={styles.exCard}>
+          <View style={styles.exHead}>
+            <Text style={styles.exTitle} accessibilityRole="header">
+              {t('cardio.summaryTitle')}
+            </Text>
+            <Text style={styles.exCount}>{t('cardio.summaryTotal', { time: cardioTotal })}</Text>
+          </View>
+          {cardioRows.map((row, i) => (
+            <View
+              key={row.id}
+              style={[styles.exRow, i < cardioRows.length - 1 && styles.line]}
+              accessible
+              accessibilityLabel={[row.name, row.time, row.extras].filter(Boolean).join(', ')}
+            >
+              <View style={styles.exTop}>
+                <Text style={styles.exName} numberOfLines={1}>
+                  {row.name}
+                </Text>
+                <Text style={styles.cardioTime}>{row.time}</Text>
+              </View>
+              {row.extras ? <Text style={styles.exLine}>{row.extras}</Text> : null}
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       <MuscleMapCard levels={levels} gender={bodyType} title={t('summary.muscles')} />
 
@@ -559,6 +616,14 @@ const styles = StyleSheet.create((theme) => ({
     includeFontPadding: false,
     fontFamily: theme.fonts.regular,
     color: theme.colors.text2,
+  },
+  cardioTime: {
+    fontSize: 17,
+    lineHeight: 22,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.numBold,
+    fontVariant: ['tabular-nums'],
+    color: theme.colors.text,
   },
   exLine: {
     fontSize: 13,

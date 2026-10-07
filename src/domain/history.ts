@@ -1,7 +1,7 @@
 /** 히스토리 목록 계산: 세션별 요약 줄과 PR 개수, 월별 묶음. */
 import type { WeightUnit } from '@/db/schema';
 
-import { type SummarySet, sessionPrs, sessionStats } from './session-summary';
+import { cardioSeconds, type SummarySet, sessionPrs, sessionStats } from './session-summary';
 import { type Best, bestOf } from './strength';
 
 export type HistoryWorkout = {
@@ -16,6 +16,8 @@ export type HistoryItem = HistoryWorkout & {
   sets: number;
   volume: number;
   prCount: number;
+  /** 기록한 유산소 시간 합(초). 없으면 0 */
+  cardioSec: number;
   /** 본 세트를 기록한 종목 (한 순서대로, 중복 없이) */
   exerciseIds: string[];
 };
@@ -39,11 +41,11 @@ export function buildHistory(
     const exerciseIds = [
       ...new Set(sets.filter((s) => s.completed && s.kind !== 'warmup').map((s) => s.exerciseId)),
     ];
-    items.push({ ...w, ...stats, prCount, exerciseIds });
+    items.push({ ...w, ...stats, prCount, cardioSec: cardioSeconds(sets), exerciseIds });
     // 이 세션 기록을 기준에 더한다.
     const byExercise = new Map<string, SummarySet[]>();
     for (const s of sets) {
-      if (!s.completed || s.kind === 'warmup') continue;
+      if (!s.completed || s.kind === 'warmup' || s.cardio) continue;
       const list = byExercise.get(s.exerciseId);
       if (list) list.push(s);
       else byExercise.set(s.exerciseId, [s]);

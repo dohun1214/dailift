@@ -50,6 +50,7 @@ describe('groupByMonth', () => {
       sets: 0,
       volume: 0,
       prCount: 0,
+      cardioSec: 0,
       exerciseIds: [],
     };
     const groups = groupByMonth([

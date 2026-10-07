@@ -26,7 +26,12 @@ const syncColumns = {
 };
 
 export type WeightUnit = 'kg' | 'lb';
-export type ExerciseType = 'weight_reps' | 'bodyweight_reps' | 'time';
+/**
+ * 종목 종류. cardio(유산소)는 세트 대신 한 줄에 시간(스톱워치)과 골라 적는 거리 · 속도 · 경사를 남기고,
+ * 세트 수 · 볼륨 · 부위별 세트에는 들어가지 않는다.
+ */
+export type ExerciseType = 'weight_reps' | 'bodyweight_reps' | 'time' | 'cardio';
+export type DistanceUnit = 'km' | 'mi';
 export type Equipment =
   | 'barbell'
   | 'dumbbell'
@@ -180,6 +185,11 @@ export const sets = sqliteTable(
     reps: integer('reps'),
     durationSec: integer('duration_sec'),
     rpe: real('rpe'),
+    /** 유산소: 거리(입력한 단위 그대로) · 속도(시간당, 같은 단위) · 경사(%). 모두 골라 적는다 */
+    distance: real('distance'),
+    distanceUnit: text('distance_unit').$type<DistanceUnit>().notNull().default('km'),
+    speed: real('speed'),
+    incline: real('incline'),
     /** 완료 체크 시각. null이면 아직 안 한 세트(프리필 포함) */
     completedAt: integer('completed_at'),
   },

@@ -27,6 +27,10 @@ export function exportSetRows(db: AppDatabase, lang: AppLanguage): ExportSetRow[
       reps: schema.sets.reps,
       durationSec: schema.sets.durationSec,
       rpe: schema.sets.rpe,
+      distance: schema.sets.distance,
+      distanceUnit: schema.sets.distanceUnit,
+      speed: schema.sets.speed,
+      incline: schema.sets.incline,
     })
     .from(schema.sets)
     .innerJoin(
@@ -66,6 +70,10 @@ export function exportSetRows(db: AppDatabase, lang: AppLanguage): ExportSetRow[
       reps: r.reps,
       durationSec: r.durationSec,
       rpe: r.rpe,
+      distance: r.distance,
+      distanceUnit: r.distanceUnit,
+      speed: r.speed,
+      incline: r.incline,
     };
   });
 }
