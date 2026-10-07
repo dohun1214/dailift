@@ -15,6 +15,7 @@ import {
   bodyPoints,
   defaultBodyPeriod,
   latestBody,
+  metricValue,
 } from '@/domain/body';
 import {
   monthMarks,
@@ -87,6 +88,10 @@ export default function BodyScreen() {
   const metricName = t(`body.metric.${metric}`);
   const selectedIndex = points.findIndex((p) => p.id === selectedId);
   const selected = selectedIndex >= 0 ? points[selectedIndex] : undefined;
+  // 그래프에서 점을 고르면 위 세 칸도 그날 적은 값으로 바꿔 보여 준다(그날 안 적은 항목은 '–').
+  const selectedEntry = selected ? entries.find((e) => e.id === selected.id) : undefined;
+  const tileValue = (m: BodyMetric) =>
+    selectedEntry ? metricValue(selectedEntry, m, unit) : latest.values[m];
   const first = points[0];
   const last = points[points.length - 1];
   let caption: string | null = null;
@@ -124,7 +129,7 @@ export default function BodyScreen() {
           style={styles.tiles}
         >
           {BODY_METRICS.map((m) => {
-            const v = latest.values[m];
+            const v = tileValue(m);
             const on = m === metric;
             return (
               <Pressable
@@ -135,10 +140,8 @@ export default function BodyScreen() {
                   name: t(`body.metric.${m}`),
                   value: v === null ? t('body.none') : fmt.withUnit(m, v),
                 })}
-                onPress={() => {
-                  setMetric(m);
-                  setSelectedId(null);
-                }}
+                // 고른 날은 그대로 둔다 — 그날 이 항목도 적었으면 같은 날의 점이 골라진 채로 바뀐다.
+                onPress={() => setMetric(m)}
                 style={({ pressed }) => [
                   styles.tile,
                   on && styles.tileOn,
