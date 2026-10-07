@@ -1067,7 +1067,8 @@
       "mfds": "MFDS Food Composition DB",
       "usda": "USDA FoodData Central",
       "custom": "My food",
-      "mfdsp": "MFDS packaged foods"
+      "mfdsp": "MFDS packaged foods",
+      "usdab": "USDA Branded Foods"
     },
     "unit": {
       "serving": "1 serving",
@@ -1230,10 +1231,13 @@
     },
     "processed": {
       "title": "Packaged foods",
+      "brandedTitle": "US packaged foods (USDA)",
       "makerHint": "Seller or maker shown under the name",
+      "brandHint": "Brand shown under the name",
       "loading": "Searching packaged foods…",
       "offline": "Packaged foods (store and supermarket products) can be searched when you're online.",
       "more": "More packaged foods",
+      "brandedMore": "More US packaged foods",
       "moreLoading": "Loading more…",
       "missing": "Can't find your product?",
       "create": "Create it",

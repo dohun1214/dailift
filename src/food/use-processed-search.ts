@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { PROCESSED_PAGE, type ProcessedFood, processedQuery } from '@/domain/processed-food';
+import {
+  PROCESSED_PAGE,
+  type ProcessedFood,
+  processedQuery,
+  type ServerFoodSrc,
+} from '@/domain/processed-food';
 
 import { searchProcessedFoods } from './processed-remote';
 
@@ -18,10 +23,10 @@ type State = {
 const IDLE: State = { status: 'idle', rows: [], more: false, loadingMore: false };
 
 /**
- * 가공식품 검색(서버). `enabled`가 false면(한국 밖) 아무것도 하지 않는다.
+ * 가공식품 검색(서버). `enabled`가 false면(그 출처를 보이지 않는 지역 · 검색어) 아무것도 하지 않는다.
  * 검색어가 바뀌면 앞의 요청 결과는 버린다.
  */
-export function useProcessedSearch(text: string, enabled: boolean) {
+export function useProcessedSearch(text: string, enabled: boolean, src: ServerFoodSrc = 'mfdsp') {
   const query = enabled ? processedQuery(text) : null;
   const [state, setState] = useState<State>(IDLE);
   // 지금 보여 줄 검색어의 번호. 늦게 온 옛 응답을 거른다.
@@ -36,7 +41,7 @@ export function useProcessedSearch(text: string, enabled: boolean) {
     }
     setState({ status: 'loading', rows: [], more: false, loadingMore: false });
     const timer = setTimeout(() => {
-      searchProcessedFoods(query)
+      searchProcessedFoods(query, 0, src)
         .then((rows) => {
           if (turn.current !== mine) return;
           setState({
@@ -51,14 +56,14 @@ export function useProcessedSearch(text: string, enabled: boolean) {
         });
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, src]);
 
   const loadMore = useCallback(() => {
     if (query === null) return;
     const mine = turn.current;
     setState((cur) => {
       if (cur.status !== 'ready' || !cur.more || cur.loadingMore) return cur;
-      searchProcessedFoods(query, cur.rows.length)
+      searchProcessedFoods(query, cur.rows.length, src)
         .then((rows) => {
           if (turn.current !== mine) return;
           setState((now) => {
@@ -77,7 +82,7 @@ export function useProcessedSearch(text: string, enabled: boolean) {
         });
       return { ...cur, loadingMore: true };
     });
-  }, [query]);
+  }, [query, src]);
 
   return { ...state, loadMore };
 }

@@ -2,7 +2,7 @@ import { db } from '@/db/client';
 import { customItem, getCustomFood } from '@/db/diet';
 import { getCachedProcessed } from '@/db/food-cache';
 import { type FoodItem, type FoodUnit, withUnit } from '@/domain/diet';
-import { processedItem } from '@/domain/processed-food';
+import { isServerFood, processedItem } from '@/domain/processed-food';
 
 import type { FoodDb } from './catalog';
 import { loadCatalogItem } from './items';
@@ -21,10 +21,10 @@ export function withAllUnits(
   if (item.src === 'custom') {
     const row = getCustomFood(db, item.sid);
     found = row ? customItem(row) : null;
-  } else if (item.src === 'mfdsp') {
+  } else if (isServerFood(item.src)) {
     // 가공식품은 서버에 있다. 이 기기에서 고른 적이 있으면 사본이 있다.
     const row = getCachedProcessed(db, item.sid);
-    found = row ? processedItem(row) : null;
+    found = row ? processedItem(row, item.src) : null;
   } else if (foodDb) {
     found = loadCatalogItem(foodDb, item.src, item.sid);
   }
