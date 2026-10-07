@@ -29,6 +29,14 @@ describe('기본 종목 데이터', () => {
     }
   });
 
+  it('주동근은 한 부위 안에만 있다(두 부위에 걸친 종목이 없다)', () => {
+    const groupOf = new Map<string, string>(MUSCLES.map((m) => [m.id, m.group]));
+    const spread = BASE_EXERCISES.filter(
+      (e) => new Set(e.primary.map((m) => groupOf.get(m))).size > 1,
+    ).map((e) => e.key);
+    expect(spread).toEqual([]);
+  });
+
   it('무게를 적는 종목에 밴드 · 맨몸 기구는 없고, 시간 종목은 버티는 동작이다', () => {
     for (const e of BASE_EXERCISES) {
       if (e.type === 'weight_reps') {

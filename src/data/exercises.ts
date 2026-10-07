@@ -20,6 +20,8 @@ const C: ExerciseType = 'cardio';
 /**
  * 기본 종목 162개(근력 154 + 유산소 8). 순서가 종목 목록에 보이는 순서다(부위별로 묶고, 그 안에서는 흔한 것부터).
  * 부위별 주간 세트는 주동근 부위에 1세트(설정을 켜면 협응근 부위에도 0.5세트)로 세므로 근육 지정은 보수적으로 한다.
+ * 주동근은 한 부위(가슴 · 등 · 어깨 · 팔 · 하체 · 코어) 안에서만 고른다 — 두 부위에 걸치면 목록의 두 칩에 모두 나오고
+ * 세트도 두 부위에 다 잡힌다. 같이 쓰는 다른 부위의 근육은 협응근으로 둔다(테스트로 검사).
  */
 export const BASE_EXERCISES: readonly ExerciseSeed[] = [
   // 가슴
@@ -83,8 +85,8 @@ export const BASE_EXERCISES: readonly ExerciseSeed[] = [
     en: 'Dips',
     type: BW,
     equipment: 'bodyweight',
-    primary: ['chest', 'triceps'],
-    secondary: ['shoulders'],
+    primary: ['chest'],
+    secondary: ['triceps', 'shoulders'],
   },
   {
     key: 'decline_bench_press',
@@ -227,8 +229,8 @@ export const BASE_EXERCISES: readonly ExerciseSeed[] = [
     en: 'Weighted Dips',
     type: W,
     equipment: 'other',
-    primary: ['chest', 'triceps'],
-    secondary: ['shoulders'],
+    primary: ['chest'],
+    secondary: ['triceps', 'shoulders'],
   },
   // 어깨
   {
@@ -413,15 +415,6 @@ export const BASE_EXERCISES: readonly ExerciseSeed[] = [
     secondary: ['forearms'],
   },
   {
-    key: 'deadlift',
-    ko: '데드리프트',
-    en: 'Deadlift',
-    type: W,
-    equipment: 'barbell',
-    primary: ['hamstrings', 'glutes', 'lower_back'],
-    secondary: ['traps', 'forearms', 'quads', 'lats'],
-  },
-  {
     key: 'barbell_row',
     ko: '바벨 로우',
     en: 'Barbell Row',
@@ -454,8 +447,8 @@ export const BASE_EXERCISES: readonly ExerciseSeed[] = [
     en: 'Chin-up',
     type: BW,
     equipment: 'bodyweight',
-    primary: ['lats', 'biceps'],
-    secondary: ['traps'],
+    primary: ['lats'],
+    secondary: ['biceps', 'traps'],
   },
   {
     key: 'lat_pulldown',
@@ -639,6 +632,15 @@ export const BASE_EXERCISES: readonly ExerciseSeed[] = [
     secondary: ['hamstrings', 'adductors'],
   },
   {
+    key: 'deadlift',
+    ko: '데드리프트',
+    en: 'Deadlift',
+    type: W,
+    equipment: 'barbell',
+    primary: ['hamstrings', 'glutes'],
+    secondary: ['lower_back', 'traps', 'forearms', 'quads', 'lats'],
+  },
+  {
     key: 'romanian_deadlift',
     ko: '루마니안 데드리프트',
     en: 'Romanian Deadlift',
@@ -797,8 +799,8 @@ export const BASE_EXERCISES: readonly ExerciseSeed[] = [
     en: 'Good Morning',
     type: W,
     equipment: 'barbell',
-    primary: ['hamstrings', 'lower_back'],
-    secondary: ['glutes'],
+    primary: ['hamstrings'],
+    secondary: ['lower_back', 'glutes'],
   },
   {
     key: 'barbell_lunge',
