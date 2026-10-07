@@ -19,6 +19,7 @@ import { kvStorage } from '@/lib/kv-storage';
 import {
   cancelScheduled,
   dismissCardioNotifications,
+  notificationsAllowed,
   scheduleCardioEnd,
 } from '@/lib/notifications';
 
@@ -43,6 +44,8 @@ type CardioTimerState = {
   lastLimitSec: number;
   /** 세트 id → 타이머가 끝날 때 울리도록 예약한 알림 */
   notifications: Record<string, string>;
+  /** 알림 권한이 없어 타이머가 끝나도 알릴 수 없다 */
+  blocked: boolean;
   setPlan: (setId: string, plan: CardioPlan) => void;
   /** 재기 시작(또는 이어서) */
   start: (setId: string, options?: StartOptions) => void;
@@ -120,7 +123,12 @@ export const useCardioTimer = create<CardioTimerState>()(
           title: i18n.t('cardio.notify.title', { name, total: limitLabel(timer.limitSec ?? 0) }),
           body: i18n.t('cardio.notify.body'),
         }).then((id) => {
-          if (id === null) return;
+          // 알림을 못 걸었으면 권한 때문인지 본다(카드에 '알림이 꺼져 있어요'를 보여 준다).
+          if (id === null) {
+            void notificationsAllowed().then((ok) => set({ blocked: !ok }));
+            return;
+          }
+          if (get().blocked) set({ blocked: false });
           // 그 사이 멈췄거나 끝냈으면 방금 예약한 알림은 버린다.
           if (get().timers[setId] === timer) {
             set((s) => ({ notifications: { ...s.notifications, [setId]: id } }));
@@ -132,6 +140,7 @@ export const useCardioTimer = create<CardioTimerState>()(
         plans: {},
         lastLimitSec: DEFAULT_LIMIT_SEC,
         notifications: {},
+        blocked: false,
         setPlan: (setId, plan) =>
           set((s) => ({
             plans: { ...s.plans, [setId]: plan },

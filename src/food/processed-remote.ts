@@ -10,6 +10,8 @@ const WHERE = {
   mfdsp: { table: 'processed_foods', search: 'search_processed_foods' },
   usdab: { table: 'branded_foods', search: 'search_branded_foods' },
 } as const;
+/** 검색을 기다리는 가장 긴 시간 */
+const SEARCH_TIMEOUT_MS = 8000;
 const COLUMNS = 'sid, name, maker, basis, kcal, protein, carb, fat, size, serv';
 
 type Raw = Omit<ProcessedFood, 'basis'> & { basis: string };
@@ -32,13 +34,18 @@ export async function searchProcessedFoods(
   offset = 0,
   src: ServerFoodSrc = 'mfdsp',
 ): Promise<ProcessedFood[]> {
-  const { data, error } = await supabase.rpc(WHERE[src].search, {
-    q: query,
-    lim: PROCESSED_PAGE,
-    off: offset,
-  });
-  if (error) throw error;
-  return ((data ?? []) as Raw[]).map(clean);
+  // 연결이 느리면 한없이 '찾는 중'으로 남지 않게 끊는다.
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), SEARCH_TIMEOUT_MS);
+  try {
+    const { data, error } = await supabase
+      .rpc(WHERE[src].search, { q: query, lim: PROCESSED_PAGE, off: offset })
+      .abortSignal(abort.signal);
+    if (error) throw error;
+    return ((data ?? []) as Raw[]).map(clean);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** 식품코드로 받기(다른 기기에서 즐겨찾기한 것처럼 이 기기에 사본이 없을 때) */

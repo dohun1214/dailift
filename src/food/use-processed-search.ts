@@ -31,6 +31,9 @@ export function useProcessedSearch(text: string, enabled: boolean, src: ServerFo
   const [state, setState] = useState<State>(IDLE);
   // 지금 보여 줄 검색어의 번호. 늦게 온 옛 응답을 거른다.
   const turn = useRef(0);
+  // 다시 시도를 누를 때마다 올린다(같은 검색어로 다시 찾는다).
+  const [attempt, setAttempt] = useState(0);
+  const lastAttempt = useRef(0);
 
   useEffect(() => {
     turn.current += 1;
@@ -40,23 +43,30 @@ export function useProcessedSearch(text: string, enabled: boolean, src: ServerFo
       return;
     }
     setState({ status: 'loading', rows: [], more: false, loadingMore: false });
-    const timer = setTimeout(() => {
-      searchProcessedFoods(query, 0, src)
-        .then((rows) => {
-          if (turn.current !== mine) return;
-          setState({
-            status: 'ready',
-            rows,
-            more: rows.length >= PROCESSED_PAGE,
-            loadingMore: false,
+    const timer = setTimeout(
+      () => {
+        searchProcessedFoods(query, 0, src)
+          .then((rows) => {
+            if (turn.current !== mine) return;
+            setState({
+              status: 'ready',
+              rows,
+              more: rows.length >= PROCESSED_PAGE,
+              loadingMore: false,
+            });
+          })
+          .catch(() => {
+            if (turn.current === mine) setState({ ...IDLE, status: 'failed' });
           });
-        })
-        .catch(() => {
-          if (turn.current === mine) setState({ ...IDLE, status: 'failed' });
-        });
-    }, DEBOUNCE_MS);
+      },
+      // 다시 시도는 기다리지 않고 바로 찾는다.
+      attempt === lastAttempt.current ? DEBOUNCE_MS : 0,
+    );
+    lastAttempt.current = attempt;
     return () => clearTimeout(timer);
-  }, [query, src]);
+  }, [query, src, attempt]);
+
+  const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
   const loadMore = useCallback(() => {
     if (query === null) return;
@@ -84,5 +94,5 @@ export function useProcessedSearch(text: string, enabled: boolean, src: ServerFo
     });
   }, [query, src]);
 
-  return { ...state, loadMore };
+  return { ...state, loadMore, retry };
 }

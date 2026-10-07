@@ -188,6 +188,7 @@ export default function WorkoutScreen() {
   const [exerciseMenu, setExerciseMenu] = useState<{ id: string; name: string } | null>(null);
   // 유산소 스톱워치(세트 id별)와 시간을 직접 적는 창
   const timers = useCardioTimer((s) => s.timers);
+  const cardioBlocked = useCardioTimer((s) => s.blocked);
   const cardioPlans = useCardioTimer((s) => s.plans);
   const lastLimitSec = useCardioTimer((s) => s.lastLimitSec);
   // kind: 'time' 운동한 시간을 적는다 / 'limit' 타이머 시간을 정한다
@@ -803,6 +804,7 @@ export default function WorkoutScreen() {
                     targetSec={we.repMax}
                     plan={cardioPlan(cardioSet.id, we.repMax)}
                     limitSec={timers[cardioSet.id]?.limitSec ?? 0}
+                    blocked={cardioBlocked}
                     onModeChange={(mode) =>
                       useCardioTimer
                         .getState()
@@ -915,9 +917,10 @@ export default function WorkoutScreen() {
                     const label =
                       s.kind === 'warmup'
                         ? t('workout.warmupLabel')
-                        : s.kind === 'drop'
+                        : // 설정을 꺼 두면 드롭 · 실패 표시는 번호로 보인다(바꿀 메뉴가 없으므로). 적어 둔 종류는 남는다.
+                          advanced && s.kind === 'drop'
                           ? t('workout.dropLabel')
-                          : s.kind === 'failure'
+                          : advanced && s.kind === 'failure'
                             ? t('workout.failureLabel')
                             : String(++workingNo);
                     return (

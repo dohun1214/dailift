@@ -1,5 +1,5 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { Pencil, Plus } from 'lucide-react-native';
+import { Pencil, Plus, RotateCw } from 'lucide-react-native';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Keyboard, Pressable, Text, View } from 'react-native';
@@ -86,6 +86,7 @@ export default function FoodSearchScreen() {
   const date = params.date && parseDateKey(params.date) ? params.date : dateKey(new Date());
   const meal: Meal = MEALS.find((m) => m === params.meal) ?? 'snack';
   const mealName = fmt.meal(meal);
+  const day = parseDateKey(date) ?? new Date();
 
   const { db: foodDb, failed } = useFoodDb();
   const sources = useFoodSources();
@@ -380,6 +381,8 @@ export default function FoodSearchScreen() {
       header={
         <TopBar
           title={toSet ? t('diet.sets.pickTitle') : t('diet.search.title', { meal: mealName })}
+          // 오늘이 아닌 날의 식단에 담을 때만 날짜를 적는다.
+          subtitle={toSet || date === dateKey(new Date()) ? undefined : fmt.day(day)}
           trailing={
             toSet ? <TextButton label={t('diet.sets.done')} onPress={() => router.back()} /> : null
           }
@@ -542,18 +545,27 @@ export default function FoodSearchScreen() {
               return (
                 <Fragment key={src}>
                   <Text style={styles.section}>{title}</Text>
-                  <View style={styles.note}>
-                    {found.status === 'loading' ? (
+                  {found.status === 'loading' ? (
+                    <View style={styles.note}>
                       <ActivityIndicator size="small" color={theme.colors.text2} />
-                    ) : null}
-                    <Text style={styles.noteText}>
-                      {t(
-                        found.status === 'loading'
-                          ? 'diet.processed.loading'
-                          : 'diet.processed.offline',
-                      )}
-                    </Text>
-                  </View>
+                      <Text style={styles.noteText}>{t('diet.processed.loading')}</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.missing}>
+                      <Text style={styles.noteText}>{t('diet.processed.failed')}</Text>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => {
+                          processed.retry();
+                          branded.retry();
+                        }}
+                        style={({ pressed }) => [styles.missingButton, pressed && styles.pressed]}
+                      >
+                        <RotateCw size={15} color={theme.colors.text} strokeWidth={2.2} />
+                        <Text style={styles.missingButtonText}>{t('diet.processed.retry')}</Text>
+                      </Pressable>
+                    </View>
+                  )}
                 </Fragment>
               );
             }

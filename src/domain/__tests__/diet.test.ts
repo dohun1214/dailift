@@ -209,6 +209,16 @@ describe('직접 만든 음식', () => {
     expect(toPer100({ ...input, serving: null })).toEqual({ ok: false, error: 'serving' });
     expect(toPer100({ ...input, serving: 0 })).toEqual({ ok: false, error: 'serving' });
   });
+  it('1회 양이 작으면 반올림한 값만큼은 봐준다(5 g에 지방 5 g · 46 kcal)', () => {
+    const tiny = { ...input, serving: 5, kcal: 46, protein: 0, carb: 0, fat: 5.4 };
+    expect(toPer100(tiny).ok).toBe(true);
+    // 반올림으로 설명되지 않는 값은 여전히 안 된다.
+    expect(toPer100({ ...tiny, fat: 7 })).toEqual({ ok: false, error: 'range' });
+    expect(toPer100({ ...tiny, kcal: 60 })).toEqual({ ok: false, error: 'range' });
+  });
+  it('1회 양이 한 번에 넣을 수 있는 양보다 크면 안 된다', () => {
+    expect(toPer100({ ...input, serving: 5001 })).toEqual({ ok: false, error: 'serving' });
+  });
   it('100 g에 들어갈 수 없는 값은 안 된다', () => {
     expect(toPer100({ ...input, serving: 10 })).toEqual({ ok: false, error: 'range' });
     expect(toPer100({ ...input, per: '100g', protein: 60, carb: 50 })).toEqual({

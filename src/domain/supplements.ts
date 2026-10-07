@@ -169,7 +169,8 @@ const atMinutes = (day: Date, min: number) =>
  * 정해진 시각: 같은 시각의 영양제를 하나로 묶어 요일마다 반복 알림 7개를 건다(앱을 열지 않아도 계속 울린다).
  * 오늘 그 묶음에서 하나라도 먹었으면 오늘 몫만 빼고, 남은 것이 있으면 그 이름만 담아 한 번짜리로 건다.
  * 오늘 몫을 뺀 요일 알림은 그 시각이 지난 뒤 다시 계획하면 돌아온다.
- * 묶음이 많아 한도를 넘으면 늦은 시각의 묶음부터 '매일 반복' 하나로 줄인다(오늘 몫을 뺄 수 없다).
+ * 묶음이 많아 한도를 넘으면 '매일 반복' 하나로 줄인다(오늘 몫을 뺄 수 없다) — 오늘 몫을 뺄 일이 없는 묶음부터,
+ * 그 안에서는 늦은 시각의 묶음부터.
  *
  * 운동 후: 오늘 마친 운동이 있으면 그 시각 + N분에 한 번(아직 안 먹은 것만).
  */
@@ -217,12 +218,28 @@ export function planNotifications({
   });
   const cost = (g: (typeof groups)[number], full: boolean) =>
     (full ? 7 : 1) * (1 + (g.again.length > 0 ? 1 : 0));
-  let fullCount = groups.length;
-  const total = () => out.length + groups.reduce((n, g, i) => n + cost(g, i < fullCount), 0);
-  while (fullCount > 0 && total() > budget) fullCount -= 1;
+  // 한도를 넘으면 '매일 반복'으로 줄일 묶음을 고른다. 매일 반복은 오늘 몫만 뺄 수 없으므로,
+  // 오늘 몫을 뺄 일이 없는 묶음(아직 안 먹었거나 오늘 시각이 이미 지난 것)부터, 그 안에서는 늦은 시각부터 줄인다.
+  const lastMin = (g: (typeof groups)[number]) =>
+    g.again.length > 0 ? againMinutes(g.timeMin) : g.timeMin;
+  const needsToday = (g: (typeof groups)[number]) =>
+    g.members.some((s) => takenToday.has(s.id)) && atMinutes(today, lastMin(g)).getTime() > nowMs;
+  const daily = new Set<number>();
+  const total = () => out.length + groups.reduce((n, g, i) => n + cost(g, !daily.has(i)), 0);
+  const demote = groups
+    .map((_, i) => i)
+    .sort(
+      (a, b) =>
+        Number(needsToday(groups[a] as (typeof groups)[number])) -
+          Number(needsToday(groups[b] as (typeof groups)[number])) || b - a,
+    );
+  for (const i of demote) {
+    if (total() <= budget) break;
+    daily.add(i);
+  }
 
   groups.forEach((g, index) => {
-    const full = index < fullCount;
+    const full = !daily.has(index);
     const slots: { kind: 'due' | 'again'; min: number; members: Supplement[] }[] = [
       { kind: 'due', min: g.timeMin, members: g.members },
     ];

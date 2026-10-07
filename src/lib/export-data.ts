@@ -6,6 +6,7 @@ import { db } from '@/db/client';
 import { exportAllTables, exportSetRows } from '@/db/export';
 import { buildWorkoutCsv, fileDate } from '@/domain/export';
 import type { AppLanguage } from '@/i18n/resolve-language';
+import { useDietGoals } from '@/stores/diet-goals';
 import { useProfile } from '@/stores/profile';
 import { useSettings } from '@/stores/settings';
 
@@ -43,14 +44,32 @@ export async function exportData(kind: ExportKind, lang: AppLanguage, now = Date
     });
   } else {
     const { weightUnit, barWeights, plates, dumbbellMode, defaultRestSec } = useSettings.getState();
-    const { experience, daysPerWeek, goal, heightCm, weight, bodyType } = useProfile.getState();
+    const {
+      experience,
+      daysPerWeek,
+      goal,
+      heightCm,
+      weight,
+      weightUnit: profileWeightUnit,
+      bodyType,
+    } = useProfile.getState();
+    const { proteinMode, proteinPerKg, proteinDirect, kcal, carb, fat } = useDietGoals.getState();
     const backup = {
       app: 'Dailift',
       version: Constants.expoConfig?.version ?? '',
       exportedAt: new Date(now).toISOString(),
       note: 'Times are Unix milliseconds. Weights are stored in the unit they were entered.',
       settings: { weightUnit, barWeights, plates, dumbbellMode, defaultRestSec },
-      profile: { experience, daysPerWeek, goal, heightCm, weight, bodyType },
+      profile: {
+        experience,
+        daysPerWeek,
+        goal,
+        heightCm,
+        weight,
+        weightUnit: profileWeightUnit,
+        bodyType,
+      },
+      dietGoals: { proteinMode, proteinPerKg, proteinDirect, kcal, carb, fat },
       data: exportAllTables(db),
     };
     file = writeCache(`dailift-backup-${stamp}.json`, JSON.stringify(backup, null, 2));
