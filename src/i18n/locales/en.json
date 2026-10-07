@@ -1115,6 +1115,8 @@
       "editA11y": "Edit {{name}}",
       "added": "Added to {{meal}} · {{name}} {{amount}}",
       "undo": "Undo",
+      "moreBase_one": "Show {{count}} more food",
+      "moreBase_other": "Show {{count}} more foods",
       "loading": "Opening the food list…",
       "failed": "Couldn't open the food list. Try restarting the app."
     },
