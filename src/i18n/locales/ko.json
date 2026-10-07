@@ -179,7 +179,8 @@
           "tooMany": "세트는 20개까지 만들 수 있어요.",
           "value": "무게는 2000 이하, 횟수는 100 이하, 시간은 3600초 이하로 적어 주세요."
         },
-        "time": "최소 ≤ 최대, 5–600초"
+        "time": "최소 ≤ 최대, 5–600초",
+        "cardio": "목표 시간은 0–600분으로 정하세요."
       },
       "notFound": "루틴을 찾을 수 없어요",
       "min": "최소",
@@ -231,7 +232,8 @@
     "type": {
       "weight_reps": "무게 × 횟수",
       "bodyweight_reps": "맨몸 × 횟수",
-      "time": "시간"
+      "time": "시간",
+      "cardio": "유산소 (시간 재기)"
     },
     "new": {
       "title": "종목 만들기",
@@ -250,7 +252,8 @@
     "createShort": "만들기",
     "noMatchTitle": "'{{query}}'에 맞는 종목이 없어요",
     "noMatchBody": "찾는 종목이 없으면 직접 만들 수 있어요.",
-    "createNamed": "'{{name}}' 종목 만들기"
+    "createNamed": "'{{name}}' 종목 만들기",
+    "cardio": "유산소"
   },
   "workout": {
     "emptyName": "빈 운동",
@@ -412,7 +415,51 @@
     "eraseTitle": "이 운동 기록을 지울까요?",
     "eraseBody_other": "{{name}}에서 완료한 {{count}}세트가 지워져요. 되돌릴 수 없어요.",
     "eraseBodyEmpty": "{{name}} 운동이 지워져요. 되돌릴 수 없어요.",
-    "eraseCancel": "취소"
+    "eraseCancel": "취소",
+    "addCardio": "유산소 추가"
+  },
+  "cardio": {
+    "distance": "거리",
+    "speed": "속도",
+    "incline": "경사",
+    "timeA11y": "시간 {{time}}",
+    "editHint": "누르면 시간을 고쳐요",
+    "running": "재는 중",
+    "paused": "일시정지",
+    "recorded": "기록했어요 · 시간을 누르면 고칠 수 있어요",
+    "target": "목표 {{minutes}}분",
+    "start": "시작",
+    "enterTime": "시간 직접 입력",
+    "pause": "일시정지",
+    "resume": "이어서",
+    "finish": "끝내기",
+    "fieldA11y": "{{name}} {{field}}",
+    "fieldNav": "{{name}} · {{field}}",
+    "optional": "거리 · 속도 · 경사는 적지 않아도 돼요",
+    "continue": "이어서 재기",
+    "timeSheet": {
+      "title": "{{name}} 시간",
+      "subtitle": "운동한 시간을 적어요.",
+      "minutes": "분",
+      "minUnit": "분",
+      "seconds": "초",
+      "secUnit": "초",
+      "invalid": "시간을 적어 주세요 (초는 0–59)",
+      "save": "저장"
+    },
+    "inclineValue": "경사 {{value}}%",
+    "summaryTitle": "유산소",
+    "summaryTotal": "모두 {{time}}",
+    "history": "유산소 {{time}}",
+    "collapsed": "유산소",
+    "targetLabel": "목표 시간",
+    "targetUnit": "분",
+    "targetHint": "0이면 목표 없이 재기만 해요",
+    "rowMeta": "유산소 · 목표 {{minutes}}분",
+    "rowMetaNone": "유산소",
+    "timeColumn": "시간",
+    "rowA11y": "{{name}}, {{time}}",
+    "remove": "기록에서 빼기"
   },
   "summary": {
     "headline": "오늘도 해냈어요",
@@ -588,7 +635,7 @@
           "volume": "그날 모든 세트의 횟수를 더한 값"
         },
         "time": {
-          "max": "그날 가장 오래 버틴 세트",
+          "max": "그날 가장 길게 한 기록",
           "e1rm": "그날 기록으로 계산한 1회 최대 무게",
           "volume": "그날 모든 세트의 시간을 더한 값"
         }
@@ -631,7 +678,8 @@
     "deleteTitle": "{{name}} 삭제할까요?",
     "deleteBody": "종목 목록과 루틴에서 사라져요. 지난 기록은 그대로 남아요.",
     "deleteConfirm": "삭제",
-    "cancel": "취소"
+    "cancel": "취소",
+    "kind": "종류"
   },
   "home": {
     "todayRoutine": "오늘은 {{name}} 하는 날",

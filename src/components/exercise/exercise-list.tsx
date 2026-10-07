@@ -33,7 +33,7 @@ export function ExerciseListView() {
   const catalog = useExerciseCatalog(lang);
   const { sets, ready } = useExerciseRecords();
   const [query, setQuery] = useState('');
-  const [group, setGroup] = useState<MuscleGroup | null>(null);
+  const [group, setGroup] = useState<MuscleGroup | 'cardio' | null>(null);
   const [thisYear] = useState(() => new Date().getFullYear());
 
   const summaries = useMemo(
@@ -43,7 +43,9 @@ export function ExerciseListView() {
 
   const { done, other } = useMemo(() => {
     const match = (e: CatalogExercise) =>
-      (group === null || e.primaryGroups.includes(group)) && matchesSearch(query, e.searchNames);
+      (group === null ||
+        (group === 'cardio' ? e.type === 'cardio' : e.primaryGroups.includes(group))) &&
+      matchesSearch(query, e.searchNames);
     const doneRows: Row[] = [];
     const otherRows: Row[] = [];
     for (const exercise of [...catalog.base, ...catalog.custom]) {
@@ -57,7 +59,11 @@ export function ExerciseListView() {
   }, [catalog, summaries, group, query]);
 
   const groupName = (e: CatalogExercise) =>
-    e.primaryGroups[0] ? t(`exercises.group.${e.primaryGroups[0]}`) : null;
+    e.type === 'cardio'
+      ? t('exercises.cardio')
+      : e.primaryGroups[0]
+        ? t(`exercises.group.${e.primaryGroups[0]}`)
+        : null;
   const dateLabel = (at: number) => {
     const d = new Date(at);
     return d.toLocaleDateString(locale, {
@@ -67,7 +73,7 @@ export function ExerciseListView() {
     });
   };
   const bestLabel = (e: CatalogExercise, s: ExerciseSummary) => {
-    if (e.type === 'time') return formatClock(s.best.max);
+    if (e.type === 'time' || e.type === 'cardio') return formatClock(s.best.max);
     if (e.type === 'bodyweight_reps')
       return t('exerciseDetail.progress.reps', { reps: s.best.max });
     return `${fmt(s.best.max)}${unit} × ${s.best.maxReps}`;
@@ -166,6 +172,11 @@ export function ExerciseListView() {
             onPress={() => setGroup((cur) => (cur === g ? null : g))}
           />
         ))}
+        <Chip
+          label={t('exercises.cardio')}
+          selected={group === 'cardio'}
+          onPress={() => setGroup((cur) => (cur === 'cardio' ? null : 'cardio'))}
+        />
       </ScrollView>
 
       {noRecords && !searching ? (

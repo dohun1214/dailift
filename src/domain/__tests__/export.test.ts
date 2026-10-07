@@ -32,12 +32,30 @@ describe('buildWorkoutCsv', () => {
         durationSec: null,
         rpe: 8.5,
       },
+      {
+        startedAt: at,
+        workoutName: 'Push A',
+        exercise: '러닝머신',
+        setNumber: 1,
+        kind: 'working',
+        weight: null,
+        unit: 'kg',
+        reps: null,
+        durationSec: 1500,
+        rpe: null,
+        distance: 3.2,
+        distanceUnit: 'km',
+        speed: null,
+        incline: 2,
+      },
     ]);
     expect(csv.startsWith('﻿')).toBe(true);
     const lines = csv.slice(1).split('\r\n');
     expect(lines[0]).toBe(CSV_HEADER.join(','));
-    expect(lines[1]).toBe('2026-09-22 07:05,Push A,벤치프레스,1,working,60,kg,8,,8.5');
-    expect(lines[2]).toBe('');
+    expect(lines[1]).toBe('2026-09-22 07:05,Push A,벤치프레스,1,working,60,kg,8,,8.5,,,,');
+    // 유산소: 시간 + 골라 적은 거리 · 경사(속도는 비움)
+    expect(lines[2]).toBe('2026-09-22 07:05,Push A,러닝머신,1,working,,kg,,1500,,3.2,km,,2');
+    expect(lines[3]).toBe('');
   });
 });
 

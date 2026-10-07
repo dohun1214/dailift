@@ -4,7 +4,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 
 import { baseExerciseId } from '@/data/exercises';
-import { newDraftItem } from '@/domain/routine-draft';
+import { cardioTarget, newDraftItem } from '@/domain/routine-draft';
 
 import { emptyRoutineDraft, saveRoutineDraft } from '../routine-editor';
 import * as schema from '../schema';
@@ -21,6 +21,7 @@ import {
   finishWorkout,
   getActiveWorkout,
   moveWorkoutExercise,
+  recordCardio,
   replaceWorkoutExercise,
   restoreWorkoutExercise,
   setCompleted,
@@ -500,5 +501,113 @@ describe('v1.2: 따라 채우기 · 되돌리기 · 오래된 운동', () => {
     const w = db.select().from(schema.workouts).where(eq(schema.workouts.id, id)).get();
     expect(w?.status).toBe('completed');
     expect(w?.endedAt).toBe(3000);
+  });
+});
+
+describe('유산소', () => {
+  const setsOf = (db: Db, workoutId: string) =>
+    db
+      .select({ set: schema.sets, exerciseId: schema.workoutExercises.exerciseId })
+      .from(schema.sets)
+      .innerJoin(
+        schema.workoutExercises,
+        eq(schema.workoutExercises.id, schema.sets.workoutExerciseId),
+      )
+      .where(and(eq(schema.workoutExercises.workoutId, workoutId), isNull(schema.sets.deletedAt)))
+      .orderBy(asc(schema.workoutExercises.position), asc(schema.sets.position))
+      .all();
+
+  it('운동 중에 넣으면 세트 세 줄이 아니라 한 줄이고, 단위는 무게 단위를 따라간다', () => {
+    const db = createTestDb();
+    const id = startWorkout(db, { routineId: null, name: 'W', weightUnit: 'lb' }, makeId);
+    addExercisesToWorkout(db, id, [baseExerciseId('treadmill')], 'lb', makeId);
+    const rows = setsOf(db, id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.set).toMatchObject({
+      kind: 'working',
+      weight: null,
+      reps: null,
+      durationSec: null,
+      completedAt: null,
+      distanceUnit: 'mi',
+    });
+    const we = db.select().from(schema.workoutExercises).all();
+    expect(we[0]).toMatchObject({ repMin: 0, repMax: 0, restSec: 0 });
+  });
+
+  it('루틴의 목표 시간이 운동 종목에 실린다', () => {
+    const db = createTestDb();
+    const routineId = saveRoutineDraft(
+      db,
+      {
+        ...emptyRoutineDraft(),
+        name: 'R',
+        items: [
+          {
+            ...newDraftItem('k0', baseExerciseId('stationary_bike'), 'kg', 90, false, true),
+            ...cardioTarget(20),
+          },
+        ],
+      },
+      makeId,
+    );
+    const id = startWorkout(db, { routineId, name: 'R', weightUnit: 'kg' }, makeId);
+    expect(setsOf(db, id)).toHaveLength(1);
+    expect(db.select().from(schema.workoutExercises).all()[0]).toMatchObject({
+      repMax: 1200,
+      restSec: 0,
+    });
+  });
+
+  it('잰 시간을 적으면 기록되고, 거리 · 속도 · 경사는 골라 적는다', () => {
+    const db = createTestDb();
+    const id = startWorkout(db, { routineId: null, name: 'W', weightUnit: 'kg' }, makeId);
+    addExercisesToWorkout(db, id, [baseExerciseId('treadmill')], 'kg', makeId);
+    const setId = setsOf(db, id)[0]?.set.id ?? '';
+    expect(recordCardio(db, setId, 0)).toBe(false);
+    expect(recordCardio(db, setId, 1500.9, 5000)).toBe(true);
+    updateSet(db, setId, { distance: 3.2, incline: 2 });
+    expect(setsOf(db, id)[0]?.set).toMatchObject({
+      durationSec: 1500,
+      completedAt: 5000,
+      distance: 3.2,
+      speed: null,
+      incline: 2,
+      distanceUnit: 'km',
+    });
+    expect(finishWorkout(db, id)).toBe(1);
+  });
+
+  it('재지 않은 유산소는 운동을 끝낼 때 빠진다', () => {
+    const db = createTestDb();
+    const id = startWorkout(db, { routineId: null, name: 'W', weightUnit: 'kg' }, makeId);
+    addExercisesToWorkout(
+      db,
+      id,
+      [baseExerciseId('bench_press'), baseExerciseId('treadmill')],
+      'kg',
+      makeId,
+    );
+    const rows = setsOf(db, id);
+    const bench = rows.find((r) => r.exerciseId === baseExerciseId('bench_press'));
+    completeSet(db, bench?.set.id ?? '', 'weight_reps');
+    expect(finishWorkout(db, id)).toBe(1);
+    const left = db
+      .select()
+      .from(schema.workoutExercises)
+      .where(
+        and(eq(schema.workoutExercises.workoutId, id), isNull(schema.workoutExercises.deletedAt)),
+      )
+      .all();
+    expect(left.map((e) => e.exerciseId)).toEqual([baseExerciseId('bench_press')]);
+  });
+
+  it('유산소 기록은 최고 기록(PR) 기준에 들어가지 않는다', () => {
+    const db = createTestDb();
+    const id = startWorkout(db, { routineId: null, name: 'W', weightUnit: 'kg' }, makeId);
+    addExercisesToWorkout(db, id, [baseExerciseId('treadmill')], 'kg', makeId);
+    recordCardio(db, setsOf(db, id)[0]?.set.id ?? '', 600);
+    finishWorkout(db, id);
+    expect(exerciseBests(db, [baseExerciseId('treadmill')], 'other').size).toBe(0);
   });
 });

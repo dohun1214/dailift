@@ -9,7 +9,13 @@ import type { AppDatabase } from './seed';
 import { exerciseBests } from './workout';
 
 /** 운동 안의 종목 하나와 그 완료 세트 (한 순서대로) */
-export type SummaryExercise = { id: string; exerciseId: string; sets: RecordedSet[] };
+export type SummaryExercise = {
+  id: string;
+  exerciseId: string;
+  /** 유산소 종목(세트가 아니라 시간 한 줄) */
+  cardio: boolean;
+  sets: RecordedSet[];
+};
 
 export type SummaryData = {
   workout: typeof schema.workouts.$inferSelect;
@@ -42,6 +48,11 @@ export function loadSummary(db: AppDatabase, workoutId: string): SummaryData | n
       reps: schema.sets.reps,
       unit: schema.sets.weightUnit,
       durationSec: schema.sets.durationSec,
+      distance: schema.sets.distance,
+      distanceUnit: schema.sets.distanceUnit,
+      speed: schema.sets.speed,
+      incline: schema.sets.incline,
+      type: schema.exercises.type,
       setPosition: schema.sets.position,
     })
     .from(schema.sets)
@@ -49,6 +60,7 @@ export function loadSummary(db: AppDatabase, workoutId: string): SummaryData | n
       schema.workoutExercises,
       eq(schema.workoutExercises.id, schema.sets.workoutExerciseId),
     )
+    .leftJoin(schema.exercises, eq(schema.exercises.id, schema.workoutExercises.exerciseId))
     .where(
       and(
         eq(schema.workoutExercises.workoutId, workoutId),
@@ -84,7 +96,12 @@ export function loadSummary(db: AppDatabase, workoutId: string): SummaryData | n
   for (const r of rows) {
     let ex = exercises[exercises.length - 1];
     if (!ex || ex.id !== r.workoutExerciseId) {
-      ex = { id: r.workoutExerciseId, exerciseId: r.exerciseId, sets: [] };
+      ex = {
+        id: r.workoutExerciseId,
+        exerciseId: r.exerciseId,
+        cardio: r.type === 'cardio',
+        sets: [],
+      };
       exercises.push(ex);
     }
     ex.sets.push({
@@ -93,6 +110,10 @@ export function loadSummary(db: AppDatabase, workoutId: string): SummaryData | n
       unit: r.unit,
       reps: r.reps,
       durationSec: r.durationSec,
+      distance: r.distance,
+      distanceUnit: r.distanceUnit,
+      speed: r.speed,
+      incline: r.incline,
     });
   }
 
@@ -107,6 +128,8 @@ export function loadSummary(db: AppDatabase, workoutId: string): SummaryData | n
       reps: r.reps,
       unit: r.unit,
       completed: true,
+      cardio: r.type === 'cardio',
+      durationSec: r.durationSec,
     })),
     musclesOf,
     bests: exerciseBests(db, exerciseIds, workoutId, workout.startedAt),

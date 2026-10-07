@@ -133,12 +133,16 @@ export function DaySheet({
               {exerciseName(i.exerciseId)}
             </Text>
             <Text style={styles.itemMeta}>
-              {t(
-                exerciseType(i.exerciseId) === 'time'
-                  ? 'workout.collapsedMetaTime'
-                  : 'workout.collapsedMeta',
-                { count: i.targetSets, min: i.repMin, max: i.repMax },
-              )}
+              {exerciseType(i.exerciseId) === 'cardio'
+                ? i.repMax > 0
+                  ? t('cardio.rowMeta', { minutes: Math.round(i.repMax / 60) })
+                  : t('cardio.rowMetaNone')
+                : t(
+                    exerciseType(i.exerciseId) === 'time'
+                      ? 'workout.collapsedMetaTime'
+                      : 'workout.collapsedMeta',
+                    { count: i.targetSets, min: i.repMin, max: i.repMax },
+                  )}
             </Text>
           </View>
         ))}

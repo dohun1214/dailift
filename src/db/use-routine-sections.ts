@@ -1,4 +1,4 @@
-import { isNull } from 'drizzle-orm';
+import { eq, isNull, sql } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useMemo } from 'react';
 
@@ -40,8 +40,13 @@ export function useRoutineSections() {
         routineId: schema.routineExercises.routineId,
         targetSets: schema.routineExercises.targetSets,
         restSec: schema.routineExercises.restSec,
+        // 유산소면 목표 시간(초), 아니면 null — 예상 시간과 세트 수 계산에 쓴다.
+        cardioSec: sql<
+          number | null
+        >`case when ${schema.exercises.type} = 'cardio' then ${schema.routineExercises.repMax} end`,
       })
       .from(schema.routineExercises)
+      .leftJoin(schema.exercises, eq(schema.exercises.id, schema.routineExercises.exerciseId))
       .where(isNull(schema.routineExercises.deletedAt)),
   );
   return useMemo(

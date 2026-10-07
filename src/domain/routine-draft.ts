@@ -1,5 +1,6 @@
 import type { WeightUnit } from '@/db/schema';
 
+import { CARDIO_LIMITS } from './cardio';
 import { planIssue, type SetPlan } from './set-plan';
 
 /** 편집 중인 루틴 종목. rowId가 null이면 아직 저장 안 된 새 종목 */
@@ -42,22 +43,40 @@ export const LIMITS = {
 
 export type DraftError = 'nameRequired' | 'noExercises' | 'itemInvalid';
 
-/** `isTime`: 그 종목이 시간으로 재는 종목인지 (없으면 모두 횟수 종목으로 본다) */
+/**
+ * `isTime`: 그 종목이 시간으로 재는 종목인지 (없으면 모두 횟수 종목으로 본다).
+ * `isCardio`: 유산소인지 — 세트 · 횟수 대신 목표 시간 하나만 본다.
+ */
 export function validateDraft(
   draft: RoutineDraft,
   isTime: (exerciseId: string) => boolean = () => false,
+  isCardio: (exerciseId: string) => boolean = () => false,
 ): DraftError | null {
   if (!draft.name.trim()) return 'nameRequired';
   if (draft.items.length === 0) return 'noExercises';
-  if (draft.items.some((i) => itemIssue(i, isTime(i.exerciseId)) !== null)) return 'itemInvalid';
+  if (draft.items.some((i) => itemIssue(i, isTime(i.exerciseId), isCardio(i.exerciseId)) !== null))
+    return 'itemInvalid';
   return null;
 }
 
-export type ItemIssue = 'sets' | 'reps' | 'time' | 'rest' | 'increment' | 'plan';
+export type ItemIssue = 'sets' | 'reps' | 'time' | 'rest' | 'increment' | 'plan' | 'cardio';
 
-export function itemIssue(i: DraftItem, isTime = false): ItemIssue | null {
+/** 유산소의 목표 시간(초)을 루틴 종목 칸에 담는 모양: 세트 1, 횟수 범위 칸 둘에 같은 초(0 = 목표 없음), 휴식 0 */
+export const cardioTarget = (minutes: number) => ({
+  targetSets: 1,
+  repMin: minutes * 60,
+  repMax: minutes * 60,
+});
+
+export function itemIssue(i: DraftItem, isTime = false, isCardio = false): ItemIssue | null {
   const inRange = (v: number, r: { min: number; max: number }) =>
     Number.isFinite(v) && v >= r.min && v <= r.max;
+  if (isCardio) {
+    const minutes = i.repMax / 60;
+    return Number.isInteger(minutes) && minutes >= 0 && minutes <= CARDIO_LIMITS.targetMin
+      ? null
+      : 'cardio';
+  }
   if (i.plan) {
     // 세트별로 정한 종목은 세트 줄과 휴식만 본다(세트 수 · 범위는 쓰지 않는다).
     if (planIssue(i.plan) !== null) return 'plan';
@@ -102,7 +121,21 @@ export function newDraftItem(
   restSec = 90,
   /** 시간으로 재는 종목이면 30–60초로 시작한다 */
   isTime = false,
+  /** 유산소면 한 줄, 목표 시간 없음, 휴식 없음 */
+  isCardio = false,
 ): DraftItem {
+  if (isCardio)
+    return {
+      key,
+      rowId: null,
+      exerciseId,
+      ...cardioTarget(0),
+      restSec: 0,
+      increment: unit === 'lb' ? 5 : 2.5,
+      incrementUnit: unit,
+      note: null,
+      plan: null,
+    };
   return {
     key,
     rowId: null,

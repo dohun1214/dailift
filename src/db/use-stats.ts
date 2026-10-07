@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, isNull, ne } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, ne, or } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useMemo } from 'react';
 
@@ -8,7 +8,10 @@ import { db } from './client';
 import * as schema from './schema';
 import { useTableRev } from './use-table-rev';
 
-/** 통계용 데이터: 완료한 운동의 완료 본세트 전체와 종목→부위 연결. 기록이 바뀌면 갱신된다. */
+/**
+ * 통계용 데이터: 완료한 운동의 완료 본세트 전체와 종목→부위 연결. 기록이 바뀌면 갱신된다.
+ * 유산소는 세트 · 볼륨으로 세지 않으므로 뺀다.
+ */
 export function useStatsData() {
   // 운동을 마치면 workouts만 바뀐다(sets는 그대로) → 그때도 다시 읽는다.
   const rev = useTableRev(schema.workouts, schema.workoutExercises);
@@ -28,8 +31,10 @@ export function useStatsData() {
         eq(schema.workoutExercises.id, schema.sets.workoutExerciseId),
       )
       .innerJoin(schema.workouts, eq(schema.workouts.id, schema.workoutExercises.workoutId))
+      .leftJoin(schema.exercises, eq(schema.exercises.id, schema.workoutExercises.exerciseId))
       .where(
         and(
+          or(isNull(schema.exercises.type), ne(schema.exercises.type, 'cardio')),
           eq(schema.workouts.status, 'completed'),
           isNull(schema.workouts.deletedAt),
           isNull(schema.workoutExercises.deletedAt),

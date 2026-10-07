@@ -9,7 +9,7 @@ import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { Button, ConfirmDialog, Screen, TextButton, TopBar } from '@/components/ui';
-import { ActiveExerciseCard, SetRow } from '@/components/workout';
+import { ActiveExerciseCard, CardioCard, CardioTimeSheet, SetRow } from '@/components/workout';
 import { db } from '@/db/client';
 import { addRecordedSet, cleanupRecordedWorkout, deleteWorkout } from '@/db/history';
 import * as schema from '@/db/schema';
@@ -19,6 +19,7 @@ import {
   addExercisesToWorkout,
   completeSet,
   deleteSet,
+  recordCardio,
   setCompleted,
   setWorkoutMinutes,
   updateSet,
@@ -58,6 +59,9 @@ export default function WorkoutEditScreen() {
   const workoutId = id ?? '';
   const catalog = useExerciseCatalog(lang);
   const exercises = useWorkoutExercises(workoutId);
+  // 유산소 시간을 적는 창
+  const [timeFor, setTimeFor] = useState<{ setId: string; name: string; value: number | null }>();
+  const [timeOpen, setTimeOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [ask, setAsk] = useState<Ask | null>(null);
   // 확인 창에서 고른 뒤에 이어서 할 이동(뒤로 가기 등)
@@ -132,6 +136,8 @@ export default function WorkoutEditScreen() {
   const toggleAll = () => {
     for (const we of exercises) {
       const type = catalog.byId.get(we.exerciseId)?.type ?? 'weight_reps';
+      // 유산소는 시간을 적어야 기록이라 한꺼번에 체크하지 않는다.
+      if (type === 'cardio') continue;
       for (const s of we.sets) {
         if (allChecked) setCompleted(db, s.id, false);
         else if (s.completedAt === null) completeSet(db, s.id, type, completedAt);
@@ -267,6 +273,47 @@ export default function WorkoutEditScreen() {
           const type = info?.type ?? 'weight_reps';
           const group = info?.primaryGroups[0];
           let n = 0;
+          const [cardioSet] = we.sets;
+          if (type === 'cardio' && cardioSet) {
+            const name = info?.name ?? '';
+            const done = cardioSet.completedAt !== null;
+            return (
+              <CardioCard
+                key={we.id}
+                manual
+                position={t('workout.position', {
+                  index: index + 1,
+                  total: exercises.length,
+                  group: t('exercises.cardio'),
+                })}
+                name={name}
+                state={done ? 'done' : 'idle'}
+                seconds={done ? (cardioSet.durationSec ?? 0) : 0}
+                targetSec={0}
+                distanceUnit={cardioSet.distanceUnit}
+                values={{
+                  distance: cardioSet.distance,
+                  speed: cardioSet.speed,
+                  incline: cardioSet.incline,
+                }}
+                navId={cardioSet.id}
+                onChange={(field, value) => updateSet(db, cardioSet.id, { [field]: value })}
+                onStart={() => {}}
+                onPause={() => {}}
+                onFinish={() => {}}
+                onContinue={() => {}}
+                onEditTime={() => {
+                  setTimeFor({
+                    setId: cardioSet.id,
+                    name,
+                    value: done ? cardioSet.durationSec : null,
+                  });
+                  setTimeOpen(true);
+                }}
+                onRemove={() => setCompleted(db, cardioSet.id, false)}
+              />
+            );
+          }
           return (
             <ActiveExerciseCard
               key={we.id}
@@ -313,6 +360,15 @@ export default function WorkoutEditScreen() {
         {isNew ? <Button label={t('history.edit.saveButton')} onPress={save} /> : null}
         <View style={styles.bottom} />
       </Screen>
+      <CardioTimeSheet
+        visible={timeOpen}
+        name={timeFor?.name ?? ''}
+        value={timeFor?.value ?? null}
+        onClose={() => setTimeOpen(false)}
+        onSave={(sec) => {
+          if (timeFor) recordCardio(db, timeFor.setId, sec, completedAt);
+        }}
+      />
       <ConfirmDialog
         visible={ask === 'unchecked'}
         title={t('history.edit.uncheckedTitle')}

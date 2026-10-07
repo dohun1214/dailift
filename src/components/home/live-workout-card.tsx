@@ -29,7 +29,12 @@ export function LiveWorkoutCard({ workout }: Props) {
   const exercises = useWorkoutExercises(workout.id);
   const now = useNow(1000);
   const restEnds = useRestTimer((s) => s.endsAt);
-  const progress = useMemo(() => workoutProgress(exercises), [exercises]);
+  // 유산소는 세트가 아니라서 진행(몇 세트째 · 전체 세트)에서 뺀다.
+  const progress = useMemo(
+    () =>
+      workoutProgress(exercises.filter((e) => catalog.byId.get(e.exerciseId)?.type !== 'cardio')),
+    [exercises, catalog],
+  );
 
   const restLeft = restEnds !== null ? remainingSec(restEnds, now) : 0;
   const resting = restLeft > 0;

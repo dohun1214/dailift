@@ -146,7 +146,11 @@ export default function ExerciseDetailScreen() {
             <BodyFigure gender={bodyType} side={side} width={64} data={data} />
           </View>
           <View style={styles.tagsCol}>
-            <TagGroup label={t('exerciseDetail.primary')} tags={primary.map(muscleName)} strong />
+            {info.type === 'cardio' ? (
+              <TagGroup label={t('exerciseDetail.kind')} tags={[t('exercises.cardio')]} strong />
+            ) : (
+              <TagGroup label={t('exerciseDetail.primary')} tags={primary.map(muscleName)} strong />
+            )}
             {secondary.length > 0 ? (
               <TagGroup label={t('exerciseDetail.secondary')} tags={secondary.map(muscleName)} />
             ) : null}

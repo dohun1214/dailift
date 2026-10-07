@@ -15,9 +15,10 @@ export type ExerciseSeed = {
 const W: ExerciseType = 'weight_reps';
 const BW: ExerciseType = 'bodyweight_reps';
 const T: ExerciseType = 'time';
+const C: ExerciseType = 'cardio';
 
 /**
- * 기본 종목 154개. 순서가 종목 목록에 보이는 순서다(부위별로 묶고, 그 안에서는 흔한 것부터).
+ * 기본 종목 162개(근력 154 + 유산소 8). 순서가 종목 목록에 보이는 순서다(부위별로 묶고, 그 안에서는 흔한 것부터).
  * 부위별 주간 세트는 주동근 부위에 1세트(설정을 켜면 협응근 부위에도 0.5세트)로 세므로 근육 지정은 보수적으로 한다.
  */
 export const BASE_EXERCISES: readonly ExerciseSeed[] = [
@@ -1412,6 +1413,79 @@ export const BASE_EXERCISES: readonly ExerciseSeed[] = [
     equipment: 'machine',
     primary: ['obliques'],
     secondary: ['abs'],
+  },
+  // 유산소 (세트 대신 시간을 잰다. 근육은 지정하지 않는다)
+  {
+    key: 'treadmill',
+    ko: '러닝머신',
+    en: 'Treadmill',
+    type: C,
+    equipment: 'machine',
+    primary: [],
+    secondary: [],
+  },
+  {
+    key: 'stationary_bike',
+    ko: '실내 사이클',
+    en: 'Stationary Bike',
+    type: C,
+    equipment: 'machine',
+    primary: [],
+    secondary: [],
+  },
+  {
+    key: 'stair_climber',
+    ko: '스텝밀 (천국의 계단)',
+    en: 'Stair Climber',
+    type: C,
+    equipment: 'machine',
+    primary: [],
+    secondary: [],
+  },
+  {
+    key: 'elliptical',
+    ko: '일립티컬',
+    en: 'Elliptical',
+    type: C,
+    equipment: 'machine',
+    primary: [],
+    secondary: [],
+  },
+  {
+    key: 'rowing_machine',
+    ko: '로잉머신',
+    en: 'Rowing Machine',
+    type: C,
+    equipment: 'machine',
+    primary: [],
+    secondary: [],
+  },
+  {
+    key: 'walking',
+    ko: '걷기',
+    en: 'Walking',
+    type: C,
+    equipment: 'bodyweight',
+    primary: [],
+    secondary: [],
+  },
+  {
+    key: 'running',
+    ko: '달리기',
+    en: 'Running',
+    type: C,
+    equipment: 'bodyweight',
+    primary: [],
+    secondary: [],
+  },
+  {
+    key: 'jump_rope',
+    ko: '줄넘기',
+    en: 'Jump Rope',
+    type: C,
+    equipment: 'other',
+    primary: [],
+    secondary: [],
   },
 ];
 

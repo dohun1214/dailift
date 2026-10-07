@@ -3,8 +3,9 @@ import { BASE_EXERCISES } from '@/data/exercises';
 import { MUSCLES } from '@/data/muscles';
 
 describe('기본 종목 데이터', () => {
-  it('154개다', () => {
-    expect(BASE_EXERCISES).toHaveLength(154);
+  it('근력 154개 + 유산소 8개', () => {
+    expect(BASE_EXERCISES).toHaveLength(162);
+    expect(BASE_EXERCISES.filter((e) => e.type === 'cardio')).toHaveLength(8);
   });
 
   it('key와 이름이 겹치지 않는다', () => {
@@ -17,6 +18,11 @@ describe('기본 종목 데이터', () => {
   it('모든 종목에 주동근이 있고, 주동근과 협응근이 겹치지 않는다', () => {
     const known = new Set<string>(MUSCLES.map((m) => m.id));
     for (const e of BASE_EXERCISES) {
+      // 유산소는 근육을 지정하지 않는다(부위별 세트에 들어가지 않는다).
+      if (e.type === 'cardio') {
+        expect([...e.primary, ...e.secondary]).toEqual([]);
+        continue;
+      }
       expect(e.primary.length).toBeGreaterThan(0);
       for (const m of [...e.primary, ...e.secondary]) expect(known.has(m)).toBe(true);
       expect(e.primary.filter((m) => e.secondary.includes(m))).toEqual([]);

@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lt, max, ne, sql } from 'drizzle-orm';
 
 import { MUSCLES } from '@/data/muscles';
+import { CARDIO_LIMITS, distanceUnitFor } from '@/domain/cardio';
 import { parseSetPlan, planInUnit } from '@/domain/set-plan';
 import {
   type Best,
@@ -216,6 +217,9 @@ export function planSets(
   bar = defaultBarWeight(unit),
   recordedBefore?: number,
 ): PlannedSet[] {
+  // 유산소는 세트가 아니라 한 줄이다. 시간은 스톱워치로 재서 끝냈을 때 적는다.
+  if (info?.type === 'cardio')
+    return [{ kind: 'working', weight: null, reps: null, durationSec: null }];
   // 세트별로 정해 둔 종목은 적어 둔 그대로(워밍업도 적어 둔 것만)
   const plan = parseSetPlan(item.setPlan);
   if (plan) return planInUnit(plan, unit).sets.map((s) => ({ ...s }));
@@ -311,6 +315,7 @@ function insertExercises(
           weightUnit: unit,
           reps: s.reps,
           durationSec: s.durationSec,
+          distanceUnit: distanceUnitFor(unit),
         })),
       )
       .run();
@@ -469,18 +474,30 @@ export function addExercisesToWorkout(
         ),
       )
       .all();
-    const items = exerciseIds.map(
-      (exerciseId): PlanItem => ({
+    const items = exerciseIds.map((exerciseId): PlanItem => {
+      const type = infos.get(exerciseId)?.type;
+      // 유산소: 한 줄, 목표 시간 없음(0), 휴식 없음
+      if (type === 'cardio')
+        return {
+          exerciseId,
+          targetSets: 1,
+          repMin: 0,
+          repMax: 0,
+          restSec: 0,
+          increment: unit === 'lb' ? 5 : 2.5,
+          incrementUnit: unit,
+        };
+      return {
         exerciseId,
         targetSets: 3,
         // 시간으로 재는 종목은 30–60초
-        repMin: infos.get(exerciseId)?.type === 'time' ? 30 : 8,
-        repMax: infos.get(exerciseId)?.type === 'time' ? 60 : 12,
-        restSec: opts.restSec ?? (infos.get(exerciseId)?.type === 'weight_reps' ? 90 : 60),
+        repMin: type === 'time' ? 30 : 8,
+        repMax: type === 'time' ? 60 : 12,
+        restSec: opts.restSec ?? (type === 'weight_reps' ? 90 : 60),
         increment: unit === 'lb' ? 5 : 2.5,
         incrementUnit: unit,
-      }),
-    );
+      };
+    });
     // 이미 운동한 부위에는 워밍업을 다시 붙이지 않는다.
     const existing = tx
       .select({ exerciseId: schema.workoutExercises.exerciseId })
@@ -590,6 +607,7 @@ export function replaceWorkoutExercise(
           weightUnit: unit,
           reps: s.reps,
           durationSec: s.durationSec,
+          distanceUnit: distanceUnitFor(unit),
         })),
       )
       .run();
@@ -641,6 +659,9 @@ export function updateSet(
     durationSec: number | null;
     rpe: number | null;
     kind: SetKind;
+    distance: number | null;
+    speed: number | null;
+    incline: number | null;
   }>,
 ) {
   db.update(schema.sets)
@@ -727,7 +748,7 @@ export function completeSet(
   const set = db.select().from(schema.sets).where(eq(schema.sets.id, setId)).get();
   if (!set) return;
   const fill =
-    type === 'time'
+    type === 'time' || type === 'cardio'
       ? { durationSec: set.durationSec ?? 0 }
       : type === 'weight_reps'
         ? { weight: set.weight ?? 0, reps: set.reps ?? 0 }
@@ -736,6 +757,25 @@ export function completeSet(
     .set({ ...fill, completedAt: now, dirty: 1 })
     .where(eq(schema.sets.id, setId))
     .run();
+}
+
+/**
+ * 유산소 한 줄을 기록한다: 잰(또는 직접 적은) 시간을 넣고 완료로 표시한다.
+ * 시간이 0이면 기록하지 않는다(false).
+ */
+export function recordCardio(
+  db: AppDatabase,
+  setId: string,
+  durationSec: number,
+  now = Date.now(),
+): boolean {
+  const sec = Math.min(CARDIO_LIMITS.durationSec, Math.floor(durationSec));
+  if (!(sec > 0)) return false;
+  db.update(schema.sets)
+    .set({ durationSec: sec, completedAt: now, dirty: 1 })
+    .where(eq(schema.sets.id, setId))
+    .run();
+  return true;
 }
 
 export function deleteSet(db: AppDatabase, setId: string) {

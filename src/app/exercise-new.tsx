@@ -12,7 +12,7 @@ import type { Equipment, ExerciseType } from '@/db/schema';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { deliverCreatedExercise } from '@/stores/exercise-picker';
 
-const TYPES: readonly ExerciseType[] = ['weight_reps', 'bodyweight_reps', 'time'];
+const TYPES: readonly ExerciseType[] = ['weight_reps', 'bodyweight_reps', 'time', 'cardio'];
 const EQUIPMENT: readonly Equipment[] = [
   'barbell',
   'dumbbell',
@@ -23,7 +23,7 @@ const EQUIPMENT: readonly Equipment[] = [
   'kettlebell',
 ];
 
-/** 커스텀 종목 만들기: 이름, 기록 방식, 주동근(필수), 협응근, 기구 */
+/** 커스텀 종목 만들기: 이름, 기록 방식, 주동근(필수), 협응근, 기구. 유산소는 근육을 고르지 않는다 */
 export default function ExerciseNewScreen() {
   const { t } = useTranslation();
   const lang = useAppLanguage();
@@ -49,8 +49,15 @@ export default function ExerciseNewScreen() {
   const save = () => {
     if (!name.trim()) return setError('name');
     if (customNameTaken(db, name)) return setError('duplicate');
-    if (primary.length === 0) return setError('primary');
-    const id = createCustomExercise(db, { name, type, equipment, primary, secondary });
+    const cardio = type === 'cardio';
+    if (!cardio && primary.length === 0) return setError('primary');
+    const id = createCustomExercise(db, {
+      name,
+      type,
+      equipment,
+      primary: cardio ? [] : primary,
+      secondary: cardio ? [] : secondary,
+    });
     deliverCreatedExercise(id);
     router.back();
   };
@@ -98,13 +105,15 @@ export default function ExerciseNewScreen() {
               accessibilityState={{ checked: type === x }}
               onPress={() => {
                 setType(x);
-                if (x !== 'weight_reps' && equipment === 'barbell') setEquipment('bodyweight');
+                setError(null);
+                if (x === 'cardio') setEquipment('machine');
+                else if (x !== 'weight_reps' && equipment === 'barbell') setEquipment('bodyweight');
               }}
             />
           ))}
         </Group>
       </Card>
-      <Card style={styles.muscles}>
+      <Card style={[styles.muscles, type === 'cardio' && styles.hidden]}>
         <Group
           title={t('exercises.new.primary')}
           error={error === 'primary' ? t('exercises.new.primaryRequired') : undefined}
@@ -173,6 +182,7 @@ function Group({ title, error, children }: { title: string; error?: string; chil
 const styles = StyleSheet.create((theme) => ({
   first: { marginTop: 8 },
   muscles: { gap: 18 },
+  hidden: { display: 'none' },
   group: { gap: 8 },
   groupTitle: {
     fontSize: 12,

@@ -183,7 +183,8 @@
           "tooMany": "You can add up to 20 sets.",
           "value": "Use weight up to 2000, reps up to 100, time up to 3600 sec."
         },
-        "time": "Min ≤ max, 5–600 sec"
+        "time": "Min ≤ max, 5–600 sec",
+        "cardio": "Set a target time between 0 and 600 minutes."
       },
       "notFound": "Routine not found",
       "min": "minimum",
@@ -238,7 +239,8 @@
     "type": {
       "weight_reps": "Weight × reps",
       "bodyweight_reps": "Bodyweight × reps",
-      "time": "Time"
+      "time": "Time",
+      "cardio": "Cardio (timed)"
     },
     "new": {
       "title": "Create exercise",
@@ -257,7 +259,8 @@
     "createShort": "New",
     "noMatchTitle": "No exercises match '{{query}}'",
     "noMatchBody": "Can't find it? Create your own.",
-    "createNamed": "Create '{{name}}'"
+    "createNamed": "Create '{{name}}'",
+    "cardio": "Cardio"
   },
   "workout": {
     "emptyName": "Quick workout",
@@ -428,7 +431,51 @@
     "eraseBody_one": "The {{count}} set you completed in {{name}} will be erased. This can't be undone.",
     "eraseBody_other": "The {{count}} sets you completed in {{name}} will be erased. This can't be undone.",
     "eraseBodyEmpty": "{{name}} will be erased. This can't be undone.",
-    "eraseCancel": "Cancel"
+    "eraseCancel": "Cancel",
+    "addCardio": "Add cardio"
+  },
+  "cardio": {
+    "distance": "Distance",
+    "speed": "Speed",
+    "incline": "Incline",
+    "timeA11y": "Time {{time}}",
+    "editHint": "Tap to edit the time",
+    "running": "Timing",
+    "paused": "Paused",
+    "recorded": "Recorded · tap the time to edit",
+    "target": "Target {{minutes}} min",
+    "start": "Start",
+    "enterTime": "Enter time manually",
+    "pause": "Pause",
+    "resume": "Resume",
+    "finish": "Finish",
+    "fieldA11y": "{{name}} {{field}}",
+    "fieldNav": "{{name}} · {{field}}",
+    "optional": "Distance, speed and incline are optional",
+    "continue": "Keep timing",
+    "timeSheet": {
+      "title": "{{name}} time",
+      "subtitle": "Enter how long you went.",
+      "minutes": "Minutes",
+      "minUnit": "min",
+      "seconds": "Seconds",
+      "secUnit": "sec",
+      "invalid": "Enter a time (seconds 0–59)",
+      "save": "Save"
+    },
+    "inclineValue": "Incline {{value}}%",
+    "summaryTitle": "Cardio",
+    "summaryTotal": "Total {{time}}",
+    "history": "Cardio {{time}}",
+    "collapsed": "Cardio",
+    "targetLabel": "Target time",
+    "targetUnit": "min",
+    "targetHint": "Set 0 to just time it with no target",
+    "rowMeta": "Cardio · target {{minutes}} min",
+    "rowMetaNone": "Cardio",
+    "timeColumn": "Time",
+    "rowA11y": "{{name}}, {{time}}",
+    "remove": "Remove from this record"
   },
   "summary": {
     "headline": "Another one done",
@@ -609,7 +656,7 @@
           "volume": "Reps from every set that day"
         },
         "time": {
-          "max": "Longest set of the day",
+          "max": "Longest of the day",
           "e1rm": "One-rep max estimated from the day",
           "volume": "Time from every set that day"
         }
@@ -653,7 +700,8 @@
     "deleteTitle": "Delete {{name}}?",
     "deleteBody": "It disappears from the exercise list and your routines. Past records stay.",
     "deleteConfirm": "Delete",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "kind": "Type"
   },
   "home": {
     "todayRoutine": "Today is {{name}} day",

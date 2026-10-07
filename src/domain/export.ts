@@ -11,6 +11,11 @@ export type ExportSetRow = {
   reps: number | null;
   durationSec: number | null;
   rpe: number | null;
+  /** 유산소에서 골라 적은 것(없으면 null). 단위 칸은 거리 · 속도를 적었을 때만 채운다 */
+  distance?: number | null;
+  distanceUnit?: string | null;
+  speed?: number | null;
+  incline?: number | null;
 };
 
 export const CSV_HEADER = [
@@ -24,6 +29,10 @@ export const CSV_HEADER = [
   'reps',
   'duration_sec',
   'rpe',
+  'distance',
+  'distance_unit',
+  'speed',
+  'incline_pct',
 ] as const;
 
 /** CSV 칸: 쉼표·따옴표·줄바꿈이 있으면 따옴표로 감싼다. 수식으로 해석될 수 있는 첫 글자는 막는다. */
@@ -57,6 +66,10 @@ export function buildWorkoutCsv(rows: readonly ExportSetRow[]): string {
         r.reps,
         r.durationSec,
         r.rpe,
+        r.distance ?? null,
+        r.distance != null || r.speed != null ? (r.distanceUnit ?? null) : null,
+        r.speed ?? null,
+        r.incline ?? null,
       ]
         .map(csvCell)
         .join(','),
