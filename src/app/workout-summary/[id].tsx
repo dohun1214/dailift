@@ -40,6 +40,7 @@ import {
   muscleLevels,
   sessionPrs,
   sessionStats,
+  setNumbers,
 } from '@/domain/session-summary';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { type PhotoSource, photoUri, pickPhoto, removePhotoFile } from '@/lib/photos';
@@ -58,6 +59,8 @@ export default function WorkoutSummaryScreen() {
   const unit = useSettings((s) => s.weightUnit);
   const bodyType = useProfile((s) => s.bodyType);
   const exercisesOpen = useSettings((s) => s.summaryExercisesOpen);
+  // '세트 종류 · RPE 적기'를 켰으면 한 운동을 세트마다 한 줄로(종류 · RPE · 워밍업까지) 보여 준다.
+  const advanced = useSettings((s) => s.advancedLogging);
   const setExercisesOpen = useSettings((s) => s.setSummaryExercisesOpen);
   const catalog = useExerciseCatalog(lang);
   // 기록을 수정하고 돌아오면 다시 읽는다.
@@ -237,12 +240,40 @@ export default function WorkoutSummaryScreen() {
         .join(' · ');
       line = groups.every((g) => g.weight === null) ? t('summary.repsOnly', { reps: text }) : text;
     }
+    const numbers = setNumbers(ex.sets.map((x) => x.kind));
+    const detail = ex.sets.map((x, i) => {
+      const number = numbers[i] ?? null;
+      const text =
+        info?.type === 'time'
+          ? formatDuration(x.durationSec ?? 0)
+          : x.weight === null
+            ? t('summary.repsOnly', { reps: x.reps ?? 0 })
+            : `${info?.type === 'bodyweight_reps' ? '+' : ''}${fmt(x.weight)}${x.unit} × ${x.reps ?? 0}`;
+      return {
+        key: i,
+        kind: x.kind,
+        label:
+          number !== null
+            ? String(number)
+            : t(
+                x.kind === 'warmup'
+                  ? 'workout.warmupLabel'
+                  : x.kind === 'drop'
+                    ? 'workout.dropLabel'
+                    : 'workout.failureLabel',
+              ),
+        name: t(`summary.setKind.${x.kind}`, { number: number ?? 0 }),
+        text,
+        rpe: x.rpe ?? null,
+      };
+    });
     return [
       {
         id: ex.id,
         name: info?.name ?? '',
         sets: t('summary.setCount', { count: working.length }),
         line,
+        detail,
       },
     ];
   });
@@ -368,12 +399,16 @@ export default function WorkoutSummaryScreen() {
                 <View
                   key={row.id}
                   style={[styles.exRow, i < exerciseRows.length - 1 && styles.line]}
-                  accessible
-                  accessibilityLabel={t('summary.exerciseA11y', {
-                    name: row.name,
-                    sets: row.sets,
-                    line: row.line,
-                  })}
+                  accessible={!advanced}
+                  accessibilityLabel={
+                    advanced
+                      ? undefined
+                      : t('summary.exerciseA11y', {
+                          name: row.name,
+                          sets: row.sets,
+                          line: row.line,
+                        })
+                  }
                 >
                   <View style={styles.exTop}>
                     <Text style={styles.exName} numberOfLines={1}>
@@ -381,7 +416,45 @@ export default function WorkoutSummaryScreen() {
                     </Text>
                     <Text style={styles.exSets}>{row.sets}</Text>
                   </View>
-                  <Text style={styles.exLine}>{row.line}</Text>
+                  {advanced ? (
+                    <View style={styles.setList}>
+                      {row.detail.map((set) => (
+                        <View
+                          key={set.key}
+                          style={styles.setRow}
+                          accessible
+                          accessibilityLabel={[
+                            set.name,
+                            set.text,
+                            set.rpe === null ? null : t('summary.rpe', { rpe: set.rpe }),
+                          ]
+                            .filter(Boolean)
+                            .join(', ')}
+                        >
+                          <View style={[styles.setTag, set.kind === 'warmup' && styles.setTagWarm]}>
+                            <Text
+                              style={[
+                                styles.setTagText,
+                                set.kind === 'warmup' && styles.setTagTextWarm,
+                              ]}
+                            >
+                              {set.label}
+                            </Text>
+                          </View>
+                          <Text
+                            style={[styles.setText, set.kind === 'warmup' && styles.setTextWarm]}
+                          >
+                            {set.text}
+                          </Text>
+                          {set.rpe === null ? null : (
+                            <Text style={styles.setRpe}>{t('summary.rpe', { rpe: set.rpe })}</Text>
+                          )}
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.exLine}>{row.line}</Text>
+                  )}
                 </View>
               ))
             : null}
@@ -624,6 +697,43 @@ const styles = StyleSheet.create((theme) => ({
     fontFamily: theme.fonts.numBold,
     fontVariant: ['tabular-nums'],
     color: theme.colors.text,
+  },
+  setList: { gap: 4, paddingTop: 4 },
+  setRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 28 },
+  setTag: {
+    width: 24,
+    height: 22,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.surface2,
+  },
+  setTagWarm: { backgroundColor: theme.colors.warmSoft },
+  setTagText: {
+    fontSize: 12,
+    lineHeight: 16,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.numBold,
+    color: theme.colors.text2,
+  },
+  setTagTextWarm: { color: theme.colors.warm },
+  setText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 19,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.numRegular,
+    fontVariant: ['tabular-nums'],
+    color: theme.colors.text,
+  },
+  setTextWarm: { color: theme.colors.text2 },
+  setRpe: {
+    fontSize: 12,
+    lineHeight: 16,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.numRegular,
+    fontVariant: ['tabular-nums'],
+    color: theme.colors.text2,
   },
   exLine: {
     fontSize: 13,

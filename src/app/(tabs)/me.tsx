@@ -270,6 +270,7 @@ export default function MeScreen() {
           />
           <ListRow
             label={t('settings.advanced')}
+            description={t('settings.advancedDesc')}
             trailing={
               <Toggle
                 value={s.advancedLogging}

@@ -24,6 +24,8 @@ export type RecordedSet = {
   unit: WeightUnit;
   reps: number | null;
   durationSec: number | null;
+  /** 체감 강도(6~10). 적지 않았으면 null */
+  rpe?: number | null;
   /** 유산소에서 골라 적은 것 */
   distance?: number | null;
   distanceUnit?: DistanceUnit;
@@ -47,6 +49,19 @@ export function groupSetsByWeight(sets: readonly RecordedSet[]): SetGroup[] {
     else out.push({ weight: s.weight, unit: s.unit, reps: [s.reps ?? 0] });
   }
   return out;
+}
+
+/**
+ * 세트 번호 칸에 적을 것: 본세트는 1부터 차례로 번호, 워밍업 · 드롭 · 실패 세트는 번호 없이 종류(null).
+ * 번호는 본세트끼리만 센다.
+ */
+export function setNumbers(kinds: readonly SetKind[]): (number | null)[] {
+  let n = 0;
+  return kinds.map((kind) => {
+    if (kind !== 'working') return null;
+    n += 1;
+    return n;
+  });
 }
 
 /** 협응근은 주동근의 절반으로 센다(볼륨 계산 규칙과 같음) */

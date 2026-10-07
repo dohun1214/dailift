@@ -432,7 +432,8 @@
     "eraseBody_other": "The {{count}} sets you completed in {{name}} will be erased. This can't be undone.",
     "eraseBodyEmpty": "{{name}} will be erased. This can't be undone.",
     "eraseCancel": "Cancel",
-    "addCardio": "Add cardio"
+    "addCardio": "Add cardio",
+    "setHint": "Tap a set number to mark it as a warm-up, drop or failure set, or to log RPE."
   },
   "cardio": {
     "distance": "Distance",
@@ -551,7 +552,14 @@
     "cameraDenied": "Allow camera access for Dailift in Settings.",
     "openSettings": "Open Settings",
     "headlinePast": "Workout record",
-    "menuA11y": "Record menu"
+    "menuA11y": "Record menu",
+    "rpe": "RPE {{rpe}}",
+    "setKind": {
+      "working": "Set {{number}}",
+      "warmup": "Warm-up set",
+      "drop": "Drop set",
+      "failure": "Failure set"
+    }
   },
   "history": {
     "segHistory": "History",
@@ -836,7 +844,8 @@
     "dumbbellSingle": "Per hand",
     "dumbbellPair": "Both combined",
     "defaultRest": "Default rest",
-    "advanced": "Advanced logging (RPE · set type)",
+    "advanced": "Set types · RPE",
+    "advancedDesc": "Tap a set number during a workout to mark warm-up, drop or failure sets and log RPE",
     "keepAwake": "Keep screen on during workouts",
     "groupDisplay": "Display",
     "theme": "Theme",
