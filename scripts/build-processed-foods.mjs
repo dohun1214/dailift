@@ -5,7 +5,7 @@
  *
  * - 이름 + 제조사가 같은 것은 하나만 남긴다(데이터 기준일이 새 것).
  * - 영양값은 100 g(ml)당으로 맞춘다. 식품중량 · 1회 섭취참고량은 숫자 하나로 읽히는 것만 쓴다.
- * - 칸: 식품코드, 이름, 제조사(없으면 수입사), 분류, 기준(g|ml), kcal, 단백질, 탄수화물, 지방, 식품중량, 1회 섭취참고량
+ * - 칸: 식품코드, 이름, 보일 회사(유통사가 있으면 유통사, 없으면 제조사 · 수입사 — 법인 표시와 공장 이름은 뗀다), 분류, 기준(g|ml), kcal, 단백질, 탄수화물, 지방, 식품중량, 1회 섭취참고량
  *
  * 실행(저장소 루트에서): node scripts/build-processed-foods.mjs
  *   → .expo/fooddata/process.tsv (서버에 올리기: scripts/load-processed-foods.mjs)
@@ -40,6 +40,60 @@ const clean = (s) =>
     .replace(/\s+/g, ' ')
     .trim();
 const none = (s) => !s || s === '해당없음';
+/** 회사 이름 앞뒤에 붙는 법인 표시 */
+const LEGAL =
+  /\(주\)|㈜|주식회사|\(유\)|㈲|유한회사|유한책임회사|\(합\)|합자회사|\(사\)|사단법인|\(재\)|재단법인|농업회사법인|어업회사법인|영농조합법인|영어조합법인/g;
+/** 이름 끝의 공장 · 지점 표시 ("… 제2공장", "… 김해공장", "… 본사") */
+const PLANT =
+  /(\s+(제?\s*\d*\s*[가-힣A-Za-z]*\s?공장|본사|본점|[가-힣]{1,6}지점|[가-힣]{1,6}사업장)|\s*\(제?\s*\d*\s*[가-힣]*공장\))$/;
+/** 유통사 칸에 적힌 법인 이름 → 사람들이 아는 이름 */
+const KNOWN = [
+  [/지에스리테일|GS리테일/i, 'GS리테일(GS25)'],
+  [/비지에프리테일|BGF리테일/i, 'BGF리테일(CU)'],
+  [/코리아세븐/, '코리아세븐(세븐일레븐)'],
+  [/이마트\s?24/, '이마트24'],
+];
+
+/**
+ * 회사 이름을 화면에 보일 모양으로: 법인 표시를 떼고, 법인 표시 뒤에 붙은 공장 이름을 버린다.
+ * "씨제이제일제당(주)진천BLOSSOM CAMPUS" → "씨제이제일제당", "주식회사 플라잉닥터 제2공장" → "플라잉닥터",
+ * "농업회사법인(주)반디" → "반디". 여러 회사가 "/"로 이어져 있으면 첫 회사만 쓴다. 다듬다가 이름이 없어지면 원래 것을 쓴다.
+ */
+function companyName(raw) {
+  // 한글 이름이 "/"로 이어져 있으면 여러 회사다("A(주)/B(주)"). 외국 이름의 "A/S"는 그대로 둔다.
+  const text = clean(raw);
+  const parts = text.split('/').map(clean);
+  const first = parts.length > 1 && parts.every((x) => /[가-힣]/.test(x)) ? parts[0] : text;
+  if (!first) return '';
+  // 앞에 붙은 법인 표시를 모두 뗀다.
+  let s = first;
+  for (;;) {
+    const m = new RegExp(`^(?:${LEGAL.source})\\s*`).exec(s);
+    if (!m) break;
+    s = s.slice(m[0].length);
+  }
+  // 이름 뒤(또는 가운데)의 법인 표시부터는 버린다 — 그 뒤는 공장 이름이다.
+  const at = s.search(new RegExp(LEGAL.source));
+  if (at >= 2) s = s.slice(0, at);
+  else if (at >= 0) s = s.replace(new RegExp(LEGAL.source, 'g'), ' ');
+  s = clean(s);
+  for (;;) {
+    const cut = s.replace(PLANT, '');
+    if (cut === s || cut.length < 2) break;
+    s = cut;
+  }
+  return s.length >= 2 ? s : first;
+}
+
+/** 화면에 보일 회사: 유통사가 적혀 있으면 유통사(브랜드 주인 · 판매원), 없으면 제조사 */
+function shownCompany(mfr, dist) {
+  if (dist) {
+    for (const [re, name] of KNOWN) if (re.test(dist)) return name;
+    return companyName(dist);
+  }
+  return companyName(mfr);
+}
+
 const count = (map, key) => map.set(key, (map.get(key) ?? 0) + 1);
 const top = (map, n) =>
   [...map.entries()]
@@ -201,10 +255,36 @@ const avgName = rows.reduce((s, r) => s + r.name.length, 0) / rows.length;
 const tsv = rows
   .sort((a, b) => a.sid.localeCompare(b.sid))
   .map((r) =>
-    [r.sid, r.name, r.mfr, r.cat, r.basis, r.kcal, r.p, r.c, r.f, r.size, r.serv].join('\t'),
+    [
+      r.sid,
+      r.name,
+      shownCompany(r.mfr, r.dist),
+      r.cat,
+      r.basis,
+      r.kcal,
+      r.p,
+      r.c,
+      r.f,
+      r.size,
+      r.serv,
+    ].join('\t'),
   )
   .join('\n');
 writeFileSync(join(dir, 'process.tsv'), `${tsv}\n`, 'utf8');
+
+const byShown = new Map();
+const changed = [];
+for (const r of rows) {
+  const shown = shownCompany(r.mfr, r.dist);
+  count(byShown, shown || '(없음)');
+  if (
+    shown !== r.mfr &&
+    changed.length < 70 &&
+    (r.dist ? Math.random() < 0.01 : Math.random() < 0.0004)
+  ) {
+    changed.push(`   ${r.mfr}${r.dist ? ` / 유통 ${r.dist}` : ''}  →  ${shown}`);
+  }
+}
 
 const report = `files=${files.length} badFiles=${badFiles}
 total=${total}
@@ -223,6 +303,10 @@ ${top(byBase, 8)}
 ${top(byCat, 25)}
 -- 제조사(상위 25)
 ${top(byMfr, 25)}
+-- 보일 회사(상위 40, 전체 ${byShown.size}가지)
+${top(byShown, 40)}
+-- 다듬은 예
+${changed.join('\n')}
 -- 유통 · 편의점 (제조사 · 유통사 · 이름에 들어 있는 것)
 ${storeLines}
 -- 낱말

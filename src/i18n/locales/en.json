@@ -1228,7 +1228,7 @@
     },
     "processed": {
       "title": "Packaged foods",
-      "makerHint": "Maker shown under the name",
+      "makerHint": "Seller or maker shown under the name",
       "loading": "Searching packaged foods…",
       "offline": "Packaged foods (store and supermarket products) can be searched when you're online.",
       "more": "More packaged foods",
