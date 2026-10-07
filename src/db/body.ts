@@ -51,10 +51,12 @@ export function createBodyEntry(
   unit: WeightUnit,
   measuredAt: number,
   makeId: () => string = newId,
+  /** 결과지 사진에서 읽어 채운 기록이면 'ocr' */
+  source: 'manual' | 'ocr' = 'manual',
 ): string {
   const id = makeId();
   db.insert(schema.bodyMetrics)
-    .values({ id, source: 'manual', ...values(input, unit, measuredAt) })
+    .values({ id, source, ...values(input, unit, measuredAt) })
     .run();
   return id;
 }

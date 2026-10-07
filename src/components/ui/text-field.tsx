@@ -11,21 +11,34 @@ type Props = Omit<TextInputProps, 'style'> & {
   error?: string;
   /** 문구 없이 테두리만 빨갛게 (묶음 필드의 오류는 한 곳에 문구를 보여줄 때) */
   invalid?: boolean;
+  /** 이름 옆에 점을 붙인다(자동으로 채운 값이라는 표시). 값은 읽어 줄 글 */
+  mark?: string;
 };
 
-export function TextField({ label, unit, muted = false, error, invalid = false, ...props }: Props) {
+export function TextField({
+  label,
+  unit,
+  muted = false,
+  error,
+  invalid = false,
+  mark,
+  ...props
+}: Props) {
   const { theme } = useUnistyles();
   const id = useId();
   styles.useVariants({ muted, invalid: invalid || !!error });
 
   return (
     <View style={styles.wrap}>
-      <Text nativeID={id} style={styles.label}>
-        {label}
-      </Text>
+      <View style={styles.labelRow}>
+        <Text nativeID={id} style={styles.label}>
+          {label}
+        </Text>
+        {mark ? <View accessible accessibilityLabel={mark} style={styles.mark} /> : null}
+      </View>
       <View style={styles.box}>
         <TextInput
-          accessibilityLabel={label}
+          accessibilityLabel={mark ? `${label}, ${mark}` : label}
           accessibilityLabelledBy={id}
           placeholderTextColor={theme.colors.text2}
           selectionColor={theme.colors.accentText}
@@ -45,6 +58,8 @@ export function TextField({ label, unit, muted = false, error, invalid = false, 
 
 const styles = StyleSheet.create((theme) => ({
   wrap: { flex: 1, gap: 6 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  mark: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.accent },
   label: {
     fontSize: 12,
     lineHeight: 16,

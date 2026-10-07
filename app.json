@@ -53,8 +53,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Dailift uses your photo library so you can attach photos to your workouts.",
-          "cameraPermission": "Dailift uses the camera so you can take photos and attach them to your workouts.",
+          "photosPermission": "Dailift uses your photo library so you can attach photos to your workouts and read body composition result sheets.",
+          "cameraPermission": "Dailift uses the camera so you can attach photos to your workouts and read body composition result sheets.",
           "microphonePermission": false
         }
       ],

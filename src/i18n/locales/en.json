@@ -1479,6 +1479,27 @@
       "keep": "Keep as is",
       "change": "Update",
       "set": "Set"
+    },
+    "scan": {
+      "title": "Fill in from a result sheet",
+      "sub": "Take or choose a photo of your InBody result sheet and we'll read the values",
+      "camera": "Take photo",
+      "library": "Choose from library",
+      "reading": "Reading the result sheet",
+      "readingSub": "The photo is read only on this device",
+      "done_one": "Read {{count}} value",
+      "done_other": "Read {{count}} values",
+      "doneSub": "Check them against the sheet before you save",
+      "again": "Choose again",
+      "legend": "Marked fields were read from the sheet",
+      "mark": "Read from the sheet",
+      "photoA11y": "Result sheet photo",
+      "note": {
+        "date": "The date is set to the test date on the sheet. Fields not on the sheet are left empty.",
+        "noDate": "We couldn't read the test date. Please check the date."
+      },
+      "failTitle": "Couldn't read the result sheet",
+      "failBody": "Take the photo in good light, straight on, with the whole sheet in view."
     }
   }
 }
