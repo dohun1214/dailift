@@ -1310,5 +1310,101 @@
     "stopConfirm": "그만하기",
     "failedTitle": "바꾸지 못했어요",
     "failedBody": "인터넷 연결을 확인하고 다시 해 주세요."
+  },
+  "body": {
+    "title": "체성분",
+    "metric": {
+      "weight": "체중",
+      "muscle": "골격근량",
+      "fat": "체지방률"
+    },
+    "metricA11y": "그래프로 볼 항목",
+    "tileA11y": "{{name}} {{value}}",
+    "none": "기록 없음",
+    "card": {
+      "empty": "체성분을 기록해 보세요",
+      "emptySub": "체중 · 골격근량 · 체지방률의 변화를 볼 수 있어요",
+      "a11y": "체성분, {{summary}}"
+    },
+    "period": {
+      "a11y": "기간",
+      "1m": "1개월",
+      "3m": "3개월",
+      "6m": "6개월",
+      "all": "전체"
+    },
+    "change": "{{date}} {{from}} → 지금 {{to}}",
+    "onDate": "{{date}} · {{value}}",
+    "needTwo": "기록이 두 번 이상 쌓이면\n여기에 변화 그래프가 그려져요.",
+    "emptyPeriod": "이 기간에는 기록이 없어요.",
+    "noMetric": "{{name}}을 적은 기록이 아직 없어요.",
+    "chartA11y": "{{name}} 추이, 기록 {{count}}번, 지금 {{value}}",
+    "logs": "기록",
+    "today": "{{date}} (오늘)",
+    "row": {
+      "weight": "{{value}} {{unit}}",
+      "muscle": "골격근 {{value}} {{unit}}",
+      "fat": "체지방 {{value}} %",
+      "a11y": "{{date}}, {{values}}"
+    },
+    "more": "기록 더 보기",
+    "add": "기록 추가",
+    "empty": {
+      "title": "첫 기록을 남겨 보세요",
+      "body": "체중 · 골격근량 · 체지방률을 적어 두면\n변화를 그래프로 볼 수 있어요."
+    },
+    "form": {
+      "newTitle": "체성분 기록",
+      "editTitle": "체성분 기록",
+      "date": "날짜",
+      "dateSheetSub": "점이 있는 날은 체성분을 적은 날이에요.",
+      "dateHasLog": "체성분 기록 있음",
+      "fatMass": "체지방량 (자동 계산)",
+      "fatMassNone": "–",
+      "hint": "체중 · 골격근량 · 체지방률 가운데 잰 것만 적어도 저장돼요.",
+      "moreTitle": "더 적기",
+      "moreSubClosed": "BMI · 기초대사량 · 내장지방 · 부위별 근육량 등",
+      "moreSubOpen": "적고 싶은 것만 적어요",
+      "group": {
+        "composition": "체성분",
+        "segments": "부위별 근육량"
+      },
+      "extra": {
+        "bmi": "BMI",
+        "bmr": "기초대사량",
+        "visceralFat": "내장지방 레벨",
+        "whr": "복부지방률",
+        "water": "체수분",
+        "protein": "단백질",
+        "mineral": "무기질",
+        "leanRightArm": "오른팔",
+        "leanLeftArm": "왼팔",
+        "leanRightLeg": "오른다리",
+        "leanLeftLeg": "왼다리",
+        "leanTrunk": "몸통"
+      },
+      "errorEmpty": "체중 · 골격근량 · 체지방률 가운데 하나는 적어 주세요.",
+      "errorRange": "빨갛게 표시한 값을 확인해 주세요.",
+      "errorMuscle": "골격근량은 체중보다 작아야 해요.",
+      "range": "{{min}}–{{max}}",
+      "delete": "기록 삭제",
+      "deleteTitle": "이 기록을 지울까요?",
+      "deleteBody": "{{date}}의 체성분 기록을 지워요.",
+      "deleteConfirm": "삭제",
+      "cancel": "취소",
+      "discardTitle": "적은 내용을 버릴까요?",
+      "discardBody": "저장하지 않고 나가면 사라져요.",
+      "keepEditing": "계속 적기",
+      "discard": "버리기"
+    },
+    "protein": {
+      "title": "단백질 목표를 바꿀까요?",
+      "titleNew": "단백질 목표를 정할까요?",
+      "body": "체중 {{fromWeight}} → {{toWeight}}\n하루 단백질 목표 {{from}} g → {{to}} g",
+      "bodyNew": "체중 {{toWeight}}에 맞춘 하루 단백질 목표는 {{to}} g이에요.",
+      "keep": "그대로 두기",
+      "change": "바꾸기",
+      "set": "정하기"
+    }
   }
 }

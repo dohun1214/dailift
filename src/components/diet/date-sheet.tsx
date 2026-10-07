@@ -18,10 +18,26 @@ type Props = {
   today: string;
   onPick: (date: string) => void;
   onClose: () => void;
+  /** 식단이 아닌 곳에서 쓸 때: 제목 · 설명과, 점을 찍을 날(그 달의 첫날~끝날 사이)을 돌려주는 함수 */
+  title?: string;
+  subtitle?: string;
+  loggedOf?: (first: string, last: string) => ReadonlySet<string>;
+  /** 점이 찍힌 날을 읽어 줄 말(기본: 적은 음식 있음) */
+  loggedLabel?: string;
 };
 
 /** 날짜 고르기: 한 달 달력. 적은 음식이 있는 날에는 점이 찍힌다. 오늘보다 뒤는 고를 수 없다. */
-export function DateSheet({ visible, value, today, onPick, onClose }: Props) {
+export function DateSheet({
+  visible,
+  value,
+  today,
+  onPick,
+  onClose,
+  title,
+  subtitle,
+  loggedOf,
+  loggedLabel,
+}: Props) {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
   const fmt = useDietFormat();
@@ -36,7 +52,10 @@ export function DateSheet({ visible, value, today, onPick, onClose }: Props) {
   const last = dateKey(new Date(month.year, month.month + 1, 0));
   // 창이 열려 있는 동안에는 기록이 바뀌지 않으므로 열 때 · 달을 넘길 때만 읽는다.
   // biome-ignore lint/correctness/useExhaustiveDependencies: visible이 바뀔 때 다시 읽는다
-  const logged = useMemo(() => loggedDates(db, first, last), [first, last, visible]);
+  const logged = useMemo(
+    () => (loggedOf ? loggedOf(first, last) : loggedDates(db, first, last)),
+    [first, last, visible],
+  );
   const todayMonth = monthOf(today);
   const atLastMonth = month.year === todayMonth.year && month.month === todayMonth.month;
   const weekdays = useMemo(
@@ -54,8 +73,8 @@ export function DateSheet({ visible, value, today, onPick, onClose }: Props) {
   return (
     <BottomSheet
       visible={visible}
-      title={t('diet.dateSheet.title')}
-      subtitle={t('diet.dateSheet.sub')}
+      title={title ?? t('diet.dateSheet.title')}
+      subtitle={subtitle ?? t('diet.dateSheet.sub')}
       closeLabel={t('common.close')}
       onClose={onClose}
     >
@@ -109,7 +128,7 @@ export function DateSheet({ visible, value, today, onPick, onClose }: Props) {
                 <Pressable
                   key={cell.key}
                   accessibilityRole="button"
-                  accessibilityLabel={`${date ? fmt.fullDay(date) : cell.key}${has ? `, ${t('diet.dateSheet.hasLogs')}` : ''}`}
+                  accessibilityLabel={`${date ? fmt.fullDay(date) : cell.key}${has ? `, ${loggedLabel ?? t('diet.dateSheet.hasLogs')}` : ''}`}
                   accessibilityState={{ selected, disabled: future }}
                   disabled={future}
                   onPress={() => onPick(cell.key)}

@@ -1351,5 +1351,101 @@
     "stopConfirm": "Stop",
     "failedTitle": "Couldn't change it",
     "failedBody": "Check your internet connection and try again."
+  },
+  "body": {
+    "title": "Body",
+    "metric": {
+      "weight": "Weight",
+      "muscle": "Muscle mass",
+      "fat": "Body fat"
+    },
+    "metricA11y": "Metric to chart",
+    "tileA11y": "{{name}} {{value}}",
+    "none": "No entry",
+    "card": {
+      "empty": "Log your body composition",
+      "emptySub": "See how your weight, muscle mass and body fat change",
+      "a11y": "Body, {{summary}}"
+    },
+    "period": {
+      "a11y": "Period",
+      "1m": "1 mo",
+      "3m": "3 mo",
+      "6m": "6 mo",
+      "all": "All"
+    },
+    "change": "{{date}} {{from}} → now {{to}}",
+    "onDate": "{{date}} · {{value}}",
+    "needTwo": "Once you have two entries,\na chart of the change shows up here.",
+    "emptyPeriod": "No entries in this period.",
+    "noMetric": "No entries with {{name}} yet.",
+    "chartA11y": "{{name}} trend, {{count}} entries, now {{value}}",
+    "logs": "Entries",
+    "today": "{{date}} (today)",
+    "row": {
+      "weight": "{{value}} {{unit}}",
+      "muscle": "Muscle {{value}} {{unit}}",
+      "fat": "Fat {{value}} %",
+      "a11y": "{{date}}, {{values}}"
+    },
+    "more": "Show more",
+    "add": "Add entry",
+    "empty": {
+      "title": "Log your first entry",
+      "body": "Write down your weight, muscle mass and body fat\nto see the change on a chart."
+    },
+    "form": {
+      "newTitle": "Body entry",
+      "editTitle": "Body entry",
+      "date": "Date",
+      "dateSheetSub": "Days with a dot have a body entry.",
+      "dateHasLog": "has a body entry",
+      "fatMass": "Fat mass (calculated)",
+      "fatMassNone": "–",
+      "hint": "Fill in only what you measured — weight, muscle mass or body fat.",
+      "moreTitle": "More",
+      "moreSubClosed": "BMI · BMR · visceral fat · lean mass by segment",
+      "moreSubOpen": "Fill in only what you want",
+      "group": {
+        "composition": "Composition",
+        "segments": "Lean mass by segment"
+      },
+      "extra": {
+        "bmi": "BMI",
+        "bmr": "BMR",
+        "visceralFat": "Visceral fat level",
+        "whr": "Waist-hip ratio",
+        "water": "Body water",
+        "protein": "Protein",
+        "mineral": "Minerals",
+        "leanRightArm": "Right arm",
+        "leanLeftArm": "Left arm",
+        "leanRightLeg": "Right leg",
+        "leanLeftLeg": "Left leg",
+        "leanTrunk": "Trunk"
+      },
+      "errorEmpty": "Enter at least one of weight, muscle mass or body fat.",
+      "errorRange": "Check the values marked in red.",
+      "errorMuscle": "Muscle mass must be less than weight.",
+      "range": "{{min}}–{{max}}",
+      "delete": "Delete entry",
+      "deleteTitle": "Delete this entry?",
+      "deleteBody": "This deletes the body entry for {{date}}.",
+      "deleteConfirm": "Delete",
+      "cancel": "Cancel",
+      "discardTitle": "Discard what you entered?",
+      "discardBody": "It will be lost if you leave without saving.",
+      "keepEditing": "Keep editing",
+      "discard": "Discard"
+    },
+    "protein": {
+      "title": "Update your protein target?",
+      "titleNew": "Set a protein target?",
+      "body": "Weight {{fromWeight}} → {{toWeight}}\nDaily protein target {{from}} g → {{to}} g",
+      "bodyNew": "For {{toWeight}}, your daily protein target would be {{to}} g.",
+      "keep": "Keep as is",
+      "change": "Update",
+      "set": "Set"
+    }
   }
 }
