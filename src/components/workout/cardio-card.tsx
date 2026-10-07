@@ -3,10 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import { Button, TextButton } from '@/components/ui';
+import { Button, Segmented, TextButton } from '@/components/ui';
 import { IconButton } from '@/components/ui/icon-button';
-import { clampExtra } from '@/domain/cardio';
-import { formatClock } from '@/domain/rest-timer';
+import { type CardioMode, type CardioPlan, clampExtra } from '@/domain/cardio';
+import { formatClock, splitDuration } from '@/domain/rest-timer';
 
 import { SetField } from './set-field';
 
@@ -30,6 +30,13 @@ type Props = {
   seconds: number;
   /** 루틴에서 정한 목표 시간(초). 없으면 0 */
   targetSec: number;
+  /** 시작하기 전에 고른 재는 방식(스톱워치 · 타이머와 타이머 시간) */
+  plan?: CardioPlan;
+  /** 타이머로 재고 있으면 정한 시간(초). 스톱워치면 0 */
+  limitSec?: number;
+  onModeChange?: (mode: CardioMode) => void;
+  /** 타이머 시간을 바꾸기 */
+  onEditLimit?: () => void;
   distanceUnit: string;
   values: Record<CardioField, number | null>;
   /** 입력칸 이동용 세트 id */
@@ -62,6 +69,10 @@ export function CardioCard({
   state,
   seconds,
   targetSec,
+  plan,
+  limitSec = 0,
+  onModeChange,
+  onEditLimit,
   distanceUnit,
   values,
   navId,
@@ -80,10 +91,23 @@ export function CardioCard({
   const { t } = useTranslation();
   const { theme } = useUnistyles();
   const done = state === 'done';
-  const clock = formatClock(seconds);
+  const active = state === 'running' || state === 'paused';
+  // 타이머: 시작 전에는 정한 시간, 재는 동안에는 남은 시간을 보여 준다.
+  const timerIdle = state === 'idle' && !manual && plan?.mode === 'timer';
+  const counting = active && limitSec > 0;
+  const clock = formatClock(
+    timerIdle ? (plan?.limitSec ?? 0) : counting ? Math.max(0, limitSec - seconds) : seconds,
+  );
+  const durationText = (sec: number) => {
+    const { m, s } = splitDuration(sec);
+    if (m > 0 && s > 0) return t('duration.minSec', { m, s });
+    return m > 0 ? t('duration.min', { m }) : t('duration.sec', { s });
+  };
+  const progress = counting ? { total: durationText(limitSec), done: formatClock(seconds) } : null;
   // 루틴에서 정한 목표 시간. 재는 동안에도 상태 글자 뒤에 같이 보여 준다.
   const target = targetSec > 0 ? t('cardio.target', { minutes: Math.round(targetSec / 60) }) : null;
   const withTarget = (status: string) => (target ? `${status} · ${target}` : status);
+  const editable = done || timerIdle;
   const fields: { field: CardioField; label: string; unit: string }[] = [
     { field: 'distance', label: t('cardio.distance'), unit: distanceUnit },
     { field: 'speed', label: t('cardio.speed'), unit: `${distanceUnit}/h` },
@@ -121,22 +145,43 @@ export function CardioCard({
         ) : null}
       </View>
 
+      {state === 'idle' && !manual && plan && onModeChange ? (
+        <Segmented
+          onCard
+          accessibilityLabel={t('cardio.mode.a11y')}
+          options={[
+            { value: 'stopwatch', label: t('cardio.mode.stopwatch') },
+            { value: 'timer', label: t('cardio.mode.timer') },
+          ]}
+          value={plan.mode}
+          onChange={onModeChange}
+        />
+      ) : null}
+
       <Pressable
-        accessibilityRole={done ? 'button' : 'timer'}
-        accessibilityLabel={t('cardio.timeA11y', { time: clock })}
+        accessibilityRole={editable ? 'button' : 'timer'}
+        accessibilityLabel={t(timerIdle ? 'cardio.limitA11y' : 'cardio.timeA11y', { time: clock })}
         accessibilityHint={done ? t('cardio.editHint') : undefined}
-        disabled={!done}
-        onPress={onEditTime}
+        disabled={!editable}
+        onPress={timerIdle ? onEditLimit : onEditTime}
         style={({ pressed }) => [styles.timeWrap, pressed && styles.pressed]}
       >
-        <Text style={[styles.time, state === 'idle' && styles.timeIdle]}>{clock}</Text>
-        {state === 'running' ? (
+        <Text style={[styles.time, state === 'idle' && !timerIdle && styles.timeIdle]}>
+          {clock}
+        </Text>
+        {timerIdle ? (
+          <Text style={styles.status}>{t('cardio.limitHint')}</Text>
+        ) : state === 'running' ? (
           <View style={styles.statusRow}>
             <View style={styles.dot} />
-            <Text style={styles.status}>{withTarget(t('cardio.running'))}</Text>
+            <Text style={styles.status}>
+              {progress ? t('cardio.remaining', progress) : withTarget(t('cardio.running'))}
+            </Text>
           </View>
         ) : state === 'paused' ? (
-          <Text style={styles.status}>{withTarget(t('cardio.paused'))}</Text>
+          <Text style={styles.status}>
+            {progress ? t('cardio.remainingPaused', progress) : withTarget(t('cardio.paused'))}
+          </Text>
         ) : done ? (
           <View style={styles.statusRow}>
             <View style={styles.doneMark}>
@@ -148,6 +193,14 @@ export function CardioCard({
           <Text style={styles.status}>{target}</Text>
         ) : null}
       </Pressable>
+
+      {counting ? (
+        <View style={styles.bar} importantForAccessibility="no-hide-descendants">
+          <View
+            style={[styles.barFill, { width: `${Math.min(100, (seconds / limitSec) * 100)}%` }]}
+          />
+        </View>
+      ) : null}
 
       {state === 'idle' ? (
         manual ? (
@@ -283,6 +336,8 @@ const styles = StyleSheet.create((theme) => ({
     fontFamily: theme.fonts.semibold,
     color: theme.colors.text,
   },
+  bar: { height: 6, borderRadius: 3, overflow: 'hidden', backgroundColor: theme.colors.track },
+  barFill: { height: 6, borderRadius: 3, backgroundColor: theme.colors.accent },
   buttons: { flexDirection: 'row', gap: 8 },
   raised: {
     flex: 1,

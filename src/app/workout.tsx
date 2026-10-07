@@ -83,7 +83,13 @@ import {
   setWorkoutExerciseRest,
   updateSet,
 } from '@/db/workout';
-import { timerElapsed } from '@/domain/cardio';
+import {
+  type CardioPlan,
+  defaultPlan,
+  timerElapsed,
+  timerEndsAt,
+  timerExpired,
+} from '@/domain/cardio';
 import { formatClock, splitDuration } from '@/domain/rest-timer';
 import { planAchieved, type SetPlan } from '@/domain/set-plan';
 import {
@@ -186,8 +192,27 @@ export default function WorkoutScreen() {
   const [exerciseMenu, setExerciseMenu] = useState<{ id: string; name: string } | null>(null);
   // 유산소 스톱워치(세트 id별)와 시간을 직접 적는 창
   const timers = useCardioTimer((s) => s.timers);
-  const [timeFor, setTimeFor] = useState<{ setId: string; name: string; value: number | null }>();
+  const cardioPlans = useCardioTimer((s) => s.plans);
+  const lastLimitSec = useCardioTimer((s) => s.lastLimitSec);
+  // kind: 'time' 운동한 시간을 적는다 / 'limit' 타이머 시간을 정한다
+  const [timeFor, setTimeFor] = useState<{
+    setId: string;
+    name: string;
+    value: number | null;
+    kind: 'time' | 'limit';
+  }>();
   const [timeOpen, setTimeOpen] = useState(false);
+  // 타이머가 다 되면 정한 시간으로 스스로 기록한다(앱 밖에 있었다면 돌아왔을 때, 끝난 그 시각으로).
+  useEffect(() => {
+    for (const [setId, timer] of Object.entries(timers)) {
+      if (!timerExpired(timer, now)) continue;
+      const endsAt = timerEndsAt(timer) ?? now;
+      const sec = useCardioTimer.getState().take(setId, now);
+      if (sec !== null && recordCardio(db, setId, sec, Math.min(endsAt, now))) {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      }
+    }
+  }, [now, timers]);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hintSeen = useSettings((s) => s.editHintSeen);
   const markHintSeen = useSettings((s) => s.markEditHintSeen);
@@ -509,16 +534,31 @@ export default function WorkoutScreen() {
     const timer = timers[set.id];
     return timer ? timerElapsed(timer, now) : set.completedAt !== null ? (set.durationSec ?? 0) : 0;
   };
+  /** 시작하기 전에 고른 방식. 안 골랐으면 루틴 목표가 있을 때 타이머, 없으면 스톱워치 */
+  const cardioPlan = (setId: string, targetSec: number): CardioPlan =>
+    cardioPlans[setId] ?? defaultPlan(targetSec, lastLimitSec);
+  /** 시작(고른 방식대로) 또는 일시정지한 것을 이어서 */
+  const startCardio = (setId: string, name: string, targetSec: number) => {
+    if (timers[setId]) return useCardioTimer.getState().start(setId);
+    const plan = cardioPlan(setId, targetSec);
+    useCardioTimer
+      .getState()
+      .start(setId, { name, limitSec: plan.mode === 'timer' ? plan.limitSec : undefined });
+  };
   const finishCardio = (setId: string) => {
-    const sec = useCardioTimer.getState().take(setId);
-    if (sec !== null && recordCardio(db, setId, sec)) {
+    // 타이머가 다 된 것은 앱을 늦게 열었어도 끝난 그 시각으로 적는다.
+    const timer = timers[setId];
+    const endsAt = timer ? timerEndsAt(timer) : null;
+    const at = Date.now();
+    const sec = useCardioTimer.getState().take(setId, at);
+    if (sec !== null && recordCardio(db, setId, sec, endsAt !== null ? Math.min(endsAt, at) : at)) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     }
   };
-  /** 기록한 뒤 이어서 재기: 기록을 풀고 그 시간부터 다시 잰다 */
-  const continueCardio = (setId: string, durationSec: number) => {
+  /** 기록한 뒤 이어서 재기: 기록을 풀고 그 시간부터 스톱워치로 다시 잰다 */
+  const continueCardio = (setId: string, name: string, durationSec: number) => {
     setCompleted(db, setId, false);
-    useCardioTimer.getState().start(setId, durationSec);
+    useCardioTimer.getState().start(setId, { baseSec: durationSec, name });
   };
   const saveCardioTime = (setId: string, durationSec: number) => {
     useCardioTimer.getState().clear([setId]);
@@ -751,6 +791,22 @@ export default function WorkoutScreen() {
                     state={cardioState(cardioSet)}
                     seconds={cardioSeconds(cardioSet)}
                     targetSec={we.repMax}
+                    plan={cardioPlan(cardioSet.id, we.repMax)}
+                    limitSec={timers[cardioSet.id]?.limitSec ?? 0}
+                    onModeChange={(mode) =>
+                      useCardioTimer
+                        .getState()
+                        .setPlan(cardioSet.id, { ...cardioPlan(cardioSet.id, we.repMax), mode })
+                    }
+                    onEditLimit={() => {
+                      setTimeFor({
+                        setId: cardioSet.id,
+                        name,
+                        value: cardioPlan(cardioSet.id, we.repMax).limitSec,
+                        kind: 'limit',
+                      });
+                      setTimeOpen(true);
+                    }}
                     distanceUnit={cardioSet.distanceUnit}
                     values={{
                       distance: cardioSet.distance,
@@ -759,15 +815,18 @@ export default function WorkoutScreen() {
                     }}
                     navId={cardioSet.id}
                     onChange={(field, value) => updateSet(db, cardioSet.id, { [field]: value })}
-                    onStart={() => useCardioTimer.getState().start(cardioSet.id)}
+                    onStart={() => startCardio(cardioSet.id, name, we.repMax)}
                     onPause={() => useCardioTimer.getState().pause(cardioSet.id)}
                     onFinish={() => finishCardio(cardioSet.id)}
-                    onContinue={() => continueCardio(cardioSet.id, cardioSet.durationSec ?? 0)}
+                    onContinue={() =>
+                      continueCardio(cardioSet.id, name, cardioSet.durationSec ?? 0)
+                    }
                     onEditTime={() => {
                       setTimeFor({
                         setId: cardioSet.id,
                         name,
                         value: cardioSet.completedAt !== null ? cardioSet.durationSec : null,
+                        kind: 'time',
                       });
                       setTimeOpen(true);
                     }}
@@ -996,9 +1055,13 @@ export default function WorkoutScreen() {
         visible={timeOpen}
         name={timeFor?.name ?? ''}
         value={timeFor?.value ?? null}
+        kind={timeFor?.kind}
         onClose={() => setTimeOpen(false)}
         onSave={(sec) => {
-          if (timeFor) saveCardioTime(timeFor.setId, sec);
+          if (!timeFor) return;
+          if (timeFor.kind === 'limit') {
+            useCardioTimer.getState().setPlan(timeFor.setId, { mode: 'timer', limitSec: sec });
+          } else saveCardioTime(timeFor.setId, sec);
         }}
       />
 

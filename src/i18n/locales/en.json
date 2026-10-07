@@ -475,7 +475,32 @@
     "rowMetaNone": "Cardio",
     "timeColumn": "Time",
     "rowA11y": "{{name}}, {{time}}",
-    "remove": "Remove from this record"
+    "remove": "Remove from this record",
+    "mode": {
+      "a11y": "Timing mode",
+      "stopwatch": "Stopwatch",
+      "timer": "Timer"
+    },
+    "limitHint": "Tap the time to change it",
+    "limitA11y": "Timer length {{time}}",
+    "remaining": "Time left · {{done}} of {{total}} done",
+    "remainingPaused": "Paused · {{done}} of {{total}} done",
+    "limitSheet": {
+      "title": "{{name}} timer",
+      "subtitle": "When it runs out, you get an alert and the time is logged."
+    },
+    "live": {
+      "stopwatch": "Cardio in progress",
+      "timer": "Cardio time left",
+      "paused": "Cardio paused",
+      "done": "Cardio done",
+      "nameWithLimit": "{{name}} · {{total}}"
+    },
+    "notify": {
+      "channel": "Cardio timer",
+      "title": "{{name}} {{total}} done",
+      "body": "You hit your target time."
+    }
   },
   "summary": {
     "headline": "Another one done",
