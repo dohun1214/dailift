@@ -2,14 +2,21 @@
 /**
  * 가공식품(.expo/fooddata/process.tsv — scripts/build-processed-foods.mjs가 만든다)을 서버 표 `processed_foods`에 올린다.
  *
- * 서버 표는 누구나 읽기만 한다. 올릴 때만 넣기 정책을 잠깐 연다(SQL 편집기나 MCP로):
+ * 서버 표는 누구나 읽기만 한다. 올릴 때만 넣기 · 고치기 정책을 잠깐 연다(SQL 편집기나 MCP로):
  *   alter policy "temp load" on public.processed_foods
  *     with check ((current_setting('request.headers', true)::json ->> 'x-load-token') = '<한 번 쓰고 버릴 긴 글자>');
+ *   alter policy "temp load update" on public.processed_foods
+ *     using ((current_setting('request.headers', true)::json ->> 'x-load-token') = '<같은 글자>')
+ *     with check ((current_setting('request.headers', true)::json ->> 'x-load-token') = '<같은 글자>');
+ *   grant insert, update on public.processed_foods to anon;
  * 다 올리면 닫는다:
  *   alter policy "temp load" on public.processed_foods with check (false);
+ *   alter policy "temp load update" on public.processed_foods using (false) with check (false);
+ *   revoke insert, update on public.processed_foods from anon;
  *
  * 실행(저장소 루트에서): LOAD_TOKEN=<그 글자> node scripts/load-processed-foods.mjs [process.tsv 경로]
- * 이미 있는 식품코드는 건너뛴다(다시 돌려도 된다). 값을 바꾸려면 표를 비우고 다시 올린다.
+ * 환경 변수 BATCH(한 번에 보낼 줄 수, 기본 1000) · START(몇 번째 줄부터, 기본 0).
+ * 이미 있는 식품코드는 새 값으로 바뀐다(다시 돌려도 된다). 자료에서 빠진 식품코드는 서버에 그대로 남는다.
  */
 import { readFileSync } from 'node:fs';
 
@@ -49,9 +56,11 @@ const rows = readFileSync(file, 'utf8')
     };
   });
 
-const BATCH = 2000;
-let sent = 0;
-for (let i = 0; i < rows.length; i += BATCH) {
+// 고칠 때는 한 번에 너무 많이 보내면 서버의 시간 제한(익명 3초)에 걸린다 → BATCH를 줄이고, 멈춘 곳부터는 START로 잇는다.
+const BATCH = Number(process.env.BATCH) || 1000;
+const START = Number(process.env.START) || 0;
+let sent = START;
+for (let i = START; i < rows.length; i += BATCH) {
   const batch = rows.slice(i, i + BATCH);
   let ok = false;
   for (let attempt = 0; attempt < 4 && !ok; attempt += 1) {
@@ -62,7 +71,8 @@ for (let i = 0; i < rows.length; i += BATCH) {
           apikey: key,
           Authorization: `Bearer ${key}`,
           'Content-Type': 'application/json',
-          Prefer: 'resolution=ignore-duplicates,return=minimal',
+          // 이미 있는 식품코드는 새 값으로 바꾼다(넣기 · 고치기 정책이 둘 다 열려 있어야 한다).
+          Prefer: 'resolution=merge-duplicates,return=minimal',
           'x-load-token': token,
         },
         body: JSON.stringify(batch),
@@ -82,6 +92,6 @@ for (let i = 0; i < rows.length; i += BATCH) {
     process.exit(1);
   }
   sent += batch.length;
-  if ((i / BATCH) % 10 === 0) console.log(`${sent} / ${rows.length}`);
+  if (((i - START) / BATCH) % 10 === 0) console.log(`${sent} / ${rows.length}`);
 }
 console.log(`done ${sent}`);
