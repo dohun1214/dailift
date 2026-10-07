@@ -11,6 +11,7 @@ export { KEYBOARD_BAR_HEIGHT, KeyboardBar } from './keyboard-bar';
 export { LEVEL_OPACITY, MuscleMapCard } from './muscle-map-card';
 export { RestSheet } from './rest-sheet';
 export { RestTimerBar } from './rest-timer-bar';
+export { SetKindMenu, type SetKindTarget } from './set-kind-menu';
 export { SetRow, type SetRowValue, setFieldKeys } from './set-row';
 export { StaleWorkoutSheet } from './stale-workout-sheet';
 export { WorkoutEditList, type WorkoutEditRow } from './workout-edit-list';

@@ -26,15 +26,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
-import {
-  ActionSheet,
-  Button,
-  ConfirmDialog,
-  IconButton,
-  Snackbar,
-  TextButton,
-} from '@/components/ui';
-import { SHEET_NEXT_MS } from '@/components/ui/use-sheet-motion';
+import { Button, ConfirmDialog, IconButton, Snackbar, TextButton } from '@/components/ui';
 import {
   ActiveExerciseCard,
   CardioCard,
@@ -47,6 +39,8 @@ import {
   KeyboardBar,
   RestSheet,
   RestTimerBar,
+  SetKindMenu,
+  type SetKindTarget,
   SetRow,
   setFieldKeys,
   useFieldNav,
@@ -56,7 +50,6 @@ import {
 } from '@/components/workout';
 import { db } from '@/db/client';
 import { pendingRoutineUpdate, routinePlans } from '@/db/routine-update';
-import type { SetKind } from '@/db/schema';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
 import {
   useActiveWorkout,
@@ -117,9 +110,7 @@ import { useRestTimer } from '@/stores/rest-timer';
 import { useRoutineUpdate } from '@/stores/routine-update';
 import { useSettings, workoutDefaults } from '@/stores/settings';
 
-const SET_KINDS: readonly SetKind[] = ['working', 'warmup', 'drop', 'failure'];
 /** RPE 선택지: 6–10, 0.5 단위 */
-const RPE_VALUES = [10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6];
 
 /** 워밍업 세트 뒤 휴식은 짧게 */
 const WARMUP_REST_SEC = 60;
@@ -163,10 +154,7 @@ export default function WorkoutScreen() {
   const keepAwake = useSettings((s) => s.keepAwake);
   const dumbbellMode = useSettings((s) => s.dumbbellMode);
   const advanced = useSettings((s) => s.advancedLogging);
-  const [setMenu, setSetMenu] = useState<{ id: string; kind: SetKind; rpe: number | null } | null>(
-    null,
-  );
-  const [rpeFor, setRpeFor] = useState<{ id: string; rpe: number | null } | null>(null);
+  const [setMenu, setSetMenu] = useState<SetKindTarget | null>(null);
   const startRest = useRestTimer((s) => s.start);
   const stopRest = useRestTimer((s) => s.stop);
   const now = useNow(1000, !!workout);
@@ -216,6 +204,8 @@ export default function WorkoutScreen() {
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hintSeen = useSettings((s) => s.editHintSeen);
   const markHintSeen = useSettings((s) => s.markEditHintSeen);
+  const setHintSeen = useSettings((s) => s.setHintSeen);
+  const markSetHintSeen = useSettings((s) => s.markSetHintSeen);
 
   const exerciseKey = exercises.map((e) => e.exerciseId).join(',');
   const workoutId = workout?.id;
@@ -937,6 +927,19 @@ export default function WorkoutScreen() {
               );
             })}
           </FieldNavProvider>
+          {advanced && !setHintSeen && exercises.some((we) => !isCardio(we)) ? (
+            <View style={styles.hint} accessibilityRole="text">
+              <Text style={styles.hintText}>{t('workout.setHint')}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('workout.editHintClose')}
+                onPress={markSetHintSeen}
+                style={({ pressed }) => [styles.hintClose, pressed && styles.pressed]}
+              >
+                <X size={18} color={theme.colors.text2} strokeWidth={1.8} />
+              </Pressable>
+            </View>
+          ) : null}
           {!hintSeen && exercises.length > 1 ? (
             <View style={styles.hint} accessibilityRole="text">
               <Text style={styles.hintText}>{t('workout.editHint')}</Text>
@@ -1065,50 +1068,10 @@ export default function WorkoutScreen() {
         }}
       />
 
-      <ActionSheet
-        visible={setMenu !== null}
-        title={t('workout.setMenu.title')}
-        cancelLabel={t('workout.menu.cancel')}
+      <SetKindMenu
+        target={setMenu}
         onClose={() => setSetMenu(null)}
-        actions={[
-          ...SET_KINDS.map((kind) => ({
-            label: t(`workout.setMenu.kind.${kind}`),
-            selected: setMenu?.kind === kind,
-            onPress: () => {
-              if (setMenu) updateSet(db, setMenu.id, { kind });
-            },
-          })),
-          {
-            label: t('workout.setMenu.rpe'),
-            onPress: () => {
-              const target = setMenu ? { id: setMenu.id, rpe: setMenu.rpe } : null;
-              // 앞 시트가 닫힌 뒤에 연다(모달 두 개가 겹치면 안드로이드에서 안 뜬다)
-              setTimeout(() => setRpeFor(target), SHEET_NEXT_MS);
-            },
-          },
-        ]}
-      />
-
-      <ActionSheet
-        visible={rpeFor !== null}
-        title={t('workout.setMenu.rpeTitle')}
-        cancelLabel={t('workout.menu.cancel')}
-        onClose={() => setRpeFor(null)}
-        actions={[
-          ...RPE_VALUES.map((v) => ({
-            label: String(v),
-            selected: rpeFor?.rpe === v,
-            onPress: () => {
-              if (rpeFor) updateSet(db, rpeFor.id, { rpe: v });
-            },
-          })),
-          {
-            label: t('workout.setMenu.rpeClear'),
-            onPress: () => {
-              if (rpeFor) updateSet(db, rpeFor.id, { rpe: null });
-            },
-          },
-        ]}
+        onChange={(setId, change) => updateSet(db, setId, change)}
       />
     </View>
   );

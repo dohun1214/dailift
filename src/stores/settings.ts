@@ -40,6 +40,8 @@ type Data = {
   restOnLockScreen: boolean;
   /** 운동 중 '종목을 꾹 누르면…' 안내를 닫았거나 편집 모드에 들어가 봤는지 */
   editHintSeen: boolean;
+  /** '세트 번호를 누르면 종류 · RPE를 적을 수 있다'는 안내를 닫았다 */
+  setHintSeen: boolean;
   /** 기록 상세의 '한 운동' 카드를 펼쳐 둘지 (마지막으로 누른 상태를 기억) */
   summaryExercisesOpen: boolean;
   /** 직접 정한 부위별 주간 목표 세트. 없는 부위는 운동 경력에 맞춘 추천값을 쓴다 */
@@ -61,6 +63,7 @@ type SettingsState = Data & {
   setAdvancedLogging: (value: boolean) => void;
   setRestOnLockScreen: (value: boolean) => void;
   markEditHintSeen: () => void;
+  markSetHintSeen: () => void;
   setSummaryExercisesOpen: (value: boolean) => void;
   setSetTarget: (group: TargetGroup, value: number) => void;
   setCountSecondarySets: (value: boolean) => void;
@@ -84,6 +87,7 @@ function defaults(): Data {
     advancedLogging: false,
     restOnLockScreen: true,
     editHintSeen: false,
+    setHintSeen: false,
     summaryExercisesOpen: false,
     setTargets: {},
     countSecondarySets: false,
@@ -108,6 +112,7 @@ export const useSettings = create<SettingsState>()(
       setAdvancedLogging: (advancedLogging) => set({ advancedLogging }),
       setRestOnLockScreen: (restOnLockScreen) => set({ restOnLockScreen }),
       markEditHintSeen: () => set({ editHintSeen: true }),
+      markSetHintSeen: () => set({ setHintSeen: true }),
       setSummaryExercisesOpen: (summaryExercisesOpen) => set({ summaryExercisesOpen }),
       setSetTarget: (group, value) =>
         set((s) => ({ setTargets: { ...s.setTargets, [group]: clampSetTarget(value) } })),

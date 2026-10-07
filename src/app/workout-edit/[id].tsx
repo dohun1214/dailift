@@ -9,7 +9,14 @@ import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { Button, ConfirmDialog, Screen, TextButton, TopBar } from '@/components/ui';
-import { ActiveExerciseCard, CardioCard, CardioTimeSheet, SetRow } from '@/components/workout';
+import {
+  ActiveExerciseCard,
+  CardioCard,
+  CardioTimeSheet,
+  SetKindMenu,
+  type SetKindTarget,
+  SetRow,
+} from '@/components/workout';
 import { db } from '@/db/client';
 import { addRecordedSet, cleanupRecordedWorkout, deleteWorkout } from '@/db/history';
 import * as schema from '@/db/schema';
@@ -54,6 +61,9 @@ export default function WorkoutEditScreen() {
   const navigation = useNavigation();
   const lang = useAppLanguage();
   const unit = useSettings((s) => s.weightUnit);
+  // '세트 종류 · RPE 적기'를 켰으면 운동 중 화면처럼 세트 번호를 눌러 고친다.
+  const advanced = useSettings((s) => s.advancedLogging);
+  const [setMenu, setSetMenu] = useState<SetKindTarget | null>(null);
   const { id, added } = useLocalSearchParams<{ id: string; added?: string }>();
   const isNew = added === '1';
   const workoutId = id ?? '';
@@ -334,8 +344,20 @@ export default function WorkoutEditScreen() {
               {we.sets.map((s) => (
                 <SetRow
                   key={s.id}
-                  label={s.kind === 'warmup' ? t('workout.warmupLabel') : String(++n)}
+                  label={
+                    s.kind === 'warmup'
+                      ? t('workout.warmupLabel')
+                      : advanced && s.kind === 'drop'
+                        ? t('workout.dropLabel')
+                        : advanced && s.kind === 'failure'
+                          ? t('workout.failureLabel')
+                          : String(++n)
+                  }
                   kind={s.kind}
+                  rpe={advanced ? s.rpe : null}
+                  onLabelPress={
+                    advanced ? () => setSetMenu({ id: s.id, kind: s.kind, rpe: s.rpe }) : undefined
+                  }
                   type={type}
                   value={{ weight: s.weight, reps: s.reps, durationSec: s.durationSec }}
                   unit={s.weightUnit}
@@ -360,6 +382,11 @@ export default function WorkoutEditScreen() {
         {isNew ? <Button label={t('history.edit.saveButton')} onPress={save} /> : null}
         <View style={styles.bottom} />
       </Screen>
+      <SetKindMenu
+        target={setMenu}
+        onClose={() => setSetMenu(null)}
+        onChange={(setId, change) => updateSet(db, setId, change)}
+      />
       <CardioTimeSheet
         visible={timeOpen}
         name={timeFor?.name ?? ''}

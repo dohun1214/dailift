@@ -7,6 +7,7 @@ import {
   type SummarySet,
   sessionPrs,
   sessionStats,
+  setNumbers,
 } from '../session-summary';
 
 const set = (
@@ -145,5 +146,19 @@ describe('groupSetsByWeight', () => {
       { weight: null, unit: 'kg', reps: [12, 10] },
     ]);
     expect(groupSetsByWeight([r(100, 5), r(100, 5, { unit: 'lb' })])).toHaveLength(2);
+  });
+});
+
+describe('setNumbers', () => {
+  it('번호는 본세트끼리만 세고, 워밍업 · 드롭 · 실패 세트는 번호가 없다', () => {
+    expect(setNumbers(['warmup', 'working', 'working', 'failure', 'drop', 'working'])).toEqual([
+      null,
+      1,
+      2,
+      null,
+      null,
+      3,
+    ]);
+    expect(setNumbers([])).toEqual([]);
   });
 });
