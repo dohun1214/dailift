@@ -622,7 +622,7 @@
     "e1rmEmpty": "Your trend appears once you log weighted exercises.",
     "stagnant": "<b>{{name}}</b> has stayed flat for the last {{count}} sessions. Try a different rep range?",
     "detailLink": "{{name}} details",
-    "balanceSub": "This week · sets / target",
+    "balanceSub": "Sets this week",
     "targetEdit": "Targets",
     "targetEditA11y": "Change target sets",
     "balanceFoot": "A bar fills up and gets a check when you hit the target.",
