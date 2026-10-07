@@ -370,6 +370,33 @@ describe('PR 기준 · 종목 교체', () => {
     expect(setsOf(db, wes[0]?.id ?? '')).toHaveLength(1);
     expect(setsOf(db, wes[1]?.id ?? '')).toHaveLength(2);
   });
+
+  it('근력 종목을 유산소로 바꾸면 횟수 범위 · 휴식을 물려받지 않는다(목표 시간 12초가 되지 않게)', () => {
+    const db = createTestDb();
+    const routineId = routineWith(db, ['bench_press'], 3);
+    const id = startWorkout(db, { routineId, name: 'R', weightUnit: 'kg' }, makeId);
+    const [bench] = exercisesOf(db, id);
+    replaceWorkoutExercise(db, bench?.id ?? '', baseExerciseId('treadmill'), 'kg', makeId);
+    const [cardio] = exercisesOf(db, id);
+    expect(cardio).toMatchObject({
+      exerciseId: baseExerciseId('treadmill'),
+      repMin: 0,
+      repMax: 0,
+      restSec: 0,
+    });
+    expect(setsOf(db, cardio?.id ?? '')).toHaveLength(1);
+  });
+
+  it('유산소를 근력 종목으로 바꾸면 새로 넣을 때의 기본값을 쓴다', () => {
+    const db = createTestDb();
+    const id = startWorkout(db, { routineId: null, name: 'W', weightUnit: 'kg' }, makeId);
+    addExercisesToWorkout(db, id, [baseExerciseId('treadmill')], 'kg', makeId);
+    const [cardio] = exercisesOf(db, id);
+    replaceWorkoutExercise(db, cardio?.id ?? '', baseExerciseId('bench_press'), 'kg', makeId);
+    const [bench] = exercisesOf(db, id);
+    expect(bench).toMatchObject({ repMin: 8, repMax: 12, restSec: 90 });
+    expect(setsOf(db, bench?.id ?? '').length).toBeGreaterThan(0);
+  });
 });
 
 describe('운동 중 종목 편집', () => {

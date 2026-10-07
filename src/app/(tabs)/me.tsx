@@ -22,6 +22,7 @@ import type { WeightUnit } from '@/db/schema';
 import { BAR_OPTIONS } from '@/domain/plates';
 import { hasCustomTargets } from '@/domain/set-targets';
 import { signOut } from '@/lib/auth';
+import { hideCardioLive } from '@/lib/cardio-live';
 import { openLegal, openSupportMail } from '@/lib/links';
 import { hideRestLive } from '@/lib/rest-live';
 import { wipeDevice } from '@/lib/wipe-device';
@@ -298,7 +299,10 @@ export default function MeScreen() {
                 onValueChange={(on) => {
                   s.setRestOnLockScreen(on);
                   // 끄면 지금 떠 있는 것도 바로 치운다.
-                  if (!on) hideRestLive();
+                  if (!on) {
+                    hideRestLive();
+                    hideCardioLive();
+                  }
                 }}
                 accessibilityLabel={t('settings.restOnLockScreen')}
               />

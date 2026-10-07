@@ -39,7 +39,9 @@ export async function readSheet(uri: string, today: string): Promise<SheetScan> 
   if (!TextRecognition) throw new Error('text recognition is not available in this build');
   const raw = await TextRecognition.recognize(uri);
   if (__DEV__) dumpRaw(raw);
-  return { result: parseSheet(raw.lines, today), raw };
+  // 세로 ÷ 가로: 기운 사진을 바로 세워 읽는 데 쓴다.
+  const aspect = raw.width > 0 && raw.height > 0 ? raw.height / raw.width : undefined;
+  return { result: parseSheet(raw.lines, today, aspect), raw };
 }
 
 /** 읽고 난 사진 파일을 지운다(없으면 무시). 결과지 사진은 보관하지 않는다 */

@@ -94,6 +94,7 @@ export default function FoodSetScreen() {
   }
 
   const save = () => {
+    if (leaving) return;
     if (!name.trim()) return setProblem('name');
     if (items.length === 0) return setProblem('items');
     if (isNew) createSet(db, name, items);

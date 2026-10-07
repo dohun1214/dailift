@@ -128,3 +128,24 @@ describe('재는 방식 고르기 · 정리', () => {
     expect(show).not.toHaveBeenCalled();
   });
 });
+
+describe('종목 빼기 되돌리기', () => {
+  it('지웠던 스톱워치와 목표 시간을 그대로 되살리고, 돌던 타이머는 알림을 다시 건다', async () => {
+    const store = useCardioTimer.getState();
+    const now = Date.now();
+    store.start('a', { name: '러닝머신', limitSec: 600, now });
+    store.start('b', { name: '사이클', now });
+    store.pause('b', now + 30_000);
+    await flush();
+    const { timers, plans } = useCardioTimer.getState();
+    useCardioTimer.getState().clear(['a', 'b']);
+    expect(useCardioTimer.getState().timers).toEqual({});
+    schedule.mockClear();
+
+    useCardioTimer.getState().restore(timers, plans);
+    expect(useCardioTimer.getState().timers).toEqual(timers);
+    expect(useCardioTimer.getState().plans).toEqual(plans);
+    await flush();
+    expect(schedule).toHaveBeenCalledTimes(1);
+  });
+});

@@ -142,8 +142,15 @@ export default function BodyEntryScreen() {
   const scanning = useRef(false);
   const sheetUri = useRef<string | null>(null);
   const rawText = useRef<string | null>(null);
-  // 결과지 사진은 보관하지 않는다 — 화면을 나갈 때 임시 파일을 지운다.
-  useEffect(() => () => discardSheet(sheetUri.current), []);
+  // 결과지 사진은 보관하지 않는다 — 화면을 나갈 때 임시 파일을 지운다(읽는 중에 나가면 읽기가 끝난 뒤에).
+  const alive = useRef(true);
+  useEffect(
+    () => () => {
+      alive.current = false;
+      discardSheet(sheetUri.current);
+    },
+    [],
+  );
 
   const changed =
     initial !== null &&
@@ -204,6 +211,8 @@ export default function BodyEntryScreen() {
     // 앞서 다른 사진에서 읽어 둔 칸은 비운다.
     for (const key of read) if (key !== 'date' && !(key in patch)) patch[key] = '';
     if (result.date) patch.date = result.date;
+    // 앞 사진의 검사일로 맞춰 둔 날짜는 되돌린다(이 사진의 날짜가 아니다).
+    else if (read.includes('date') && initial) patch.date = initial.date;
     setBad([]);
     setError(null);
     setDraft((d) => (d ? { ...d, ...patch } : d));
@@ -234,6 +243,8 @@ export default function BodyEntryScreen() {
       picked = pick;
       setScan({ kind: 'reading', uri: pick });
       const { result, raw } = await readSheet(pick, today);
+      // 읽는 사이에 화면을 나갔으면 사진만 지운다.
+      if (!alive.current) return discardSheet(pick);
       if (!applySheet(pick, result)) throw new Error('no values found');
       rawText.current = JSON.stringify(raw, (_, v) =>
         typeof v === 'number' ? Math.round(v * 10000) / 10000 : v,
@@ -243,6 +254,7 @@ export default function BodyEntryScreen() {
     } catch (e) {
       console.warn('[sheet] read failed', e);
       if (picked !== sheetUri.current) discardSheet(picked);
+      if (!alive.current) return;
       setScan(before.kind === 'done' ? before : { kind: 'idle' });
       setScanFailed(true);
     } finally {
@@ -250,7 +262,49 @@ export default function BodyEntryScreen() {
     }
   };
 
+  /** 체중을 적은 가장 최근 기록 */
+  const latestWeighed = () =>
+    listBodyEntries(db)
+      .filter((e) => e.weight !== null)
+      .at(-1);
+  /**
+   * 가장 최근 체중이 바뀌었으면 프로필 몸무게(단백질 목표 계산)에 반영한다 — 목표가 달라지면 먼저 묻는다.
+   * 체중을 건드리지 않은 저장(다른 칸만 고침)에서는 다시 묻지 않는다.
+   */
+  const syncProfileWeight = (before: ReturnType<typeof latestWeighed>) => {
+    const after = latestWeighed();
+    if (!after || after.weight === null) return;
+    if (
+      before &&
+      before.id === after.id &&
+      before.weight === after.weight &&
+      before.weightUnit === after.weightUnit
+    )
+      return;
+    const next = { weight: after.weight, unit: after.weightUnit };
+    const profile = useProfile.getState();
+    const same = profile.weight === next.weight && profile.weightUnit === next.unit;
+    const change = proteinChange(
+      { weight: profile.weight, unit: profile.weightUnit },
+      next,
+      profile.goal,
+      useDietGoals.getState(),
+    );
+    if (change) {
+      useBodyAsk.getState().askProtein({
+        ...next,
+        from: change.from,
+        to: change.to,
+        fromWeight:
+          profile.weight === null ? null : `${fmt.num(profile.weight)} ${profile.weightUnit}`,
+        toWeight: `${fmt.num(next.weight)} ${next.unit}`,
+      });
+    } else if (!same) profile.setWeight(next.weight, next.unit);
+  };
+
   const save = () => {
+    // 나가는 동안 한 번 더 눌려도 두 번 저장하지 않는다.
+    if (leaving) return;
     const extras: BodyExtras = {};
     for (const key of BODY_EXTRA_KEYS) {
       const v = parse(draft[key]);
@@ -272,53 +326,34 @@ export default function BodyEntryScreen() {
 
     // 날짜를 그대로 뒀으면 잰 시각도 그대로, 오늘이면 지금, 지난 날이면 그날 낮 12시로 둔다.
     const keep = entry && dateKey(new Date(entry.measuredAt)) === draft.date;
-    const measuredAt = keep
+    let measuredAt = keep
       ? entry.measuredAt
       : draft.date === today
         ? Date.now()
         : new Date(day.getFullYear(), day.getMonth(), day.getDate(), 12).getTime();
-    let savedId = id ?? '';
-    if (isNew) {
-      savedId = createBodyEntry(
-        db,
-        input,
-        unit,
-        measuredAt,
-        undefined,
-        read.length > 0 ? 'ocr' : 'manual',
+    const before = latestWeighed();
+    if (!keep) {
+      // 같은 날 두 번째 기록은 1분씩 뒤로 — 시각이 같으면 어느 것이 나중인지 화면마다 달라진다.
+      const taken = new Set(
+        listBodyEntries(db)
+          .filter((e) => e.id !== id)
+          .map((e) => e.measuredAt),
       );
-    } else updateBodyEntry(db, savedId, input, unit, measuredAt);
-
-    // 가장 최근 체중을 고쳤으면 프로필 몸무게(단백질 목표 계산)에 반영한다 — 목표가 달라지면 먼저 묻는다.
-    const latest = listBodyEntries(db)
-      .filter((e) => e.weight !== null)
-      .at(-1);
-    if (latest?.id === savedId && input.weight !== null) {
-      const profile = useProfile.getState();
-      const same = profile.weight === input.weight && profile.weightUnit === unit;
-      const change = proteinChange(
-        { weight: profile.weight, unit: profile.weightUnit },
-        { weight: input.weight, unit },
-        profile.goal,
-        useDietGoals.getState(),
-      );
-      if (change) {
-        useBodyAsk.getState().askProtein({
-          weight: input.weight,
-          unit,
-          from: change.from,
-          to: change.to,
-          fromWeight:
-            profile.weight === null ? null : `${fmt.num(profile.weight)} ${profile.weightUnit}`,
-          toWeight: `${fmt.num(input.weight)} ${unit}`,
-        });
-      } else if (!same) profile.setWeight(input.weight, unit);
+      while (taken.has(measuredAt)) measuredAt += 60_000;
     }
+    if (isNew) {
+      createBodyEntry(db, input, unit, measuredAt, undefined, read.length > 0 ? 'ocr' : 'manual');
+    } else updateBodyEntry(db, id ?? '', input, unit, measuredAt);
+    syncProfileWeight(before);
     setLeaving(true);
   };
 
   const remove = () => {
+    if (leaving) return;
+    const before = latestWeighed();
     deleteBodyEntry(db, id ?? '');
+    // 가장 최근 체중 기록을 지웠으면 그 앞 기록의 체중으로 되돌린다.
+    syncProfileWeight(before);
     setAsk(null);
     setLeaving(true);
   };

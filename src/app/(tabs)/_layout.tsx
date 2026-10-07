@@ -18,9 +18,11 @@ import { daysAgo } from '@/domain/home';
 import { formatClock } from '@/domain/rest-timer';
 import { isStaleWorkout } from '@/domain/workout-session';
 import { useAppLanguage } from '@/i18n/use-app-language';
+import { settleCardioTimers } from '@/lib/cardio-settle';
 import { openWorkout } from '@/lib/open-workout';
 import { settlePendingAdd } from '@/lib/pending-add';
 import { markRecoveryAsked, recoveryAsked } from '@/lib/recovery-flag';
+import { useCardioTimer } from '@/stores/cardio-timer';
 import { useProfile } from '@/stores/profile';
 import { useRestTimer } from '@/stores/rest-timer';
 
@@ -160,6 +162,8 @@ export default function TabsLayout() {
     if (!shown) return;
     if (stillActive(shown.id)) {
       useRestTimer.getState().stop();
+      // 재고 있던 유산소의 스톱워치 · 알림 · 잠금 화면 표시도 같이 지운다.
+      useCardioTimer.getState().clear();
       discardWorkout(db, shown.id);
     }
     setEraseOpen(false);
@@ -181,6 +185,8 @@ export default function TabsLayout() {
     if (!stillActive(id)) return close();
     const onWorkout = pathRef.current === '/workout';
     useRestTimer.getState().stop();
+    // 다 된 타이머 · 멈춰 둔 스톱워치는 기록하고 끝낸다(끝내면 체크하지 않은 줄은 지워진다).
+    settleCardioTimers(db, lastAt);
     finishWorkout(db, id, Date.now(), lastAt);
     close();
     // 운동 화면이 떠 있었다면 그 화면이 홈으로 돌아간 뒤에 요약을 연다.

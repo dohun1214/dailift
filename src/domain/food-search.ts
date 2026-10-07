@@ -50,7 +50,13 @@ export function buildFoodQuery(
   sources: readonly FoodSource[],
   limit = 50,
 ): FoodQuery | null {
-  const q = query.trim().replace(/\s+/g, ' ').slice(0, MAX_QUERY).toLowerCase();
+  // 쉼표는 띄어쓰기로 본다("닭고기, 가슴"처럼 이름을 그대로 넣어도 찾게).
+  const q = query
+    .replace(/[,，]/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .slice(0, MAX_QUERY)
+    .toLowerCase();
   if (!q || sources.length === 0) return null;
   const params: (string | number)[] = [];
   const srcOrder = `CASE src ${sources.map((s, i) => `WHEN '${s}' THEN ${i}`).join(' ')} ELSE 9 END`;
