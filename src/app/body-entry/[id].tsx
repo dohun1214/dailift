@@ -1,14 +1,16 @@
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { usePreventRemove } from 'expo-router/react-navigation';
 import { ChevronDown } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, Share, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
+import { SheetScanCard, type SheetScanState } from '@/components/body/sheet-scan-card';
 import { useBodyFormat } from '@/components/body/use-body-format';
 import { DateSheet } from '@/components/diet/date-sheet';
 import {
+  ActionSheet,
   AppText,
   Card,
   ConfirmDialog,
@@ -40,7 +42,15 @@ import {
   proteinChange,
 } from '@/domain/body';
 import { dateKey, parseDateKey } from '@/domain/date-key';
+import type { SheetField, SheetResult } from '@/domain/inbody';
 import { parseDecimal } from '@/lib/number';
+import {
+  discardSheet,
+  pickSheet,
+  readSheet,
+  type SheetSource,
+  sheetScanAvailable,
+} from '@/lib/sheet-scan';
 import { useBodyAsk } from '@/stores/body-ask';
 import { useDietGoals } from '@/stores/diet-goals';
 import { useProfile } from '@/stores/profile';
@@ -51,6 +61,21 @@ type Draft = { date: string; weight: string; muscle: string; fat: string } & Rec
   string
 >;
 type Ask = { kind: 'delete' } | { kind: 'leave'; go: () => void };
+/** 결과지의 값 이름 → 이 화면의 칸 */
+const SHEET_TO_DRAFT: Record<SheetField, Exclude<keyof Draft, 'date'>> = {
+  weight: 'weight',
+  muscle: 'muscle',
+  fat: 'fat',
+  bmi: 'bmi',
+  bmr: 'bmr',
+  visceralFat: 'visceralFat',
+  whr: 'whr',
+  water: 'water',
+  protein: 'protein',
+  mineral: 'mineral',
+};
+/** 결과지는 kg로 찍힌다. 무게인 칸은 지금 단위로 바꿔서 채운다 */
+const SHEET_MASS: readonly SheetField[] = ['weight', 'muscle', 'protein', 'mineral'];
 
 const text = (n: number | null | undefined) => (n === null || n === undefined ? '' : String(n));
 const EMPTY_EXTRAS = Object.fromEntries(BODY_EXTRA_KEYS.map((k) => [k, ''])) as Record<
@@ -60,7 +85,10 @@ const EMPTY_EXTRAS = Object.fromEntries(BODY_EXTRA_KEYS.map((k) => [k, ''])) as 
 /** 빈 칸은 null, 숫자가 아니면 NaN(범위 검사에서 걸린다) */
 const parse = (s: string) => (s.trim() === '' ? null : (parseDecimal(s) ?? Number.NaN));
 
-/** 체성분 기록 추가 · 고치기: 날짜, 체중 · 골격근량 · 체지방률, 펼쳐서 적는 나머지 값, 삭제 */
+/**
+ * 체성분 기록 추가 · 고치기: 날짜, 체중 · 골격근량 · 체지방률, 펼쳐서 적는 나머지 값, 삭제.
+ * 새 기록은 인바디 결과지 사진을 읽어 채울 수 있다(글자 읽기 모듈이 있는 빌드에서만).
+ */
 export default function BodyEntryScreen() {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
@@ -104,6 +132,19 @@ export default function BodyEntryScreen() {
   // 저장 · 삭제 뒤 나갈 때는 나가기 확인을 건너뛴다(상태가 반영된 다음 렌더에서 뒤로 간다).
   const [leaving, setLeaving] = useState(false);
 
+  // 결과지 사진으로 채우기
+  const [scan, setScan] = useState<SheetScanState>({ kind: 'idle' });
+  /** 결과지에서 읽어 채운 칸(고치면 빠진다) */
+  const [read, setRead] = useState<readonly (keyof Draft)[]>([]);
+  const [scanNote, setScanNote] = useState<'date' | 'noDate' | null>(null);
+  const [scanFailed, setScanFailed] = useState(false);
+  const [sourceOpen, setSourceOpen] = useState(false);
+  const scanning = useRef(false);
+  const sheetUri = useRef<string | null>(null);
+  const rawText = useRef<string | null>(null);
+  // 결과지 사진은 보관하지 않는다 — 화면을 나갈 때 임시 파일을 지운다.
+  useEffect(() => () => discardSheet(sheetUri.current), []);
+
   const changed =
     initial !== null &&
     draft !== null &&
@@ -135,6 +176,7 @@ export default function BodyEntryScreen() {
   const update = (patch: Partial<Draft>) => {
     setBad([]);
     setError(null);
+    setRead((r) => r.filter((k) => !(k in patch)));
     setDraft((d) => (d ? { ...d, ...patch } : d));
   };
 
@@ -148,6 +190,65 @@ export default function BodyEntryScreen() {
   const dateLabel = fmt.day(
     new Date(day.getFullYear(), day.getMonth(), day.getDate(), 12).getTime(),
   );
+
+  /** 읽은 값을 칸에 채운다. 하나도 못 읽었으면 아무것도 바꾸지 않고 false */
+  const applySheet = (uri: string, result: SheetResult): boolean => {
+    const patch: Partial<Draft> = {};
+    for (const [field, value] of Object.entries(result.values) as [SheetField, number][]) {
+      patch[SHEET_TO_DRAFT[field]] = String(
+        SHEET_MASS.includes(field) ? bodyMass(value, 'kg', unit) : value,
+      );
+    }
+    const filled = Object.keys(patch) as (keyof Draft)[];
+    if (filled.length === 0) return false;
+    // 앞서 다른 사진에서 읽어 둔 칸은 비운다.
+    for (const key of read) if (key !== 'date' && !(key in patch)) patch[key] = '';
+    if (result.date) patch.date = result.date;
+    setBad([]);
+    setError(null);
+    setDraft((d) => (d ? { ...d, ...patch } : d));
+    setRead(result.date ? [...filled, 'date'] : filled);
+    setScanNote(result.date ? 'date' : 'noDate');
+    if (filled.some((k) => BODY_EXTRA_KEYS.includes(k as BodyExtraKey))) setMoreOpen(true);
+    setScan({ kind: 'done', uri, count: filled.length });
+    return true;
+  };
+
+  const scanSheet = async (source: SheetSource) => {
+    // 선택 창이 떠 있거나 읽는 동안에는 한 번 더 열지 않는다.
+    if (scanning.current) return;
+    scanning.current = true;
+    // 새 사진을 못 읽으면 앞서 읽은 것을 그대로 둔다.
+    const before = scan;
+    let picked: string | null = null;
+    try {
+      const pick = await pickSheet(source);
+      if (pick === 'denied') {
+        Alert.alert(t('summary.cameraDeniedTitle'), t('summary.cameraDenied'), [
+          { text: t('common.close'), style: 'cancel' },
+          { text: t('summary.openSettings'), onPress: () => void Linking.openSettings() },
+        ]);
+        return;
+      }
+      if (!pick) return;
+      picked = pick;
+      setScan({ kind: 'reading', uri: pick });
+      const { result, raw } = await readSheet(pick, today);
+      if (!applySheet(pick, result)) throw new Error('no values found');
+      rawText.current = JSON.stringify(raw, (_, v) =>
+        typeof v === 'number' ? Math.round(v * 10000) / 10000 : v,
+      );
+      if (sheetUri.current !== pick) discardSheet(sheetUri.current);
+      sheetUri.current = pick;
+    } catch (e) {
+      console.warn('[sheet] read failed', e);
+      if (picked !== sheetUri.current) discardSheet(picked);
+      setScan(before.kind === 'done' ? before : { kind: 'idle' });
+      setScanFailed(true);
+    } finally {
+      scanning.current = false;
+    }
+  };
 
   const save = () => {
     const extras: BodyExtras = {};
@@ -177,8 +278,16 @@ export default function BodyEntryScreen() {
         ? Date.now()
         : new Date(day.getFullYear(), day.getMonth(), day.getDate(), 12).getTime();
     let savedId = id ?? '';
-    if (isNew) savedId = createBodyEntry(db, input, unit, measuredAt);
-    else updateBodyEntry(db, savedId, input, unit, measuredAt);
+    if (isNew) {
+      savedId = createBodyEntry(
+        db,
+        input,
+        unit,
+        measuredAt,
+        undefined,
+        read.length > 0 ? 'ocr' : 'manual',
+      );
+    } else updateBodyEntry(db, savedId, input, unit, measuredAt);
 
     // 가장 최근 체중을 고쳤으면 프로필 몸무게(단백질 목표 계산)에 반영한다 — 목표가 달라지면 먼저 묻는다.
     const latest = listBodyEntries(db)
@@ -226,6 +335,7 @@ export default function BodyEntryScreen() {
     <TextField
       key={key}
       label={t(`body.form.extra.${key}`)}
+      mark={read.includes(key) ? t('body.scan.mark') : undefined}
       value={draft[key]}
       placeholder="0"
       unit={extraUnit(key)}
@@ -263,9 +373,27 @@ export default function BodyEntryScreen() {
         />
       }
     >
-      <Card style={styles.first} padding="md">
+      {isNew && sheetScanAvailable ? (
+        <View style={styles.first}>
+          <SheetScanCard
+            state={scan}
+            onPick={(source) => void scanSheet(source)}
+            onAgain={() => setSourceOpen(true)}
+            onShareRaw={() => {
+              if (rawText.current) void Share.share({ message: rawText.current });
+            }}
+          />
+        </View>
+      ) : null}
+
+      <Card style={isNew && sheetScanAvailable ? undefined : styles.first} padding="md">
         <View style={styles.group}>
-          <Text style={styles.label}>{t('body.form.date')}</Text>
+          <View style={styles.labelRow}>
+            <Text style={styles.label}>{t('body.form.date')}</Text>
+            {read.includes('date') ? (
+              <View accessible accessibilityLabel={t('body.scan.mark')} style={styles.mark} />
+            ) : null}
+          </View>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`${t('body.form.date')}, ${dateLabel}`}
@@ -279,6 +407,7 @@ export default function BodyEntryScreen() {
         <View style={styles.pair}>
           <TextField
             label={t('body.metric.weight')}
+            mark={read.includes('weight') ? t('body.scan.mark') : undefined}
             value={draft.weight}
             placeholder="0"
             unit={unit}
@@ -289,6 +418,7 @@ export default function BodyEntryScreen() {
           />
           <TextField
             label={t('body.metric.muscle')}
+            mark={read.includes('muscle') ? t('body.scan.mark') : undefined}
             value={draft.muscle}
             placeholder="0"
             unit={unit}
@@ -301,6 +431,7 @@ export default function BodyEntryScreen() {
         <View style={styles.pair}>
           <TextField
             label={t('body.metric.fat')}
+            mark={read.includes('fat') ? t('body.scan.mark') : undefined}
             value={draft.fat}
             placeholder="0"
             unit="%"
@@ -327,7 +458,9 @@ export default function BodyEntryScreen() {
         ) : null}
       </Card>
 
-      <Text style={styles.hint}>{t('body.form.hint')}</Text>
+      <Text style={styles.hint}>
+        {scanNote ? t(`body.scan.note.${scanNote}`) : t('body.form.hint')}
+      </Text>
 
       <Card padding="md">
         <Pressable
@@ -388,6 +521,36 @@ export default function BodyEntryScreen() {
         onClose={() => setDateOpen(false)}
       />
 
+      <ActionSheet
+        visible={sourceOpen}
+        cancelLabel={t('body.form.cancel')}
+        onClose={() => setSourceOpen(false)}
+        actions={[
+          {
+            label: t('body.scan.camera'),
+            afterClose: true,
+            onPress: () => void scanSheet('camera'),
+          },
+          {
+            label: t('body.scan.library'),
+            afterClose: true,
+            onPress: () => void scanSheet('library'),
+          },
+        ]}
+      />
+      <ConfirmDialog
+        visible={scanFailed}
+        title={t('body.scan.failTitle')}
+        body={t('body.scan.failBody')}
+        cancelLabel={t('common.close')}
+        confirmLabel={t('body.scan.again')}
+        onCancel={() => setScanFailed(false)}
+        onConfirm={() => {
+          setScanFailed(false);
+          setSourceOpen(true);
+        }}
+      />
+
       {asked?.kind === 'leave' ? (
         <ConfirmDialog
           visible={ask !== null}
@@ -423,6 +586,8 @@ const styles = StyleSheet.create((theme) => ({
   pressed: { opacity: 0.7 },
   first: { marginTop: 4 },
   group: { gap: 6 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  mark: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.accent },
   label: {
     fontSize: 12,
     lineHeight: 16,

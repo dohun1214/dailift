@@ -1,7 +1,7 @@
 {
   "ios": {
     "CFBundleDisplayName": "Dailift",
-    "NSCameraUsageDescription": "운동 사진을 찍어 기록에 붙이려면 카메라 접근이 필요해요.",
-    "NSPhotoLibraryUsageDescription": "사진 보관함의 사진을 운동 기록에 붙이려면 사진 접근이 필요해요."
+    "NSCameraUsageDescription": "운동 사진을 찍어 기록에 붙이거나 체성분 결과지를 읽으려면 카메라 접근이 필요해요.",
+    "NSPhotoLibraryUsageDescription": "사진 보관함의 사진을 운동 기록에 붙이거나 체성분 결과지를 읽으려면 사진 접근이 필요해요."
   }
 }
