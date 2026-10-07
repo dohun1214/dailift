@@ -17,6 +17,10 @@
  * 실행(저장소 루트에서): LOAD_TOKEN=<그 글자> node scripts/load-processed-foods.mjs [process.tsv 경로]
  * 환경 변수 BATCH(한 번에 보낼 줄 수, 기본 1000) · START(몇 번째 줄부터, 기본 0).
  * 이미 있는 식품코드는 새 값으로 바뀐다(다시 돌려도 된다). 자료에서 빠진 식품코드는 서버에 그대로 남는다.
+ *
+ * 해외 포장 제품(scripts/build-branded-foods.mjs가 만든 TSV)은 같은 모양이라 표 이름만 바꿔 올린다:
+ *   TABLE=branded_foods LOAD_TOKEN=<그 글자> node scripts/load-processed-foods.mjs .expo/fooddata/branded.tsv
+ * 처음 올릴 때는 ONLY_NEW=1을 주면 넣기 정책만 열어도 된다(이미 있는 줄은 건너뛴다 — 고치지 않는다).
  */
 import { readFileSync } from 'node:fs';
 
@@ -26,6 +30,12 @@ if (!token) {
   console.error('LOAD_TOKEN 환경 변수가 필요하다');
   process.exit(1);
 }
+const table = process.env.TABLE ?? 'processed_foods';
+if (table !== 'processed_foods' && table !== 'branded_foods') {
+  console.error('TABLE은 processed_foods 또는 branded_foods');
+  process.exit(1);
+}
+const onlyNew = process.env.ONLY_NEW === '1';
 const config = readFileSync('src/config.ts', 'utf8');
 const pick = (name) => new RegExp(`${name} = '([^']+)'`).exec(config)?.[1];
 const url = pick('SUPABASE_URL');
@@ -65,14 +75,14 @@ for (let i = START; i < rows.length; i += BATCH) {
   let ok = false;
   for (let attempt = 0; attempt < 4 && !ok; attempt += 1) {
     try {
-      const res = await fetch(`${url}/rest/v1/processed_foods?on_conflict=sid`, {
+      const res = await fetch(`${url}/rest/v1/${table}?on_conflict=sid`, {
         method: 'POST',
         headers: {
           apikey: key,
           Authorization: `Bearer ${key}`,
           'Content-Type': 'application/json',
-          // 이미 있는 식품코드는 새 값으로 바꾼다(넣기 · 고치기 정책이 둘 다 열려 있어야 한다).
-          Prefer: 'resolution=merge-duplicates,return=minimal',
+          // 이미 있는 식품코드는 새 값으로 바꾼다(넣기 · 고치기 정책이 둘 다 열려 있어야 한다). ONLY_NEW면 건너뛴다.
+          Prefer: `resolution=${onlyNew ? 'ignore' : 'merge'}-duplicates,return=minimal`,
           'x-load-token': token,
         },
         body: JSON.stringify(batch),

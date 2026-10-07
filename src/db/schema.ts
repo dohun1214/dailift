@@ -258,9 +258,10 @@ export const supplementLogs = sqliteTable(
 
 export type Meal = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 /**
- * 음식이 어디서 왔는지: 앱에 넣은 DB(usda · mfds), 서버에서 찾는 식약처 가공식품(mfdsp), 직접 만든 음식(custom)
+ * 음식이 어디서 왔는지: 앱에 넣은 DB(usda · mfds), 서버에서 찾는 식약처 가공식품(mfdsp) · USDA 포장 제품(usdab),
+ * 직접 만든 음식(custom)
  */
-export type FoodSrc = 'usda' | 'mfds' | 'mfdsp' | 'custom';
+export type FoodSrc = 'usda' | 'mfds' | 'mfdsp' | 'usdab' | 'custom';
 
 /** 직접 만든 음식. 영양값은 100 g당으로 둔다(화면에서 1회 제공량 기준으로 넣어도 바꿔서 저장) */
 export const foods = sqliteTable('foods', {
@@ -345,7 +346,8 @@ export const foodSetItems = sqliteTable(
 );
 
 /**
- * 서버에서 찾은 가공식품 가운데 이 기기에서 쓴 것의 사본 (로컬 전용, 동기화하지 않는다).
+ * 서버에서 찾은 가공식품(식약처 · USDA 포장 제품) 가운데 이 기기에서 쓴 것의 사본 (로컬 전용, 동기화하지 않는다).
+ * 두 출처의 식별자는 겹치지 않는다(식약처는 "P…" 식품코드, USDA는 숫자뿐인 바코드) — 그래서 출처 칸이 없다.
  * 즐겨찾기 목록과 양 창의 단위(1개 · 1회)를 인터넷 없이 보여 주는 데 쓴다. 없으면 서버에서 다시 받는다.
  */
 export const foodCache = sqliteTable('food_cache', {

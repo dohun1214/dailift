@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Pencil, Plus } from 'lucide-react-native';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Keyboard, Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
@@ -40,7 +40,13 @@ import {
   type SetItem,
   setTotal,
 } from '@/domain/diet';
-import { processedDefaultAmount, processedItem } from '@/domain/processed-food';
+import {
+  isServerFood,
+  processedDefaultAmount,
+  processedItem,
+  type ServerFoodSrc,
+  wantsBranded,
+} from '@/domain/processed-food';
 import { searchFoods } from '@/food/catalog';
 import { withAllUnits } from '@/food/full-item';
 import { catalogItem, loadCatalogItem } from '@/food/items';
@@ -109,11 +115,13 @@ export default function FoodSearchScreen() {
 
   const searching = query.trim().length > 0;
   const mineByKey = useMemo(() => new Map(mine.map((f) => [foodKey(f), f])), [mine]);
-  // 가공식품(서버 검색)은 식약처 자료라 한국에서만 보인다.
-  const processed = useProcessedSearch(query, sources.includes('mfds'));
+  // 가공식품(서버 검색). 식약처 자료는 한국에서만, USDA 포장 제품은 한국 밖에서는 항상 · 한국에서는 영어로 찾을 때만 보인다.
+  const korea = sources.includes('mfds');
+  const processed = useProcessedSearch(query, korea);
+  const branded = useProcessedSearch(query, wantsBranded(query, sources), 'usdab');
   const processedBySid = useMemo(
-    () => new Map(processed.rows.map((f) => [f.sid, f])),
-    [processed.rows],
+    () => new Map([...processed.rows, ...branded.rows].map((f) => [f.sid, f])),
+    [processed.rows, branded.rows],
   );
   const processedRows = useMemo<Row[]>(
     () =>
@@ -123,23 +131,33 @@ export default function FoodSearchScreen() {
       }),
     [processed.rows],
   );
+  const brandedRows = useMemo<Row[]>(
+    () =>
+      branded.rows.map((f) => {
+        const item = processedItem(f, 'usdab');
+        return { item, amount: processedDefaultAmount(item) };
+      }),
+    [branded.rows],
+  );
   /** 고르거나 넣은 가공식품은 기기에 적어 둔다(즐겨찾기 목록 · 양 창의 단위를 인터넷 없이 쓰려고) */
   const remember = (item: FoodItem) => {
-    const found = item.src === 'mfdsp' ? processedBySid.get(item.sid) : undefined;
+    const found = isServerFood(item.src) ? processedBySid.get(item.sid) : undefined;
     if (found) cacheProcessedFoods(db, [found]);
   };
 
   // 즐겨찾기한 가공식품의 사본이 이 기기에 없으면(다른 기기에서 즐겨찾기) 서버에서 받아 둔다. 한 번만 해 본다.
   const asked = useRef(new Set<string>());
   useEffect(() => {
-    const missing = favorites
-      .filter((f) => f.src === 'mfdsp' && !cache.has(f.sid) && !asked.current.has(f.sid))
-      .map((f) => f.sid);
-    if (missing.length === 0) return;
-    for (const sid of missing) asked.current.add(sid);
-    fetchProcessedFoods(missing)
-      .then((rows) => cacheProcessedFoods(db, rows))
-      .catch(() => undefined);
+    for (const src of SERVER_SRCS) {
+      const missing = favorites
+        .filter((f) => f.src === src && !cache.has(f.sid) && !asked.current.has(f.sid))
+        .map((f) => f.sid);
+      if (missing.length === 0) continue;
+      for (const sid of missing) asked.current.add(sid);
+      fetchProcessedFoods(missing, src)
+        .then((rows) => cacheProcessedFoods(db, rows))
+        .catch(() => undefined);
+    }
   }, [favorites, cache]);
 
   const favoriteRows = useMemo<Row[]>(() => {
@@ -147,14 +165,14 @@ export default function FoodSearchScreen() {
     for (const f of favorites) {
       let item: FoodItem | null = null;
       if (f.src === 'custom') item = mineByKey.get(foodKey(f)) ?? null;
-      else if (f.src === 'mfdsp') {
+      else if (isServerFood(f.src)) {
         const row = cache.get(f.sid);
-        item = row ? processedItem(row) : null;
+        item = row ? processedItem(row, f.src) : null;
       } else if (foodDb) item = loadCatalogItem(foodDb, f.src, f.sid);
       if (item) {
         out.push({
           item,
-          amount: item.src === 'mfdsp' ? processedDefaultAmount(item) : defaultAmount(item),
+          amount: isServerFood(item.src) ? processedDefaultAmount(item) : defaultAmount(item),
         });
       }
     }
@@ -189,11 +207,9 @@ export default function FoodSearchScreen() {
 
   // 가공식품을 찾는 검색어에서는 기본 음식을 몇 개만 먼저 보여 준다 — 흔한 낱말("두부")은 기본 음식만 50개라
   // 가공식품이 한참 아래로 밀린다. 하나 더 보이려고 접지는 않는다.
+  const serverSearching = processed.status !== 'idle' || branded.status !== 'idle';
   const collapsed =
-    searching &&
-    processed.status !== 'idle' &&
-    rows.length > BASE_PREVIEW + 1 &&
-    expandedFor !== query.trim();
+    searching && serverSearching && rows.length > BASE_PREVIEW + 1 && expandedFor !== query.trim();
   const shownRows = collapsed ? rows.slice(0, BASE_PREVIEW) : rows;
 
   const say = (message: string, undo: () => void) => {
@@ -227,7 +243,7 @@ export default function FoodSearchScreen() {
     (row: Row) => {
       Keyboard.dismiss();
       // 양 창에서 즐겨찾기를 누를 수 있으니 먼저 적어 둔다.
-      const found = row.item.src === 'mfdsp' ? processedBySid.get(row.item.sid) : undefined;
+      const found = isServerFood(row.item.src) ? processedBySid.get(row.item.sid) : undefined;
       if (found) cacheProcessedFoods(db, [found]);
       // 양 창에서는 고를 수 있는 단위를 모두 보여 준다(목록에는 기본 1회 양만 실려 있다).
       const item = withAllUnits(row.item, row.amount.unit, foodDb);
@@ -290,7 +306,7 @@ export default function FoodSearchScreen() {
 
   /** 만든 회사: 찾은 것에는 실려 있고, 최근 · 즐겨찾기는 기기의 사본에서 찾는다 */
   const makerOf = (item: FoodItem) =>
-    item.maker || (item.src === 'mfdsp' ? cache.get(item.sid)?.maker || null : null);
+    item.maker || (isServerFood(item.src) ? cache.get(item.sid)?.maker || null : null);
 
   const renderRow = (row: Row, last: boolean) => {
     const { item } = row;
@@ -495,7 +511,9 @@ export default function FoodSearchScreen() {
         loading ||
         (failed && mine.length === 0) ||
         processed.status === 'loading' ||
-        processedRows.length > 0 ? null : (
+        branded.status === 'loading' ||
+        processedRows.length > 0 ||
+        brandedRows.length > 0 ? null : (
           <NoMatchCard
             title={t('diet.search.noMatchTitle', { query: query.trim() })}
             body={t('diet.search.noMatchBody')}
@@ -509,57 +527,83 @@ export default function FoodSearchScreen() {
         <Text style={styles.empty}>{t(`diet.search.empty.${tab}`)}</Text>
       )}
 
-      {searching && processed.status !== 'idle' ? (
-        processed.status === 'loading' ? (
-          <>
-            <Text style={styles.section}>{t('diet.processed.title')}</Text>
-            <View style={styles.note}>
-              <ActivityIndicator size="small" color={theme.colors.text2} />
-              <Text style={styles.noteText}>{t('diet.processed.loading')}</Text>
-            </View>
-          </>
-        ) : processed.status === 'failed' ? (
-          <>
-            <Text style={styles.section}>{t('diet.processed.title')}</Text>
-            <View style={styles.note}>
-              <Text style={styles.noteText}>{t('diet.processed.offline')}</Text>
-            </View>
-          </>
-        ) : processedRows.length > 0 ? (
-          <>
-            <View style={styles.sectionRow}>
-              <Text style={[styles.section, styles.sectionGrow]}>{t('diet.processed.title')}</Text>
-              <Text style={styles.sectionHint}>{t('diet.processed.makerHint')}</Text>
-            </View>
-            <View style={styles.list}>
-              {processedRows.map((row, i) => renderRow(row, i === processedRows.length - 1))}
-            </View>
-            {processed.more ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ disabled: processed.loadingMore }}
-                disabled={processed.loadingMore}
-                onPress={processed.loadMore}
-                style={({ pressed }) => [styles.more, pressed && styles.pressed]}
-              >
-                <Text style={styles.moreText}>
-                  {t(processed.loadingMore ? 'diet.processed.moreLoading' : 'diet.processed.more')}
-                </Text>
-              </Pressable>
-            ) : null}
-            <View style={styles.missing}>
-              <Text style={styles.missingText}>{t('diet.processed.missing')}</Text>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => createFood(name)}
-                style={({ pressed }) => [styles.missingButton, pressed && styles.pressed]}
-              >
-                <Plus size={16} color={theme.colors.text} strokeWidth={2.2} />
-                <Text style={styles.missingButtonText}>{t('diet.processed.create')}</Text>
-              </Pressable>
-            </View>
-          </>
-        ) : null
+      {searching
+        ? SERVER_SRCS.map((src) => {
+            const found = src === 'mfdsp' ? processed : branded;
+            if (found.status === 'idle') return null;
+            const list = src === 'mfdsp' ? processedRows : brandedRows;
+            // 한국에서는 식약처 가공식품 아래에 따로 묶어 보여 주므로 어디 제품인지 적는다. 한국 밖에서는 이것 하나뿐이다.
+            const title = t(
+              src === 'usdab' && korea ? 'diet.processed.brandedTitle' : 'diet.processed.title',
+            );
+            if (found.status === 'loading' || found.status === 'failed') {
+              // 한국에서는 찾는 중 · 못 받음을 식약처 가공식품 자리에서 한 번만 알린다.
+              if (src === 'usdab' && korea) return null;
+              return (
+                <Fragment key={src}>
+                  <Text style={styles.section}>{title}</Text>
+                  <View style={styles.note}>
+                    {found.status === 'loading' ? (
+                      <ActivityIndicator size="small" color={theme.colors.text2} />
+                    ) : null}
+                    <Text style={styles.noteText}>
+                      {t(
+                        found.status === 'loading'
+                          ? 'diet.processed.loading'
+                          : 'diet.processed.offline',
+                      )}
+                    </Text>
+                  </View>
+                </Fragment>
+              );
+            }
+            if (list.length === 0) return null;
+            return (
+              <Fragment key={src}>
+                <View style={styles.sectionRow}>
+                  <Text style={[styles.section, styles.sectionGrow]}>{title}</Text>
+                  <Text style={styles.sectionHint}>
+                    {t(src === 'usdab' ? 'diet.processed.brandHint' : 'diet.processed.makerHint')}
+                  </Text>
+                </View>
+                <View style={styles.list}>
+                  {list.map((row, i) => renderRow(row, i === list.length - 1))}
+                </View>
+                {found.more ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: found.loadingMore }}
+                    disabled={found.loadingMore}
+                    onPress={found.loadMore}
+                    style={({ pressed }) => [styles.more, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.moreText}>
+                      {t(
+                        found.loadingMore
+                          ? 'diet.processed.moreLoading'
+                          : src === 'usdab' && korea
+                            ? 'diet.processed.brandedMore'
+                            : 'diet.processed.more',
+                      )}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </Fragment>
+            );
+          })
+        : null}
+      {searching && processedRows.length + brandedRows.length > 0 ? (
+        <View style={styles.missing}>
+          <Text style={styles.missingText}>{t('diet.processed.missing')}</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => createFood(name)}
+            style={({ pressed }) => [styles.missingButton, pressed && styles.pressed]}
+          >
+            <Plus size={16} color={theme.colors.text} strokeWidth={2.2} />
+            <Text style={styles.missingButtonText}>{t('diet.processed.create')}</Text>
+          </Pressable>
+        </View>
       ) : null}
 
       <AmountSheet
@@ -616,6 +660,8 @@ export default function FoodSearchScreen() {
 }
 
 const NO_AMOUNT = { grams: 100, unit: null } as const;
+/** 서버에서 찾는 출처(보이는 순서) */
+const SERVER_SRCS: readonly ServerFoodSrc[] = ['mfdsp', 'usdab'];
 const LIMIT_OF = {
   foods: LIMITS.customFoods,
   sets: LIMITS.sets,

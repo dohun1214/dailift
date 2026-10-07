@@ -1,10 +1,15 @@
-import { PROCESSED_PAGE, type ProcessedFood } from '@/domain/processed-food';
+import { PROCESSED_PAGE, type ProcessedFood, type ServerFoodSrc } from '@/domain/processed-food';
 import { supabase } from '@/lib/supabase';
 
 /**
- * 가공식품은 서버 표 `processed_foods`에 있다(약 31만 개 — 앱에 넣기에는 크다). 누구나 읽을 수 있다(로그인 불필요).
- * 표와 찾는 함수는 `supabase/migrations/20261007000004_processed_foods.sql`.
+ * 가공식품은 서버 표에 있다(앱에 넣기에는 크다). 누구나 읽을 수 있다(로그인 불필요).
+ * - 식약처 가공식품: `processed_foods` 약 31만 개 — `supabase/migrations/20261007000004_processed_foods.sql`
+ * - USDA 포장 제품: `branded_foods` 약 38만 개 — `supabase/migrations/20261007000005_branded_foods.sql`
  */
+const WHERE = {
+  mfdsp: { table: 'processed_foods', search: 'search_processed_foods' },
+  usdab: { table: 'branded_foods', search: 'search_branded_foods' },
+} as const;
 const COLUMNS = 'sid, name, maker, basis, kcal, protein, carb, fat, size, serv';
 
 type Raw = Omit<ProcessedFood, 'basis'> & { basis: string };
@@ -21,9 +26,13 @@ const clean = (r: Raw): ProcessedFood => ({
   serv: r.serv === null ? null : Number(r.serv),
 });
 
-/** 이름 · 제조사에 낱말이 모두 든 가공식품. `offset`부터 한 쪽(30개) */
-export async function searchProcessedFoods(query: string, offset = 0): Promise<ProcessedFood[]> {
-  const { data, error } = await supabase.rpc('search_processed_foods', {
+/** 이름 · 회사에 낱말이 모두 든 가공식품. `offset`부터 한 쪽(30개) */
+export async function searchProcessedFoods(
+  query: string,
+  offset = 0,
+  src: ServerFoodSrc = 'mfdsp',
+): Promise<ProcessedFood[]> {
+  const { data, error } = await supabase.rpc(WHERE[src].search, {
     q: query,
     lim: PROCESSED_PAGE,
     off: offset,
@@ -33,10 +42,13 @@ export async function searchProcessedFoods(query: string, offset = 0): Promise<P
 }
 
 /** 식품코드로 받기(다른 기기에서 즐겨찾기한 것처럼 이 기기에 사본이 없을 때) */
-export async function fetchProcessedFoods(sids: readonly string[]): Promise<ProcessedFood[]> {
+export async function fetchProcessedFoods(
+  sids: readonly string[],
+  src: ServerFoodSrc = 'mfdsp',
+): Promise<ProcessedFood[]> {
   if (sids.length === 0) return [];
   const { data, error } = await supabase
-    .from('processed_foods')
+    .from(WHERE[src].table)
     .select(COLUMNS)
     .in('sid', sids.slice(0, 200));
   if (error) throw error;
