@@ -8,6 +8,8 @@ type Props<T extends string> = {
   value: T;
   onChange: (value: T) => void;
   accessibilityLabel?: string;
+  /** 회색 카드 위에 놓을 때: 바탕을 카드보다 한 단계 진하게 */
+  onCard?: boolean;
 };
 
 export function Segmented<T extends string>({
@@ -15,9 +17,14 @@ export function Segmented<T extends string>({
   value,
   onChange,
   accessibilityLabel,
+  onCard = false,
 }: Props<T>) {
   return (
-    <View accessibilityRole="tablist" accessibilityLabel={accessibilityLabel} style={styles.track}>
+    <View
+      accessibilityRole="tablist"
+      accessibilityLabel={accessibilityLabel}
+      style={[styles.track, onCard && styles.trackOnCard]}
+    >
       {options.map((o) => (
         <Segment
           key={o.value}
@@ -62,6 +69,7 @@ const styles = StyleSheet.create((theme) => ({
     borderRadius: 18,
     backgroundColor: theme.colors.surface,
   },
+  trackOnCard: { backgroundColor: theme.colors.track },
   segment: {
     flex: 1,
     height: 40,

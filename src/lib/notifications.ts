@@ -121,3 +121,40 @@ export async function dismissRestNotifications() {
     // 못 치워도 동작에는 지장이 없다.
   }
 }
+
+export const CARDIO_CHANNEL = 'cardio-timer';
+
+/** 유산소 타이머가 끝나는 시각에 울릴 알림 예약. 실패하면 null (앱을 보고 있을 때의 진동만 동작) */
+export async function scheduleCardioEnd(
+  seconds: number,
+  text: { channel: string; title: string; body: string },
+): Promise<string | null> {
+  try {
+    if (seconds < 1 || !(await ensurePermission())) return null;
+    await ensureChannel(CARDIO_CHANNEL, text.channel);
+    return await Notifications.scheduleNotificationAsync({
+      content: { title: text.title, body: text.body, data: { kind: 'cardio' }, sound: true },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: Math.round(seconds),
+        channelId: CARDIO_CHANNEL,
+      },
+    });
+  } catch {
+    return null;
+  }
+}
+
+/** 알림 센터에 남아 있는 유산소 타이머 알림을 치운다 (운동을 끝내거나 다시 잴 때). */
+export async function dismissCardioNotifications() {
+  try {
+    const shown = await Notifications.getPresentedNotificationsAsync();
+    await Promise.all(
+      shown
+        .filter((n) => n.request.content.data?.kind === 'cardio')
+        .map((n) => Notifications.dismissNotificationAsync(n.request.identifier)),
+    );
+  } catch {
+    // 못 치워도 동작에는 지장이 없다.
+  }
+}

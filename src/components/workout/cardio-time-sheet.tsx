@@ -12,6 +12,8 @@ type Props = {
   name: string;
   /** 지금 적혀 있는 시간(초). 없으면 null */
   value: number | null;
+  /** time: 운동한 시간을 적는다(기본) / limit: 타이머 시간을 정한다 */
+  kind?: 'time' | 'limit';
   onClose: () => void;
   onSave: (durationSec: number) => void;
 };
@@ -19,8 +21,8 @@ type Props = {
 const digits = (text: string) => text.replace(/\D/g, '');
 const toInt = (text: string) => (text === '' ? null : Number.parseInt(text, 10));
 
-/** 유산소 시간을 직접 적거나 고치는 창: 분 · 초 */
-export function CardioTimeSheet({ visible, name, value, onClose, onSave }: Props) {
+/** 유산소 시간을 직접 적거나 고치는 창(타이머 시간을 정할 때도 쓴다): 분 · 초 */
+export function CardioTimeSheet({ visible, name, value, kind = 'time', onClose, onSave }: Props) {
   const { t } = useTranslation();
   const [min, setMin] = useState('');
   const [sec, setSec] = useState('');
@@ -44,8 +46,8 @@ export function CardioTimeSheet({ visible, name, value, onClose, onSave }: Props
   return (
     <BottomSheet
       visible={visible}
-      title={t('cardio.timeSheet.title', { name })}
-      subtitle={t('cardio.timeSheet.subtitle')}
+      title={t(kind === 'limit' ? 'cardio.limitSheet.title' : 'cardio.timeSheet.title', { name })}
+      subtitle={t(kind === 'limit' ? 'cardio.limitSheet.subtitle' : 'cardio.timeSheet.subtitle')}
       closeLabel={t('workout.menu.cancel')}
       onClose={onClose}
       avoidKeyboard

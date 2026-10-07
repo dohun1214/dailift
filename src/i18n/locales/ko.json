@@ -459,7 +459,32 @@
     "rowMetaNone": "유산소",
     "timeColumn": "시간",
     "rowA11y": "{{name}}, {{time}}",
-    "remove": "기록에서 빼기"
+    "remove": "기록에서 빼기",
+    "mode": {
+      "a11y": "재는 방식",
+      "stopwatch": "스톱워치",
+      "timer": "타이머"
+    },
+    "limitHint": "시간을 누르면 바꿀 수 있어요",
+    "limitA11y": "타이머 시간 {{time}}",
+    "remaining": "남은 시간 · {{total}} 가운데 {{done}} 했어요",
+    "remainingPaused": "일시정지 · {{total}} 가운데 {{done}} 했어요",
+    "limitSheet": {
+      "title": "{{name}} 타이머",
+      "subtitle": "이 시간이 지나면 알려 주고 기록해요."
+    },
+    "live": {
+      "stopwatch": "유산소 재는 중",
+      "timer": "유산소 남은 시간",
+      "paused": "유산소 일시정지",
+      "done": "유산소 끝",
+      "nameWithLimit": "{{name}} · {{total}}"
+    },
+    "notify": {
+      "channel": "유산소 타이머",
+      "title": "{{name}} {{total}} 끝",
+      "body": "정한 시간을 다 채웠어요."
+    }
   },
   "summary": {
     "headline": "오늘도 해냈어요",
