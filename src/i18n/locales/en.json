@@ -1486,7 +1486,7 @@
     },
     "scan": {
       "title": "Fill in from a result sheet",
-      "sub": "Take or choose a photo of your InBody result sheet and we'll read the values",
+      "sub": "Take or choose a photo of your body composition result sheet and we'll read the values",
       "camera": "Take photo",
       "library": "Choose from library",
       "reading": "Reading the result sheet",
