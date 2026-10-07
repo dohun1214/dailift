@@ -61,6 +61,7 @@ export default function MeScreen() {
   };
   const sync = useSync();
   const dietBackupOn = useHealthConsent((c) => c.dietAcceptedAt !== null);
+  const bodyBackupOn = useHealthConsent((c) => c.bodyAcceptedAt !== null);
   const syncLabel = !account
     ? t('sync.off')
     : sync.status === 'syncing'
@@ -385,11 +386,18 @@ export default function MeScreen() {
             onPress={() => (account ? void syncNow() : router.push('/account-link'))}
           />
           {account ? (
-            <ListRow
-              label={t('dietBackup.title')}
-              value={t(dietBackupOn ? 'dietBackup.rowOn' : 'dietBackup.rowOff')}
-              onPress={() => router.push('/diet-backup')}
-            />
+            <>
+              <ListRow
+                label={t('dietBackup.title')}
+                value={t(dietBackupOn ? 'dietBackup.rowOn' : 'dietBackup.rowOff')}
+                onPress={() => router.push('/diet-backup')}
+              />
+              <ListRow
+                label={t('bodyBackup.title')}
+                value={t(bodyBackupOn ? 'bodyBackup.rowOn' : 'bodyBackup.rowOff')}
+                onPress={() => router.push('/body-backup')}
+              />
+            </>
           ) : null}
           <ListRow label={t('exportData.row')} onPress={exportSheet.open} />
         </ListSection>

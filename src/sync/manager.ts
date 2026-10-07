@@ -10,14 +10,14 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { db } from '@/db/client';
-import { CONSENT_TABLES, SYNCED_TABLES } from '@/db/schema';
+import { BODY_CONSENT_TABLES, CONSENT_TABLES, SYNCED_TABLES } from '@/db/schema';
 import { hasUserData, wipeUserData } from '@/db/wipe';
 import { kvStorage } from '@/lib/kv-storage';
 import { removePhotoFile } from '@/lib/photos';
 import { useAuth } from '@/stores/auth';
 import { consentSkippedTables, useHealthConsent } from '@/stores/health-consent';
 
-import { fetchDietConsent, saveDietConsent } from './consent-remote';
+import { fetchConsents, saveBodyConsent, saveDietConsent } from './consent-remote';
 import { pendingCount, resetForAccount, resyncTables, syncOnce } from './engine';
 import { syncPhotoFiles } from './photos';
 import { devicePhotoFiles, supabasePhotoStore } from './supabase-photos';
@@ -86,8 +86,10 @@ async function run(userId: string) {
   try {
     // 새 사진 파일을 먼저 올리고 → 행 동기화 → 받은 사진 내려받기·지운 사진 정리
     await syncPhotoFiles(db, userId, supabasePhotoStore, devicePhotoFiles);
-    // 다른 기기에서 식단 백업에 동의했거나 그만했을 수 있다.
-    applyDietConsent(await fetchDietConsent());
+    // 다른 기기에서 식단 · 체성분 백업에 동의했거나 그만했을 수 있다.
+    const consents = await fetchConsents();
+    applyDietConsent(consents.diet);
+    applyBodyConsent(consents.body);
     await syncOnce(db, supabaseRemote, { skip: consentSkippedTables() });
     await syncPhotoFiles(db, userId, supabasePhotoStore, devicePhotoFiles);
     useSync.getState().done(Date.now());
@@ -105,6 +107,15 @@ function applyDietConsent(acceptedAt: number | null) {
   const consent = useHealthConsent.getState();
   if (acceptedAt !== null && consent.dietAcceptedAt === null) resyncTables(db, CONSENT_TABLES);
   if (acceptedAt !== consent.dietAcceptedAt || !consent.known) consent.setDiet(acceptedAt);
+}
+
+/** 체성분 백업 동의도 같은 방식으로 맞춘다. */
+function applyBodyConsent(acceptedAt: number | null) {
+  const consent = useHealthConsent.getState();
+  if (acceptedAt !== null && consent.bodyAcceptedAt === null) {
+    resyncTables(db, BODY_CONSENT_TABLES);
+  }
+  if (acceptedAt !== consent.bodyAcceptedAt || !consent.known) consent.setBody(acceptedAt);
 }
 
 /** 지금 동기화(로그인 안 했으면 아무것도 안 함). 끝나면 resolve. */
@@ -153,6 +164,20 @@ export async function setDietBackup(accepted: boolean): Promise<void> {
   await pauseSync();
   try {
     applyDietConsent(await saveDietConsent(accepted));
+  } finally {
+    resumeSync();
+  }
+  if (accepted) void syncNow();
+}
+
+/**
+ * 체성분 기록 백업에 동의하거나(true) 그만한다(false). 식단과 같은 방식 —
+ * 그만하면 서버의 체성분 기록은 지워지고 기기의 기록은 그대로 남는다. 실패하면 던진다.
+ */
+export async function setBodyBackup(accepted: boolean): Promise<void> {
+  await pauseSync();
+  try {
+    applyBodyConsent(await saveBodyConsent(accepted));
   } finally {
     resumeSync();
   }

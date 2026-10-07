@@ -1,6 +1,11 @@
 import { BODY_CONSENT_TABLES, CONSENT_TABLES } from '@/db/schema';
 
-import { consentSkippedTables, shouldAskDietBackup, useHealthConsent } from '../health-consent';
+import {
+  consentSkippedTables,
+  shouldAskBodyBackup,
+  shouldAskDietBackup,
+  useHealthConsent,
+} from '../health-consent';
 
 const state = () => useHealthConsent.getState();
 
@@ -12,9 +17,31 @@ describe('건강 데이터 동의', () => {
     expect(consentSkippedTables()).toEqual([...CONSENT_TABLES, ...BODY_CONSENT_TABLES]);
   });
 
-  it('식단에 동의해도 체성분 표는 따로다(동의 화면을 만들기 전까지 기기에만 둔다)', () => {
+  it('식단 동의와 체성분 동의는 따로다', () => {
     state().setDiet(1000);
     expect(consentSkippedTables()).toEqual(BODY_CONSENT_TABLES);
+    state().setBody(2000);
+    expect(consentSkippedTables()).toEqual([]);
+    state().setDiet(null);
+    expect(consentSkippedTables()).toEqual(CONSENT_TABLES);
+  });
+
+  it('체성분 안내 카드도 같은 규칙이고 식단 카드를 접어도 따로 남는다', () => {
+    expect(shouldAskBodyBackup(true, state())).toBe(false);
+    state().setDiet(null);
+    state().setBody(null);
+    state().dismissDietAsk();
+    expect(shouldAskBodyBackup(true, state())).toBe(true);
+    expect(shouldAskBodyBackup(false, state())).toBe(false);
+    state().dismissBodyAsk();
+    expect(shouldAskBodyBackup(true, state())).toBe(false);
+  });
+
+  it('체성분 백업을 그만한 사람에게 다시 묻지 않는다', () => {
+    state().setBody(1000);
+    state().setBody(null);
+    expect(state().bodyAcceptedAt).toBeNull();
+    expect(shouldAskBodyBackup(true, state())).toBe(false);
   });
 
   it('안내 카드는 로그인했고 서버에서 확인했고 동의하지 않았을 때만 보인다', () => {
