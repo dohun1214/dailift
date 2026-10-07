@@ -1,4 +1,4 @@
-import { CONSENT_TABLES } from '@/db/schema';
+import { BODY_CONSENT_TABLES, CONSENT_TABLES } from '@/db/schema';
 
 import { consentSkippedTables, shouldAskDietBackup, useHealthConsent } from '../health-consent';
 
@@ -7,14 +7,14 @@ const state = () => useHealthConsent.getState();
 describe('건강 데이터 동의', () => {
   beforeEach(() => state().reset());
 
-  it('처음에는 동의가 없어 식단 표를 건너뛴다', () => {
+  it('처음에는 동의가 없어 식단 표와 체성분 표를 건너뛴다', () => {
     expect(state().dietAcceptedAt).toBeNull();
-    expect(consentSkippedTables()).toEqual(CONSENT_TABLES);
+    expect(consentSkippedTables()).toEqual([...CONSENT_TABLES, ...BODY_CONSENT_TABLES]);
   });
 
-  it('동의하면 건너뛰는 표가 없다', () => {
+  it('식단에 동의해도 체성분 표는 따로다(동의 화면을 만들기 전까지 기기에만 둔다)', () => {
     state().setDiet(1000);
-    expect(consentSkippedTables()).toEqual([]);
+    expect(consentSkippedTables()).toEqual(BODY_CONSENT_TABLES);
   });
 
   it('안내 카드는 로그인했고 서버에서 확인했고 동의하지 않았을 때만 보인다', () => {

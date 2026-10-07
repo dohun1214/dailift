@@ -5,6 +5,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
+import { BodyCard } from '@/components/body/body-card';
 import { ActionSheet } from '@/components/ui';
 import { useExerciseCatalog } from '@/db/use-exercise-catalog';
 import { useStatsData } from '@/db/use-stats';
@@ -95,6 +96,8 @@ export function StatsView() {
 
   return (
     <>
+      <BodyCard />
+
       <View style={styles.pairs}>
         {pairs.map(([label, cur, prev]) => (
           <View

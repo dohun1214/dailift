@@ -1,0 +1,1 @@
+ALTER TABLE `body_metrics` ADD `extras` text;

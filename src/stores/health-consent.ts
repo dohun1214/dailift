@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { CONSENT_TABLES } from '@/db/schema';
+import { BODY_CONSENT_TABLES, CONSENT_TABLES } from '@/db/schema';
 import { kvStorage } from '@/lib/kv-storage';
 
 type HealthConsentState = {
@@ -10,6 +10,11 @@ type HealthConsentState = {
    * 동의는 계정에 적혀 있고(서버 `health_consents`), 여기는 그것을 받아 둔 사본이다.
    */
   dietAcceptedAt: number | null;
+  /**
+   * 체성분 기록을 서버에 보관하는 데 동의한 시각. 동의 화면이 아직 없어 늘 null이다
+   * (체성분 표는 기기에만 둔다).
+   */
+  bodyAcceptedAt: number | null;
   /** 지금 계정의 동의 여부를 서버에서 확인했다. 확인하기 전에는 안내 카드를 띄우지 않는다 */
   known: boolean;
   /** 안내 카드를 접었다('기기에만 둘게요'를 골랐거나 백업을 그만했다) */
@@ -21,7 +26,12 @@ type HealthConsentState = {
   reset: () => void;
 };
 
-const INITIAL = { dietAcceptedAt: null, known: false, dietAskDismissed: false };
+const INITIAL = {
+  dietAcceptedAt: null,
+  bodyAcceptedAt: null,
+  known: false,
+  dietAskDismissed: false,
+};
 
 /** 건강 데이터 동의. 기본은 동의 없음 — 식단 표는 서버로 올리지도 받지도 않는다. */
 export const useHealthConsent = create<HealthConsentState>()(
@@ -52,6 +62,13 @@ export function shouldAskDietBackup(
 }
 
 /** 지금 동기화에서 건너뛸 표 */
-export function consentSkippedTables(): readonly (typeof CONSENT_TABLES)[number][] {
-  return useHealthConsent.getState().dietAcceptedAt === null ? CONSENT_TABLES : [];
+export function consentSkippedTables(): readonly (
+  | (typeof CONSENT_TABLES)[number]
+  | (typeof BODY_CONSENT_TABLES)[number]
+)[] {
+  const s = useHealthConsent.getState();
+  return [
+    ...(s.dietAcceptedAt === null ? CONSENT_TABLES : []),
+    ...(s.bodyAcceptedAt === null ? BODY_CONSENT_TABLES : []),
+  ];
 }
