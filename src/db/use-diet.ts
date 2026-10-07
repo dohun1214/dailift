@@ -103,7 +103,13 @@ export function useFoodLists() {
       seen.add(key);
       return true;
     });
-    return { mine, recent: recentFoods(logRows.map(toFoodLog)), favorites };
+    // 내 음식은 지금 값으로 보여 준다(기록에는 먹을 때의 값이 남아 있어, 고친 뒤에도 옛 값이 다시 담기지 않게).
+    const live = new Map(mine.map((f) => [f.sid, f]));
+    const recent = recentFoods(logRows.map(toFoodLog)).map((r) => {
+      const now = r.item.src === 'custom' ? live.get(r.item.sid) : undefined;
+      return now ? { ...r, item: now } : r;
+    });
+    return { mine, recent, favorites };
   }, [foodRows, logRows, favRows]);
 }
 

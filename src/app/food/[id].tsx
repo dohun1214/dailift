@@ -122,6 +122,7 @@ export default function CustomFoodScreen() {
   };
 
   const save = () => {
+    if (leaving) return;
     if (!draft.name.trim()) return setProblem('name');
     const values = NUMBERS.map((k) => (draft[k].trim() === '' ? 0 : parseDecimal(draft[k])));
     const serving = draft.per === 'serving' ? parseDecimal(draft.serving) : null;

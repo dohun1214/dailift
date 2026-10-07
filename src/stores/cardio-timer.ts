@@ -51,6 +51,8 @@ type CardioTimerState = {
   take: (setId: string, now?: number) => number | null;
   /** 운동을 끝내거나 버릴 때 */
   clear: (setIds?: readonly string[]) => void;
+  /** 지웠던 스톱워치 · 타이머를 그대로 되살린다(종목 빼기를 되돌릴 때) */
+  restore: (timers: Record<string, CardioTimer>, plans: Record<string, CardioPlan>) => void;
 };
 
 /** "20분" · "1분 30초" · "45초" */
@@ -188,6 +190,15 @@ export const useCardioTimer = create<CardioTimerState>()(
           });
           if (!setIds) void dismissCardioNotifications();
           syncLive(Date.now());
+        },
+        restore: (timers, plans) => {
+          const now = Date.now();
+          set((s) => ({ timers: { ...s.timers, ...timers }, plans: { ...s.plans, ...plans } }));
+          // 돌아가던 타이머는 끝나는 시각의 알림도 다시 건다(이미 지났으면 화면이 바로 기록한다).
+          for (const [setId, timer] of Object.entries(timers)) {
+            if (timer.startedAt !== null && !timerExpired(timer, now)) schedule(setId, timer, now);
+          }
+          syncLive(now);
         },
       };
     },

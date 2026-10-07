@@ -89,6 +89,9 @@ describe('검색 규칙', () => {
   it('한글은 띄어쓰기 · 쉼표가 달라도 찾는다', () => {
     expect(names(searchFoods(db, '닭고기가슴살', KR))).toEqual(['닭고기, 가슴살, 생것']);
     expect(names(searchFoods(db, '돼지고기김치', KR))).toEqual(['돼지고기 김치볶음']);
+    // 이름을 쉼표째 넣어도 찾는다
+    expect(names(searchFoods(db, '닭고기, 가슴살', KR))).toEqual(['닭고기, 가슴살, 생것']);
+    expect(names(searchFoods(db, '닭고기,가슴살', KR))).toEqual(['닭고기, 가슴살, 생것']);
   });
 
   it('띄어 쓴 낱말은 순서와 상관없이 모두 들어 있어야 한다', () => {

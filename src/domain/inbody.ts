@@ -351,11 +351,73 @@ function historyTop(flats: Flat[]): number {
   return dates.length >= 2 ? Math.min(...dates) - 0.13 : Number.POSITIVE_INFINITY;
 }
 
+/** 기울기를 찾아볼 범위(도)와 간격 */
+const SKEW_MAX = 12;
+const SKEW_STEP = 0.25;
+
+/**
+ * 사진이 기운 각도(라디안, 시계 방향이 +)를 어림한다.
+ * 결과지는 글자가 줄 맞춰 찍혀 있어서, 바로 세웠을 때 낱말의 높이(y)가 몇 줄에 가장 많이 몰린다.
+ * 각도를 조금씩 바꿔 가며 가장 잘 몰리는 각도를 고른다.
+ */
+function skewOf(words: readonly OcrWord[], aspect: number): number {
+  const real = words.filter((w) => w.h > 0 && w.text.trim() !== '');
+  if (real.length < 20) return 0;
+  const bin = (median(real.map((w) => w.h)) ?? 0.01) * aspect * 0.5;
+  let best = 0;
+  let bestScore = -1;
+  for (let deg = -SKEW_MAX; deg <= SKEW_MAX; deg += SKEW_STEP) {
+    const r = (deg * Math.PI) / 180;
+    const sin = Math.sin(r);
+    const cos = Math.cos(r);
+    const counts = new Map<number, number>();
+    for (const w of real) {
+      const x = w.x + w.w / 2 - 0.5;
+      const y = (w.y + w.h / 2 - 0.5) * aspect;
+      const row = Math.round((y * cos - x * sin) / bin);
+      counts.set(row, (counts.get(row) ?? 0) + 1);
+    }
+    let score = 0;
+    for (const n of counts.values()) score += n * n;
+    // 점수가 같으면 덜 돌리는 쪽
+    if (score > bestScore || (score === bestScore && Math.abs(deg) < Math.abs(best))) {
+      bestScore = score;
+      best = deg;
+    }
+  }
+  return (best * Math.PI) / 180;
+}
+
+/** 기운 만큼 되돌린 줄들(상자의 가운데를 돌린다. 크기는 그대로) */
+function straighten(lines: readonly OcrLine[], aspect: number): readonly OcrLine[] {
+  const all = lines.flatMap((l) => (l.words.length > 0 ? l.words : [l]));
+  const r = skewOf(all, aspect);
+  if (r === 0) return lines;
+  const sin = Math.sin(r);
+  const cos = Math.cos(r);
+  const turn = <T extends OcrWord>(o: T): T => {
+    const x = o.x + o.w / 2 - 0.5;
+    const y = (o.y + o.h / 2 - 0.5) * aspect;
+    return {
+      ...o,
+      x: x * cos + y * sin + 0.5 - o.w / 2,
+      y: (y * cos - x * sin) / aspect + 0.5 - o.h / 2,
+    };
+  };
+  return lines.map((l) => ({ ...turn(l), words: l.words.map(turn) }));
+}
+
 /**
  * 결과지에서 읽은 줄들 → 검사일과 값. `today`(YYYY-MM-DD)보다 뒤의 날짜는 버린다.
+ * `aspect`는 사진의 세로 ÷ 가로(기운 사진을 바로 세우는 데 쓴다).
  * 못 찾은 값은 넣지 않는다.
  */
-export function parseSheet(lines: readonly OcrLine[], today: string): SheetResult {
+export function parseSheet(
+  rawLines: readonly OcrLine[],
+  today: string,
+  aspect = Math.SQRT2,
+): SheetResult {
+  const lines = straighten(rawLines, aspect);
   const flats = lines.map(flatten);
   const nums = flats.flatMap(numbersOf);
   markTicks(nums);
@@ -391,20 +453,18 @@ export function parseSheet(lines: readonly OcrLine[], today: string): SheetResul
     (new Set(weights).size === 1 ? weights[0] : undefined);
   put('weight', weight);
 
+  const date = dateOf(flats, today);
+  // 체중을 못 읽었으면 아래 셋은 맞는지 견줘 볼 길이 없어 채우지 않는다(다른 줄의 값을 집었을 수 있다).
+  if (weight === undefined) return { date, values };
+
   // 골격근량은 체중보다 작다. 아니면 잘못 읽은 것이다.
   const muscle = picks(page, 'muscle')[0];
-  if (muscle !== undefined && (weight === undefined || muscle < weight)) put('muscle', muscle);
+  if (muscle !== undefined && muscle < weight) put('muscle', muscle);
 
   // 체지방률 ≈ 체지방량 ÷ 체중, BMI ≈ 체중 ÷ 키² — 계산할 수 있으면 그 값과 맞는 숫자만 쓴다.
   const height = heightOf(flats);
-  put(
-    'fat',
-    picks(page, 'fat', weight && fatMass ? near((fatMass / weight) * 100, 0.25) : undefined)[0],
-  );
-  put(
-    'bmi',
-    picks(page, 'bmi', weight && height ? near(weight / (height / 100) ** 2, 0.3) : undefined)[0],
-  );
+  put('fat', picks(page, 'fat', fatMass ? near((fatMass / weight) * 100, 0.25) : undefined)[0]);
+  put('bmi', picks(page, 'bmi', height ? near(weight / (height / 100) ** 2, 0.3) : undefined)[0]);
 
-  return { date: dateOf(flats, today), values };
+  return { date, values };
 }

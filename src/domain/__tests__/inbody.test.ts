@@ -124,7 +124,7 @@ describe('인바디 결과지 읽기', () => {
     for (const sheet of [A, B, PHOTO]) {
       const full = parseSheet(sheet, TODAY).values;
       let wrong = 0;
-      for (let i = 0; i < 200; i++) {
+      for (let i = 0; i < 60; i++) {
         const part = parseSheet(
           sheet.filter(() => random() > 0.1),
           TODAY,
@@ -133,9 +133,46 @@ describe('인바디 결과지 읽기', () => {
           if (value !== full[key as keyof typeof full]) wrong += 1;
         }
       }
-      // 열에 하나꼴로 줄을 지운 200번 가운데 틀린 값은 거의 없어야 한다.
-      expect(wrong).toBeLessThanOrEqual(2);
+      // 열에 하나꼴로 줄을 지운 60번 가운데 틀린 값은 없어야 한다.
+      expect(wrong).toBe(0);
     }
+  });
+
+  it('사진이 기울어도 같은 값을 읽는다(틀린 줄의 값을 집지 않는다)', () => {
+    // 사진 가운데를 축으로 상자들을 돌린다. aspect는 사진의 세로 ÷ 가로.
+    const tilt = (lines: OcrLine[], degrees: number, aspect: number): OcrLine[] => {
+      const r = (degrees * Math.PI) / 180;
+      const turn = <T extends OcrWord>(o: T): T => {
+        const x = o.x + o.w / 2 - 0.5;
+        const y = (o.y + o.h / 2 - 0.5) * aspect;
+        return {
+          ...o,
+          x: x * Math.cos(r) - y * Math.sin(r) + 0.5 - o.w / 2,
+          y: (x * Math.sin(r) + y * Math.cos(r)) / aspect + 0.5 - o.h / 2,
+        };
+      };
+      return lines.map((l) => ({ ...turn(l), words: l.words.map(turn) }));
+    };
+    for (const [sheet, aspect] of [
+      [A, 1.41],
+      [B, 1.41],
+      [PHOTO, 1.78],
+    ] as const) {
+      const straight = parseSheet(sheet, TODAY, aspect);
+      for (const degrees of [-10, -5, -2, -0.5, 0.5, 2, 3, 5, 10]) {
+        expect(parseSheet(tilt(sheet, degrees, aspect), TODAY, aspect)).toEqual(straight);
+      }
+    }
+  });
+
+  it('체중을 못 읽으면 골격근량 · 체지방률 · BMI는 채우지 않는다', () => {
+    const noWeight = B.filter((l) => !/^(체중|61)/.test(l.text));
+    const { values } = parseSheet(noWeight, TODAY);
+    expect(values.weight).toBeUndefined();
+    expect(values.muscle).toBeUndefined();
+    expect(values.fat).toBeUndefined();
+    expect(values.bmi).toBeUndefined();
+    expect(values.water).toBe(40.1);
   });
 
   it('지난 기록 표(신체변화)의 값은 가져오지 않는다', () => {

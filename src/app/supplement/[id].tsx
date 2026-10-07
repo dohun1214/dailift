@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { usePreventRemove } from 'expo-router/react-navigation';
 import { ChevronDown } from 'lucide-react-native';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppState, Linking, Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
@@ -73,6 +73,7 @@ export default function SupplementEditScreen() {
   const [asked, setAsked] = useState<Ask | null>(null);
   // 저장 · 삭제 뒤 나갈 때는 나가기 확인을 건너뛴다(상태가 반영된 다음 렌더에서 뒤로 간다).
   const [leaving, setLeaving] = useState(false);
+  const saving = useRef(false);
   const [denied, setDenied] = useState(false);
 
   const changed = initial !== null && draft !== null && KEYS.some((k) => initial[k] !== draft[k]);
@@ -110,7 +111,10 @@ export default function SupplementEditScreen() {
   const update = (patch: Partial<SupplementInput>) => setDraft((d) => (d ? { ...d, ...patch } : d));
 
   const save = async () => {
+    if (saving.current || leaving) return;
     if (!draft.name.trim()) return setNameError(true);
+    // 권한을 묻는 동안 한 번 더 눌러도 두 번 저장되지 않게 한다.
+    saving.current = true;
     // 알림을 켠 채 저장하면 그때 권한을 묻는다(처음 한 번). 거절해도 저장은 한다.
     if (draft.notify && draft.active) await ensurePermission().catch(() => false);
     if (isNew) createSupplement(db, draft);

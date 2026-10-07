@@ -582,13 +582,32 @@ export function replaceWorkoutExercise(
       )
       .run();
 
-    const info = exerciseInfo(tx, [newExerciseId]).get(newExerciseId);
+    const infos = exerciseInfo(tx, [newExerciseId, old.exerciseId]);
+    const info = infos.get(newExerciseId);
+    // 횟수 범위 칸은 종목 종류마다 뜻이 다르다(횟수 · 초 · 유산소 목표 시간).
+    // 종류가 바뀌면 옛 값을 가져오지 않고 새 종목을 추가할 때의 기본값을 쓴다.
+    const kindOf = (type: ExerciseInfo['type'] | undefined) =>
+      type === 'cardio' ? 'cardio' : type === 'time' ? 'time' : 'reps';
+    const sameKind = kindOf(infos.get(old.exerciseId)?.type) === kindOf(info?.type);
+    const fresh =
+      info?.type === 'cardio'
+        ? { targetSets: 1, repMin: 0, repMax: 0, restSec: 0 }
+        : {
+            targetSets: Math.max(1, remaining),
+            repMin: info?.type === 'time' ? 30 : 8,
+            repMax: info?.type === 'time' ? 60 : 12,
+            restSec: info?.type === 'weight_reps' ? 90 : 60,
+          };
     const item: PlanItem = {
       exerciseId: newExerciseId,
-      targetSets: Math.max(1, remaining),
-      repMin: old.repMin,
-      repMax: old.repMax,
-      restSec: old.restSec,
+      ...(sameKind
+        ? {
+            targetSets: info?.type === 'cardio' ? 1 : Math.max(1, remaining),
+            repMin: old.repMin,
+            repMax: old.repMax,
+            restSec: old.restSec,
+          }
+        : fresh),
       increment: old.increment,
       incrementUnit: old.incrementUnit,
     };

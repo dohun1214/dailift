@@ -101,18 +101,21 @@ async function run(userId: string) {
 
 /**
  * 서버에 적힌 식단 백업 동의에 이 기기를 맞춘다.
- * 동의가 새로 생겼으면 식단 표를 처음부터 다시 주고받게 한다(기기의 기록을 모두 올리고, 서버의 것을 모두 받는다).
+ * 동의가 새로 생겼거나 동의한 시각이 바뀌었으면 식단 표를 처음부터 다시 주고받게 한다(기기의 기록을 모두 올리고, 서버의 것을 모두 받는다).
  */
 function applyDietConsent(acceptedAt: number | null) {
   const consent = useHealthConsent.getState();
-  if (acceptedAt !== null && consent.dietAcceptedAt === null) resyncTables(db, CONSENT_TABLES);
+  // 다른 기기에서 그만했다가 다시 동의하면 시각이 바뀐다. 그 사이 서버 기록이 지워졌으므로 이때도 다시 올린다.
+  if (acceptedAt !== null && acceptedAt !== consent.dietAcceptedAt) {
+    resyncTables(db, CONSENT_TABLES);
+  }
   if (acceptedAt !== consent.dietAcceptedAt || !consent.known) consent.setDiet(acceptedAt);
 }
 
 /** 체성분 백업 동의도 같은 방식으로 맞춘다. */
 function applyBodyConsent(acceptedAt: number | null) {
   const consent = useHealthConsent.getState();
-  if (acceptedAt !== null && consent.bodyAcceptedAt === null) {
+  if (acceptedAt !== null && acceptedAt !== consent.bodyAcceptedAt) {
     resyncTables(db, BODY_CONSENT_TABLES);
   }
   if (acceptedAt !== consent.bodyAcceptedAt || !consent.known) consent.setBody(acceptedAt);

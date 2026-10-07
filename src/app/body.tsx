@@ -224,7 +224,9 @@ export default function BodyScreen() {
                 ? t('body.noMetric', { name: metricName })
                 : all.length === 1
                   ? t('body.needTwo')
-                  : t('body.emptyPeriod')}
+                  : points.length === 1
+                    ? t('body.onePeriod')
+                    : t('body.emptyPeriod')}
             </Text>
           </View>
         )}

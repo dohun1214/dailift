@@ -108,7 +108,8 @@ export default function DietGoalScreen() {
   const save = () => {
     const kcal = parseTarget(draft.kcal, LIMITS.kcalTarget);
     const bad = new Set<keyof Draft>();
-    if (!weightOk) bad.add('weight');
+    // 직접 입력일 때는 몸무게 칸이 안 보인다: 그 칸 때문에 저장이 막히지 않게 하고, 몸무게도 건드리지 않는다.
+    if (!direct && !weightOk) bad.add('weight');
     if (direct && directTarget === 'bad') bad.add('proteinDirect');
     if (kcal === 'bad') bad.add('kcal');
     if (carb === 'bad') bad.add('carb');
@@ -127,7 +128,7 @@ export default function DietGoalScreen() {
       carb,
       fat,
     });
-    if (draft.weight !== initial.weight) profile.setWeight(weight, unit);
+    if (!direct && draft.weight !== initial.weight) profile.setWeight(weight, unit);
     setLeaving(true);
   };
 

@@ -54,6 +54,23 @@ async function scheduledSupplementIds(): Promise<string[]> {
   return all.filter((n) => n.content.data?.kind === SUPPLEMENT_KIND).map((n) => n.identifier);
 }
 
+/** 이번에 켠 뒤로 건 한 번짜리 알림(id → 울리는 시각). 이미 울린 것을 다시 걸지 않으려고 둔다. */
+const firedAt = new Map<string, number>();
+
+/** 이미 울려서 알림 창에 떠 있는 영양제 알림 */
+async function shownSupplementIds(): Promise<Set<string>> {
+  try {
+    const shown = await Notifications.getPresentedNotificationsAsync();
+    return new Set(
+      shown
+        .filter((n) => n.request.content.data?.kind === SUPPLEMENT_KIND)
+        .map((n) => n.request.identifier),
+    );
+  } catch {
+    return new Set();
+  }
+}
+
 async function run() {
   try {
     const have = await scheduledSupplementIds();
@@ -73,20 +90,38 @@ async function run() {
       if (!want.has(id)) await Notifications.cancelScheduledNotificationAsync(id);
     }
     const kept = new Set(have);
-    const missing = [...want].filter(([id]) => !kept.has(id));
+    const nowMs = now.getTime();
+    for (const [id, at] of firedAt) {
+      if (!want.has(id) && at <= nowMs) firedAt.delete(id);
+    }
+    let missing = [...want].filter(([id]) => !kept.has(id));
+    if (missing.length === 0) return;
+    // 한 번짜리가 방금 울렸으면 예약 목록에서 빠진다. 같은 것을 다시 걸면 두 번 울리므로 뺀다.
+    const shown = missing.some(([, p]) => p.trigger.type === 'date')
+      ? await shownSupplementIds()
+      : new Set<string>();
+    missing = missing.filter(([id]) => {
+      const at = firedAt.get(id);
+      return !(shown.has(id) || (at !== undefined && at <= nowMs));
+    });
     if (missing.length === 0) return;
     await ensureChannel(SUPPLEMENT_CHANNEL, i18n.t('supplements.notify.channel'));
     for (const [identifier, p] of missing) {
-      await Notifications.scheduleNotificationAsync({
-        identifier,
-        content: {
-          title: i18n.t(`supplements.notify.${TITLE[p.kind]}`),
-          body: p.names.join(', '),
-          data: { kind: SUPPLEMENT_KIND },
-          sound: true,
-        },
-        trigger: trigger(p),
-      });
+      try {
+        await Notifications.scheduleNotificationAsync({
+          identifier,
+          content: {
+            title: i18n.t(`supplements.notify.${TITLE[p.kind]}`),
+            body: p.names.join(', '),
+            data: { kind: SUPPLEMENT_KIND },
+            sound: true,
+          },
+          trigger: trigger(p),
+        });
+        if (p.trigger.type === 'date') firedAt.set(identifier, p.trigger.at);
+      } catch {
+        // 하나를 못 걸어도 나머지는 건다.
+      }
     }
   } catch {
     // 알림을 못 걸어도 기록과 체크는 그대로 동작한다. 다음에 다시 맞춘다.

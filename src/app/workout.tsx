@@ -78,6 +78,7 @@ import {
 } from '@/db/workout';
 import {
   type CardioPlan,
+  type CardioTimer,
   defaultPlan,
   timerElapsed,
   timerEndsAt,
@@ -173,7 +174,14 @@ export default function WorkoutScreen() {
   const [confirm, setConfirm] = useState<Confirm>({ kind: 'discard' });
   const [confirmOpen, setConfirmOpen] = useState(false);
   // 방금 지운 종목 (되돌리기)
-  const [undo, setUndo] = useState<{ id: string; name: string; deletedAt: number } | null>(null);
+  const [undo, setUndo] = useState<{
+    id: string;
+    name: string;
+    deletedAt: number;
+    /** 재고 있던 유산소였으면 그 스톱워치 · 타이머(되돌릴 때 같이 살린다) */
+    timers: Record<string, CardioTimer>;
+    plans: Record<string, CardioPlan>;
+  } | null>(null);
   // '남은 세트에도 적용'을 누른 칸과 그 안내 문장
   const [applied, setApplied] = useState<{ key: string; text: string } | null>(null);
   // ⋯를 누른 종목 카드
@@ -361,6 +369,9 @@ export default function WorkoutScreen() {
         text.message,
         text.label,
       );
+    } else {
+      // 남은 세트가 없으면 쉴 일도 없다: 앞 세트에서 돌던 타이머를 멈춘다.
+      stopRest();
     }
     if (leftHere === 0) {
       // 다 끝낸 종목은 접고, 남은 종목이 있으면 그걸 지금 종목으로
@@ -441,18 +452,24 @@ export default function WorkoutScreen() {
 
   /** 종목을 지우고 잠깐 '되돌리기'를 띄운다. */
   const deleteExercise = (id: string, name: string) => {
-    // 재고 있던 유산소였으면 스톱워치도 지운다.
+    // 재고 있던 유산소였으면 스톱워치도 지운다(되돌리면 다시 살릴 수 있게 따로 들고 있는다).
     const gone = exercises.find((e) => e.id === id);
-    if (gone) useCardioTimer.getState().clear(gone.sets.map((x) => x.id));
+    const setIds = gone?.sets.map((x) => x.id) ?? [];
+    const kept = useCardioTimer.getState();
+    const pick = <T,>(from: Record<string, T>) =>
+      Object.fromEntries(setIds.flatMap((sid) => (from[sid] ? [[sid, from[sid]] as const] : [])));
+    const saved = { timers: pick(kept.timers), plans: pick(kept.plans) };
+    if (gone) kept.clear(setIds);
     const deletedAt = deleteWorkoutExercise(db, id);
     if (undoTimer.current) clearTimeout(undoTimer.current);
-    setUndo({ id, name, deletedAt });
+    setUndo({ id, name, deletedAt, ...saved });
     undoTimer.current = setTimeout(() => setUndo(null), UNDO_MS);
   };
   const undoDelete = () => {
     if (!undo) return;
     if (undoTimer.current) clearTimeout(undoTimer.current);
     restoreWorkoutExercise(db, undo.id, undo.deletedAt);
+    useCardioTimer.getState().restore(undo.timers, undo.plans);
     setUndo(null);
   };
 
@@ -571,6 +588,9 @@ export default function WorkoutScreen() {
       (ids) => {
         const [first] = ids;
         if (!first) return;
+        // 재고 있던 유산소를 바꾸면 그 스톱워치 · 알림 · 잠금 화면 표시도 같이 지운다.
+        const old = exercises.find((e) => e.id === id);
+        if (old) useCardioTimer.getState().clear(old.sets.map((x) => x.id));
         const next = replaceWorkoutExercise(db, id, first, unit);
         // 지금 종목이었거나 펼쳐 둔 카드였으면 새 종목도 그대로 펼쳐 둔다.
         if (active?.id === id) setActiveId(next);

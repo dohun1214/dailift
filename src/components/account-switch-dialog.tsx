@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { ConfirmDialog } from '@/components/ui';
 import { signOut } from '@/lib/auth';
+import { useCardioTimer } from '@/stores/cardio-timer';
 import { useRestTimer } from '@/stores/rest-timer';
 import { replaceWithCurrentAccount, useSync } from '@/sync/manager';
 
@@ -31,6 +32,7 @@ export function AccountSwitchDialog() {
       onConfirm={() => {
         setBusy(true);
         useRestTimer.getState().stop();
+        useCardioTimer.getState().clear();
         replaceWithCurrentAccount().finally(() => setBusy(false));
       }}
       // 바깥을 눌러서는 닫히지 않는다(둘 중 하나를 골라야 동기화가 다시 돈다).
