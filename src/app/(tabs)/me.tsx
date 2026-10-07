@@ -244,6 +244,17 @@ export default function MeScreen() {
             onPress={() => setTargetsOpen(true)}
           />
           <ListRow
+            label={t('settings.countSecondary')}
+            description={t('settings.countSecondarySub')}
+            trailing={
+              <Toggle
+                value={s.countSecondarySets}
+                onValueChange={s.setCountSecondarySets}
+                accessibilityLabel={t('settings.countSecondary')}
+              />
+            }
+          />
+          <ListRow
             label={t('settings.defaultRest')}
             value={t('settings.seconds', { count: s.defaultRestSec })}
             onPress={() =>

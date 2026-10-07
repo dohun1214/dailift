@@ -55,13 +55,15 @@ export const BALANCE_GROUPS: readonly MuscleGroup[] = [
 ];
 
 /**
- * 이번 주(월요일부터 지금까지) 부위별 세트 수. 한 세트가 부위의 주동근을 쓰면 1, 협응근만 쓰면 0.5
+ * 이번 주(월요일부터 지금까지) 부위별 세트 수. 한 세트가 부위의 주동근을 쓰면 1
  * (한 부위에 여러 근육이 걸려도 세트당 한 번만 센다).
+ * `countSecondary`를 켜면 협응근만 쓰는 부위에도 0.5를 더한다 — 기본은 끔(2026-10-07 사용자 결정: 벤치프레스면 가슴만).
  */
 export function groupBalance(
   sets: readonly StatSet[],
   now: number,
   musclesOf: ReadonlyMap<string, readonly { group: MuscleGroup; role: MuscleRole }[]>,
+  countSecondary: boolean,
 ): Map<MuscleGroup, number> {
   const out = new Map<MuscleGroup, number>(BALANCE_GROUPS.map((g) => [g, 0]));
   const from = weekStarts(now).current;
@@ -69,6 +71,7 @@ export function groupBalance(
     if (s.startedAt < from || s.startedAt > now) continue;
     const credit = new Map<MuscleGroup, number>();
     for (const m of musclesOf.get(s.exerciseId) ?? []) {
+      if (m.role !== 'primary' && !countSecondary) continue;
       const c = m.role === 'primary' ? 1 : 0.5;
       credit.set(m.group, Math.max(credit.get(m.group) ?? 0, c));
     }

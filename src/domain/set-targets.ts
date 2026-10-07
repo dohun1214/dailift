@@ -20,7 +20,8 @@ function baseSets(experience: Experience | null): number {
 }
 
 /**
- * 부위별 배수. 어깨·팔은 누르기·당기기 종목에서 협응근으로도 0.5세트씩 쌓이므로 낮게,
+ * 부위별 배수. 어깨·팔은 작은 근육이고 누르기·당기기 종목에서도 함께 쓰이므로 낮게
+ * ('협응근도 세기'를 켜면 그 종목들에서 0.5세트씩 쌓인다 — 켜든 끄든 추천값은 같다),
  * 하체는 대퇴사두·햄스트링·둔근·종아리를 한 부위로 세므로 높게 잡는다.
  */
 const GROUP_FACTOR: SetTargets = { chest: 1, back: 1, shoulders: 0.8, legs: 1.2, arms: 0.8 };

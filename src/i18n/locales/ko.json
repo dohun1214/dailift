@@ -781,6 +781,8 @@
     "setTargets": "부위별 주간 목표 세트",
     "setTargetsDefault": "추천값",
     "setTargetsCustom": "직접 설정",
+    "countSecondary": "협응근도 세트에 세기",
+    "countSecondarySub": "벤치프레스를 하면 팔 · 어깨에도 0.5세트씩 더해요",
     "wipeBodyAccount": "루틴, 운동 기록, 사진이 이 기기와 서버에서 모두 지워져요. 계정은 남아요. 되돌릴 수 없어요."
   },
   "plates": {

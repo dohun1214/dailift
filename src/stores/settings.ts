@@ -44,6 +44,8 @@ type Data = {
   summaryExercisesOpen: boolean;
   /** 직접 정한 부위별 주간 목표 세트. 없는 부위는 운동 경력에 맞춘 추천값을 쓴다 */
   setTargets: Partial<SetTargets>;
+  /** 부위별 주간 세트를 셀 때 협응근만 쓰는 부위에도 0.5세트를 더할지. 끄면 주동근 부위만 센다 */
+  countSecondarySets: boolean;
 };
 
 type SettingsState = Data & {
@@ -61,6 +63,7 @@ type SettingsState = Data & {
   markEditHintSeen: () => void;
   setSummaryExercisesOpen: (value: boolean) => void;
   setSetTarget: (group: TargetGroup, value: number) => void;
+  setCountSecondarySets: (value: boolean) => void;
   /** 모든 부위를 추천값으로 */
   resetSetTargets: () => void;
   /** 모든 데이터 삭제 때 처음 상태로 */
@@ -83,6 +86,7 @@ function defaults(): Data {
     editHintSeen: false,
     summaryExercisesOpen: false,
     setTargets: {},
+    countSecondarySets: false,
   };
 }
 
@@ -108,6 +112,7 @@ export const useSettings = create<SettingsState>()(
       setSetTarget: (group, value) =>
         set((s) => ({ setTargets: { ...s.setTargets, [group]: clampSetTarget(value) } })),
       resetSetTargets: () => set({ setTargets: {} }),
+      setCountSecondarySets: (countSecondarySets) => set({ countSecondarySets }),
       reset: () => set(defaults()),
     }),
     {
