@@ -40,6 +40,7 @@ export function StatsView() {
   const unit = useSettings((s) => s.weightUnit);
   const experience = useProfile((s) => s.experience);
   const customTargets = useSettings((s) => s.setTargets);
+  const countSecondary = useSettings((s) => s.countSecondarySets);
   const targets = resolveSetTargets(experience, customTargets);
   const [targetsOpen, setTargetsOpen] = useState(false);
   const catalog = useExerciseCatalog(lang);
@@ -50,7 +51,7 @@ export function StatsView() {
   const now = useToday().getTime();
 
   const progress = weeklyProgress(sets, now, unit);
-  const balance = groupBalance(sets, now, musclesOf);
+  const balance = groupBalance(sets, now, musclesOf, countSecondary);
 
   // 무게 기록이 있는 종목(최근 순) — 차트 종목 선택지와 정체 감지 대상
   const weighted = useMemo(() => {

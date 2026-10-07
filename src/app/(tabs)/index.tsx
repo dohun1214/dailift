@@ -67,6 +67,7 @@ export default function HomeScreen() {
   const target = useProfile((s) => s.daysPerWeek);
   const experience = useProfile((s) => s.experience);
   const customTargets = useSettings((s) => s.setTargets);
+  const countSecondary = useSettings((s) => s.countSecondarySets);
   const catalog = useExerciseCatalog(lang);
   const sections = useRoutineSections();
   const { workout: active } = useActiveWorkout();
@@ -134,14 +135,14 @@ export default function HomeScreen() {
   const minOffset = minWeekOffset(starts, now);
   const thisWeek = workoutsThisWeek(starts, now);
   const muscleRows = useMemo(() => {
-    const balance = groupBalance(sets, now.getTime(), musclesOf);
+    const balance = groupBalance(sets, now.getTime(), musclesOf, countSecondary);
     const targets = resolveSetTargets(experience, customTargets);
     return BALANCE_GROUPS.map((g) => ({
       name: t(`exercises.group.${g}`),
       value: balance.get(g) ?? 0,
       target: targets[g as TargetGroup] ?? 0,
     }));
-  }, [sets, now, musclesOf, t, experience, customTargets]);
+  }, [sets, now, musclesOf, t, experience, customTargets, countSecondary]);
   const streak = target ? streakWeeks(starts, target, now) : 0;
 
   const pr = useMemo(() => {

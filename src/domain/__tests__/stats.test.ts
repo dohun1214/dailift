@@ -44,7 +44,7 @@ describe('weeklyProgress', () => {
 });
 
 describe('groupBalance', () => {
-  it('주동 1 · 협응 0.5, 한 세트는 부위당 한 번', () => {
+  it('협응근도 세면 주동 1 · 협응 0.5, 한 세트는 부위당 한 번. 끄면 주동근 부위만', () => {
     const musclesOf = new Map([
       [
         'bench',
@@ -62,18 +62,23 @@ describe('groupBalance', () => {
         ],
       ],
     ]);
-    const b = groupBalance(
-      [
-        s('a', 1, 'bench', 60, 10),
-        s('a', 1, 'bench', 60, 10),
-        s('a', 1, 'row', 50, 10),
-        s('y', 6, 'row', 50, 10),
-        s('z', 9, 'row', 50, 10),
-      ],
-      NOW,
-      musclesOf,
-    );
+    const sets = [
+      s('a', 1, 'bench', 60, 10),
+      s('a', 1, 'bench', 60, 10),
+      s('a', 1, 'row', 50, 10),
+      s('y', 6, 'row', 50, 10),
+      s('z', 9, 'row', 50, 10),
+    ];
+    const b = groupBalance(sets, NOW, musclesOf, true);
     expect(Object.fromEntries(b)).toEqual({ chest: 2, back: 1, shoulders: 1, legs: 0, arms: 1 });
+    const primaryOnly = groupBalance(sets, NOW, musclesOf, false);
+    expect(Object.fromEntries(primaryOnly)).toEqual({
+      chest: 2,
+      back: 1,
+      shoulders: 0,
+      legs: 0,
+      arms: 0,
+    });
   });
 });
 

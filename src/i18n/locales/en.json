@@ -810,6 +810,8 @@
     "setTargets": "Weekly target sets",
     "setTargetsDefault": "Recommended",
     "setTargetsCustom": "Custom",
+    "countSecondary": "Count secondary muscles",
+    "countSecondarySub": "Bench press also adds 0.5 sets each to arms and shoulders",
     "wipeBodyAccount": "Your routines, workout history, and photos will be erased from this device and the server. Your account stays. This can't be undone."
   },
   "plates": {
