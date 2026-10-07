@@ -117,13 +117,33 @@ function brandName(company) {
 }
 
 /**
- * 화면에 보일 회사: ① 원본의 유통업체 ② 포장지 표기의 판매원(HACCP 자료와 품목보고번호가 같을 때) ③ 제조사.
+ * 제품 이름에 유통사의 자체브랜드(PB) 이름이 들어 있으면 그 유통사 것이다(상표라서 틀릴 일이 없다).
+ * 흔한 낱말과 겹칠 수 있는 것("요리하다", "곰곰", "피빅")은 이름 맨 앞에 있을 때만 본다.
+ */
+const PB_BRANDS = [
+  [/유어스|YOU\s?US|리얼프라이스|혜자로운/i, 'GS리테일(GS25)'],
+  [/헤이루|HEYROO|PBICK|^[[(]?\s*피빅/i, 'BGF리테일(CU)'],
+  [/세븐셀렉트|7-?\s?SELECT/i, '코리아세븐(세븐일레븐)'],
+  [/노브랜드|피코크/, '이마트'],
+  [/온리프라이스|초이스엘|^[[(]?\s*요리하다/, '롯데마트'],
+  [/심플러스/, '홈플러스'],
+  [/^[[(]?\s*곰곰/, '쿠팡'],
+  [/KF365|컬리스/i, '컬리'],
+];
+/** 유통사가 100% 가진 제조 자회사: 이름 뒤에 어디 계열인지 붙인다(그 유통사에만 납품한다는 뜻은 아니다) */
+const AFFILIATES = [[/^비지에프푸드/, 'BGF푸드(CU 계열사)']];
+
+/**
+ * 화면에 보일 회사: ⓪ 제품 이름의 자체브랜드 ① 원본의 유통업체 ② 포장지 표기의 판매원(HACCP 자료와 품목보고번호가 같을 때) ③ 제조사.
  * ① · ②가 브랜드 주인 · 판매원이다. 둘 다 없는 것이 대부분(약 97%)이라 그때는 제조사를 다듬어 보여 준다.
  */
-function shownCompany(mfr, dist, seller = '') {
+function shownCompany(mfr, dist, seller = '', name = '') {
+  for (const [re, owner] of PB_BRANDS) if (re.test(name)) return owner;
   if (dist) return brandName(dist);
   if (seller) return brandName(seller);
-  return companyName(mfr);
+  const maker = companyName(mfr);
+  for (const [re, label] of AFFILIATES) if (re.test(maker)) return label;
+  return maker;
 }
 
 const count = (map, key) => map.set(key, (map.get(key) ?? 0) + 1);
@@ -301,7 +321,7 @@ const tsv = rows
     [
       r.sid,
       r.name,
-      shownCompany(r.mfr, r.dist, r.seller),
+      shownCompany(r.mfr, r.dist, r.seller, r.name),
       r.cat,
       r.basis,
       r.kcal,
@@ -326,7 +346,7 @@ writeFileSync(tsvFile, `${tsv}\n`, 'utf8');
 const byShown = new Map();
 const changed = [];
 for (const r of rows) {
-  const shown = shownCompany(r.mfr, r.dist, r.seller);
+  const shown = shownCompany(r.mfr, r.dist, r.seller, r.name);
   count(byShown, shown || '(없음)');
   if (
     shown !== r.mfr &&
@@ -337,13 +357,14 @@ for (const r of rows) {
   }
 }
 
+const usedPb = rows.filter((r) => PB_BRANDS.some(([re]) => re.test(r.name))).length;
 const usedDist = rows.filter((r) => r.dist).length;
 const usedSeller = rows.filter((r) => !r.dist && r.seller).length;
 const sellerSample = rows
   .filter((r) => !r.dist && r.seller && r.seller !== companyName(r.mfr))
   .filter(() => Math.random() < 0.03)
   .slice(0, 40)
-  .map((r) => `   ${r.name} | 제조 ${r.mfr}  →  ${shownCompany(r.mfr, r.dist, r.seller)}`)
+  .map((r) => `   ${r.name} | 제조 ${r.mfr}  →  ${shownCompany(r.mfr, r.dist, r.seller, r.name)}`)
   .join('\n');
 const sellerNew = rows.filter(
   (r) => !r.dist && r.seller && brandName(r.seller) !== companyName(r.mfr),
@@ -361,7 +382,7 @@ date ${minDate} ~ ${maxDate}
 name length avg=${avgName.toFixed(1)} max=${longest}
 tsvBytes=${Buffer.byteLength(tsv)}
 changedLines=${changedLines === null ? '(앞의 TSV 없음)' : changedLines.length}
-보일 회사: 유통업체 ${usedDist} / 판매원(HACCP) ${usedSeller} (그중 제조사와 다른 이름 ${sellerNew}) / 제조사 ${rows.length - usedDist - usedSeller}
+보일 회사: 이름의 자체브랜드 ${usedPb} / 유통업체 ${usedDist} / 판매원(HACCP) ${usedSeller} (그중 제조사와 다른 이름 ${sellerNew}) / 제조사 ${rows.length - usedDist - usedSeller}
 -- 판매원으로 바뀐 예
 ${sellerSample}
 -- 영양성분 기준량
