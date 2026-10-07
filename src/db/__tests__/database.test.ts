@@ -16,12 +16,12 @@ function createTestDb() {
 }
 
 describe('로컬 DB', () => {
-  it('마이그레이션 후 시드하면 근육 15개, 기본 종목 34개가 들어간다', () => {
+  it('마이그레이션 후 시드하면 근육 15개, 기본 종목 154개가 들어간다', () => {
     const db = createTestDb();
     seedReferenceData(db);
     expect(db.select().from(schema.muscles).all()).toHaveLength(15);
     const base = db.select().from(schema.exercises).where(eq(schema.exercises.isCustom, 0)).all();
-    expect(base).toHaveLength(34);
+    expect(base).toHaveLength(154);
     expect(base.every((e) => e.dirty === 0)).toBe(true);
   });
 
@@ -29,7 +29,7 @@ describe('로컬 DB', () => {
     const db = createTestDb();
     seedReferenceData(db);
     seedReferenceData(db);
-    expect(db.select().from(schema.exercises).all()).toHaveLength(34);
+    expect(db.select().from(schema.exercises).all()).toHaveLength(154);
     const benchMuscles = db
       .select()
       .from(schema.exerciseMuscles)

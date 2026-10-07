@@ -3,8 +3,8 @@ import { BASE_EXERCISES } from '@/data/exercises';
 import { MUSCLES } from '@/data/muscles';
 
 describe('기본 종목 데이터', () => {
-  it('34개다', () => {
-    expect(BASE_EXERCISES).toHaveLength(34);
+  it('154개다', () => {
+    expect(BASE_EXERCISES).toHaveLength(154);
   });
 
   it('key와 이름이 겹치지 않는다', () => {
@@ -23,11 +23,26 @@ describe('기본 종목 데이터', () => {
     }
   });
 
+  it('무게를 적는 종목에 밴드 · 맨몸 기구는 없고, 시간 종목은 버티는 동작이다', () => {
+    for (const e of BASE_EXERCISES) {
+      if (e.type === 'weight_reps') {
+        expect(['band', 'bodyweight']).not.toContain(e.equipment);
+      }
+    }
+    expect(BASE_EXERCISES.filter((e) => e.type === 'time').map((e) => e.key)).toEqual([
+      'wall_sit',
+      'farmers_carry',
+      'dead_hang',
+      'plank',
+      'side_plank',
+      'hollow_hold',
+    ]);
+  });
+
   it('모든 근육이 적어도 한 종목의 주동근이다', () => {
     const covered = new Set(BASE_EXERCISES.flatMap((e) => e.primary));
     const missing = MUSCLES.map((m) => m.id).filter((id) => !covered.has(id));
-    // 옆구리·내전근은 협응근으로만 쓰인다.
-    expect(missing.sort()).toEqual(['adductors', 'obliques']);
+    expect(missing).toEqual([]);
   });
 });
 
