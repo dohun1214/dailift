@@ -12,6 +12,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { db } from '@/db/client';
 import { BODY_CONSENT_TABLES, CONSENT_TABLES, SYNCED_TABLES } from '@/db/schema';
 import { hasUserData, wipeUserData } from '@/db/wipe';
+import { clearExportFiles } from '@/lib/export-data';
 import { kvStorage } from '@/lib/kv-storage';
 import { removePhotoFile } from '@/lib/photos';
 import { useAuth } from '@/stores/auth';
@@ -136,6 +137,9 @@ export function syncNow(): Promise<void> {
     } while (again && !paused);
   })().finally(() => {
     running = null;
+    // 도는 동안 고친 것은 변경 알림을 건너뛰었다(받기로 생긴 변경과 구분할 수 없어서). 잘 끝났는데 보낼 것이 남았으면 곧 한 번 더 돈다.
+    const sync = useSync.getState();
+    if (sync.status !== 'error' && !sync.otherAccount && unsyncedCount() > 0) schedule();
   });
   return running;
 }
@@ -192,6 +196,8 @@ export function replaceWithCurrentAccount(): Promise<void> {
   const userId = useAuth.getState().session?.user.id;
   if (!userId) return Promise.resolve();
   for (const path of wipeUserData(db)) removePhotoFile(path);
+  // 앞 계정의 기록으로 만든 내보내기 파일도 치운다.
+  clearExportFiles();
   useHealthConsent.getState().reset();
   Storage.setItemSync(ACCOUNT_KEY, userId);
   useSync.setState({ otherAccount: false, lastSyncedAt: null });

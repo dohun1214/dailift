@@ -423,7 +423,7 @@ export const CONSENT_TABLES = [
 ] as const;
 
 /**
- * 체성분 백업 동의가 있어야 서버와 주고받는 표. 동의 화면을 만들기 전까지는 늘 기기에만 둔다
+ * 체성분 백업 동의가 있어야 서버와 주고받는 표. 동의가 없으면 기기에만 둔다
  * (`stores/health-consent.ts`의 `bodyAcceptedAt`).
  */
 export const BODY_CONSENT_TABLES = ['body_metrics'] as const;

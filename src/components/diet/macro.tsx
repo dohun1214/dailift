@@ -34,21 +34,30 @@ export function BigMacro({ label, value, target, unit, moreIsFine, compact, trai
         : p.over > 0 && !moreIsFine
           ? t('diet.over', { n: fmt.int(p.over), unit })
           : t('diet.reached');
+  const a11y = p
+    ? `${label} ${fmt.int(value)} / ${fmt.int(p.target)} ${unit}, ${note}`
+    : `${label} ${fmt.int(value)} ${unit}`;
+  // 오른쪽에 버튼(목표 바꾸기)이 있으면 칸 전체를 한 덩어리로 읽히지 않게 한다 — 그러면 VoiceOver에서 버튼에 닿을 수 없다.
+  // 그때는 이름 글자가 칸 전체를 읽고, 숫자 · 남은 양은 따로 읽히지 않게 숨긴다.
+  const split = !!trailing;
+  const hide = split
+    ? ({ accessibilityElementsHidden: true, importantForAccessibility: 'no' } as const)
+    : {};
   return (
-    <View
-      style={styles.big}
-      accessible
-      accessibilityLabel={
-        p
-          ? `${label} ${fmt.int(value)} / ${fmt.int(p.target)} ${unit}, ${note}`
-          : `${label} ${fmt.int(value)} ${unit}`
-      }
-    >
+    <View style={styles.big} accessible={!split} accessibilityLabel={split ? undefined : a11y}>
       <View style={styles.labelRow}>
-        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.label} accessibilityLabel={split ? a11y : undefined}>
+          {label}
+        </Text>
         {trailing}
       </View>
-      <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+      <Text
+        style={styles.value}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
+        {...hide}
+      >
         {fmt.int(value)}
         <Text style={p ? styles.target : styles.unit}>
           {p ? ` / ${fmt.int(p.target)} ${unit}` : ` ${unit}`}
@@ -59,7 +68,11 @@ export function BigMacro({ label, value, target, unit, moreIsFine, compact, trai
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${p.ratio * 100}%` }]} />
           </View>
-          {compact ? null : <Text style={styles.note}>{note}</Text>}
+          {compact ? null : (
+            <Text style={styles.note} {...hide}>
+              {note}
+            </Text>
+          )}
         </>
       ) : null}
     </View>

@@ -8,6 +8,7 @@ jest.mock('@/lib/cardio-live', () => ({ showCardioLive: jest.fn(), hideCardioLiv
 jest.mock('@/lib/notifications', () => ({
   cancelScheduled: jest.fn(async () => undefined),
   dismissCardioNotifications: jest.fn(async () => undefined),
+  notificationsAllowed: jest.fn(async () => true),
   scheduleCardioEnd: jest.fn(async () => 'n1'),
 }));
 

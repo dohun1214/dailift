@@ -192,28 +192,46 @@ export async function syncOnce(
   }: { batch?: number; now?: () => number; skip?: readonly SyncedTableName[] } = {},
 ): Promise<SyncResult> {
   const tables = schema.SYNCED_TABLES.filter((t) => !skip.includes(t));
+  // 표 하나가 실패해도 나머지 표는 계속 주고받는다(표끼리 서버에서 묶여 있지 않다). 끝난 뒤 처음 난 오류를 던진다.
+  const failed = new Set<SyncedTableName>();
+  let firstError: unknown;
+  const guard = async (table: SyncedTableName, work: () => Promise<void>) => {
+    try {
+      await work();
+    } catch (e) {
+      failed.add(table);
+      firstError ??= e;
+    }
+  };
   let pushed = 0;
   for (const table of tables) {
-    for (;;) {
-      const rows = collectDirty(db, table, batch);
-      if (rows.length === 0) break;
-      await remote.push(table, rows);
-      markClean(db, table, rows);
-      pushed += rows.length;
-      if (rows.length < batch) break;
-    }
+    await guard(table, async () => {
+      for (;;) {
+        const rows = collectDirty(db, table, batch);
+        if (rows.length === 0) break;
+        await remote.push(table, rows);
+        markClean(db, table, rows);
+        pushed += rows.length;
+        if (rows.length < batch) break;
+      }
+    });
   }
   let pulled = 0;
   for (const table of tables) {
-    let cursor = getCursor(db, table);
-    for (;;) {
-      const rows = await remote.pull(table, cursor, batch);
-      if (rows.length === 0) break;
-      pulled += applyRemote(db, table, rows);
-      cursor = Math.max(cursor, ...rows.map((r) => r.rev ?? 0));
-      setCursor(db, table, cursor, now());
-      if (rows.length < batch) break;
-    }
+    // 보내지 못한 표는 받지도 않는다(다음에 같이).
+    if (failed.has(table)) continue;
+    await guard(table, async () => {
+      let cursor = getCursor(db, table);
+      for (;;) {
+        const rows = await remote.pull(table, cursor, batch);
+        if (rows.length === 0) break;
+        pulled += applyRemote(db, table, rows);
+        cursor = Math.max(cursor, ...rows.map((r) => r.rev ?? 0));
+        setCursor(db, table, cursor, now());
+        if (rows.length < batch) break;
+      }
+    });
   }
+  if (failed.size > 0) throw firstError;
   return { pushed, pulled };
 }

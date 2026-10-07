@@ -281,7 +281,10 @@ export type CustomFoodInput = {
 export function toPer100(
   input: CustomFoodInput,
 ): { ok: true; per100: Nutrients } | { ok: false; error: 'serving' | 'range' } {
-  if (input.per === 'serving' && (input.serving === null || input.serving <= 0))
+  if (
+    input.per === 'serving' &&
+    (input.serving === null || input.serving <= 0 || input.serving > LIMITS.grams)
+  )
     return { ok: false, error: 'serving' };
   const k = input.per === 'serving' ? 100 / (input.serving as number) : 1;
   const per100 = {
@@ -290,9 +293,13 @@ export function toPer100(
     carb: input.carb * k,
     fat: input.fat * k,
   };
+  // 영양성분표는 반올림한 값이라 1회 양이 작으면(5 g짜리 등) 100 g으로 늘릴 때 오차도 같이 커진다.
+  // 적은 값 기준으로 0.5 g(칼로리는 5 kcal)까지는 봐준다.
+  const slack = 0.5 * k;
+  const kcalSlack = input.per === 'serving' ? 5 * k : 0;
   const bad =
-    per100.kcal > LIMITS.kcalPer100 ||
-    [per100.protein, per100.carb, per100.fat].some((v) => v > LIMITS.gramsPer100) ||
-    per100.protein + per100.carb + per100.fat > LIMITS.gramsPer100 + 0.5;
+    per100.kcal > LIMITS.kcalPer100 + kcalSlack ||
+    [per100.protein, per100.carb, per100.fat].some((v) => v > LIMITS.gramsPer100 + slack) ||
+    per100.protein + per100.carb + per100.fat > LIMITS.gramsPer100 + Math.max(0.5, slack);
   return bad ? { ok: false, error: 'range' } : { ok: true, per100 };
 }

@@ -112,6 +112,14 @@ export function hasUserData(db: AppDatabase): boolean {
     ) ||
     any(
       db
+        .select({ id: schema.foodFavorites.id })
+        .from(schema.foodFavorites)
+        .where(isNull(schema.foodFavorites.deletedAt))
+        .limit(1)
+        .all(),
+    ) ||
+    any(
+      db
         .select({ id: schema.exercises.id })
         .from(schema.exercises)
         .where(and(eq(schema.exercises.isCustom, 1), isNull(schema.exercises.deletedAt)))

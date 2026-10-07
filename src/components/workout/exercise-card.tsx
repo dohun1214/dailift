@@ -160,16 +160,23 @@ export function CollapsedExerciseCard({
   const { t } = useTranslation();
   const { theme } = useUnistyles();
   return (
+    // 메뉴 버튼이 안에 있어서 카드 전체를 한 덩어리로 읽히면 VoiceOver에서 메뉴에 닿을 수 없다.
+    // 카드는 누르기만 받고, 읽는 단위는 이름 칸과 메뉴 버튼 둘로 나눈다.
     <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${name}, ${meta}`}
-      accessibilityHint={t('workout.expandA11y', { name })}
+      accessible={false}
       onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={350}
       style={({ pressed }) => [styles.collapsed, pressed && styles.pressed]}
     >
-      <View style={styles.collapsedBody}>
+      <View
+        style={styles.collapsedBody}
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel={`${name}, ${meta}`}
+        accessibilityHint={t('workout.expandA11y', { name })}
+        onAccessibilityTap={onPress}
+      >
         <Text style={styles.collapsedName} numberOfLines={1}>
           {name}
         </Text>

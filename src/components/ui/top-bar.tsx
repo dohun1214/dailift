@@ -9,13 +9,15 @@ import { IconButton } from './icon-button';
 
 type Props = {
   title?: string;
+  /** 제목 아래의 작은 글(예: 오늘이 아닌 날짜) */
+  subtitle?: string;
   /** back: 뒤로(기본), close: 닫기(모달), none: 버튼 없음, 또는 직접 넣은 요소 */
   leading?: 'back' | 'close' | 'none' | ReactNode;
   trailing?: ReactNode;
   onLeadingPress?: () => void;
 };
 
-export function TopBar({ title, leading = 'back', trailing, onLeadingPress }: Props) {
+export function TopBar({ title, subtitle, leading = 'back', trailing, onLeadingPress }: Props) {
   const { t } = useTranslation();
   const onPress = onLeadingPress ?? (() => router.back());
 
@@ -31,9 +33,16 @@ export function TopBar({ title, leading = 'back', trailing, onLeadingPress }: Pr
   return (
     <View style={styles.bar}>
       {lead}
-      <Text style={styles.title} numberOfLines={1} accessibilityRole="header">
-        {title}
-      </Text>
+      <View style={styles.titles}>
+        <Text style={styles.title} numberOfLines={1} accessibilityRole="header">
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text style={styles.subtitle} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
       {trailing ?? <View style={styles.slot} />}
     </View>
   );
@@ -49,8 +58,15 @@ const styles = StyleSheet.create((theme) => ({
     paddingHorizontal: theme.space.lg,
   },
   slot: { width: theme.hitSize, height: theme.hitSize },
+  titles: { flex: 1, alignItems: 'center', gap: 1 },
+  subtitle: {
+    fontSize: 12,
+    lineHeight: 16,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.semibold,
+    color: theme.colors.text2,
+  },
   title: {
-    flex: 1,
     textAlign: 'center',
     fontSize: 16,
     lineHeight: 21,

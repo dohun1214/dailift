@@ -185,6 +185,7 @@ npm test
   - 서버(`supabase/migrations/20261007000004_processed_foods.sql`): 누구나 읽기만(게스트 포함), 찾기는 함수 `search_processed_foods(q, lim, off)` — 이름 · 제조사에서 띄어쓰기 · 쉼표를 뺀 `skey`(생성 칸, trigram GIN 색인)에 낱말이 모두 들어 있는 것, 순서는 같은 이름 → 검색어로 시작 → 짧은 이름. 초성 검색은 없다.
   - 자료 만들기 · 올리기: PC에서 `.\.expo\mfds-fetch.ps1 -api process`(원본 340MB) → `node scripts/build-processed-foods.mjs`(TSV) → 넣기 정책 "temp load"를 잠깐 열고 `LOAD_TOKEN=… node scripts/load-processed-foods.mjs` → 정책을 `with check (false)`로 닫는다(스크립트 머리말).
   - 가공식품을 찾는 검색어에서는 **기본 음식을 5개만 먼저 보여 주고 "음식 N개 더 보기"로 편다**(`BASE_PREVIEW`). 흔한 낱말은 기본 음식만 50개라 가공식품이 한참 아래로 밀리기 때문이다. 검색어가 바뀌면 다시 접힌다.
+  - 못 받으면(인터넷 없음 · 8초 넘게 걸림 — `SEARCH_TIMEOUT_MS`) "불러오지 못했어요"와 **다시 시도** 버튼을 보인다(`useProcessedSearch`의 `retry`). 오늘이 아닌 날의 식단에 담을 때는 제목 아래에 날짜를 적는다(`TopBar`의 `subtitle`).
   - **이름 아래에 보이는 회사(`maker` 칸)**: ⓪ 제품 이름에 유통사 자체브랜드가 들어 있으면 그 유통사(유어스 · 리얼프라이스 · 혜자로운 → GS리테일(GS25), HEYROO · PBICK → BGF리테일(CU), 세븐셀렉트 → 코리아세븐(세븐일레븐), 노브랜드 · 피코크 → 이마트, 요리하다 · 초이스엘 · 온리프라이스 → 롯데마트, 곰곰 → 쿠팡 … 약 1,300개. `PB_BRANDS`) ① 원본의 유통업체명(약 5,900개) ② 포장지 표기의 판매원 — 한국식품안전관리인증원 「HACCP 제품이미지 및 포장지표기정보」(data.go.kr 15033307, `scripts/fetch-haccp-labels.mjs`)와 품목보고번호가 같은 것(약 2,100개, 그중 제조사와 다른 이름 1,274개) ③ 둘 다 없으면 제조사(나머지 약 97%). 제조사가 유통사의 100% 자회사인 비지에프푸드는 "BGF푸드(CU 계열사)"로 적는다(약 1,100개 — CU에만 납품한다는 뜻은 아니다. 매출의 90% 이상이 BGF리테일). **공장 이름만으로 편의점을 짐작해 붙이지는 않는다**(2026-10-07 사용자 결정: 불확실한 정보는 넣지 않는다). 판매원 칸은 주소 · 누리집이 붙어 있거나 "알수없음"인 것이 많아 회사 이름만 꺼낸다(`sellerName`). 둘 다 법인 표시((주) · 주식회사 · 농업회사법인 …)와 법인 표시 뒤의 공장 이름을 뗀다(`build-processed-foods.mjs`의 `companyName` · `shownCompany`). 편의점 유통사는 아는 이름으로 바꾼다("GS리테일(GS25)" 등). 원본에 브랜드 칸은 없다.
   - 다시 올릴 때(값 고치기): 넣기 · 고치기 정책을 둘 다 열고 `BATCH=400`쯤으로 올린다(익명 요청은 3초 제한이라 2,000줄씩 고치면 뒤쪽에서 시간 초과가 난다). 전부 고치면 표가 두 배로 불어나니 끝나고 `vacuum`(공간 재사용) — 줄이려면 `vacuum full`.
   - 앱: `src/domain/processed-food.ts`(음식 모양으로 바꾸기 — 단위는 1개 = 식품중량, 1회 = 섭취참고량. 처음 양은 1개, 포장 무게가 없으면 100 g), `src/food/processed-remote.ts`(서버 부르기), `src/food/use-processed-search.ts`(350ms 기다렸다 찾기 · 30개씩 더 보기 · 늦게 온 응답 버리기). 출처 값은 `mfdsp`.
@@ -240,18 +241,18 @@ npm test
 
 ## 서버 동기화
 - 서버 테이블은 기기 SYNCED_TABLES와 같은 컬럼 + `user_id`(기본값 auth.uid(), auth.users on delete cascade) + `rev`. RLS로 본인 행만 select/insert/update(삭제는 툼스톤, 계정 삭제 시 cascade). SQL은 `supabase/migrations/`.
-- 서버 트리거 `sync_before_write`: 쓰기마다 전역 시퀀스로 `rev`를 매기고, `updated_at`이 기존보다 오래된 수정은 무시(LWW).
+- 서버 트리거 `sync_before_write`: 쓰기마다 전역 시퀀스로 `rev`를 매기고, `updated_at`이 기존보다 오래된 수정은 무시(LWW). **지운 시각이 적힌 행은 내용을 비운다**(`20261007000009_scrub_tombstones.sql`) — 남는 것은 id · 부모 id · 시각뿐이다. 지운 기기는 같은 버전을 다시 받지 않아 내용이 남으므로 '되돌리기'가 그대로 된다. 직접 만든 종목만은 이름을 남긴다(종목을 지워도 지난 기록에 이름을 보여 주려고) — '모든 데이터 삭제' 때는 `sync/server-wipe.ts`가 이름까지 비워 보낸다. 사진 행의 `path`도 남긴다(다른 기기가 파일을 치울 때 쓴다).
 - 기기: 모든 수정은 drizzle `$onUpdateFn`으로 `dirty = 1`. 엔진 `src/sync/engine.ts`: 부모→자식 순서로 dirty 행 upsert → 보낸 그대로면 `dirty = 0`(raw SQL로 updated_at 유지) → 테이블별 `rev > 커서` 행을 받아 반영(아직 안 보낸 기기 변경이 같거나 새로우면 기기 것 유지). 커서는 `sync_state.cursor_updated_at`에 rev를 담는다. 기본 종목·그 근육 매핑은 보내지 않는다.
-- 언제: 로그인 직후, 앱이 앞으로 올 때, 동기화 테이블이 바뀌고 8초 뒤, 설정 '데이터 › 동기화'를 누를 때(`src/sync/manager.ts`). 한 번에 하나만 돈다.
-- 다른 계정으로 로그인하면(kv `sync-account`가 다름) 기기의 모든 행을 dirty로 만들고 커서를 지워 새 계정에 전부 올리고 처음부터 받는다(게스트 기록이 계정으로 들어가는 것과 같은 규칙). 로그아웃 전에는 한 번 동기화하고, 기기 기록은 남긴다.
+- 언제: 로그인 직후, 앱이 앞으로 올 때, 동기화 테이블이 바뀌고 8초 뒤, 설정 '데이터 › 동기화'를 누를 때(`src/sync/manager.ts`). 한 번에 하나만 돈다. 도는 동안 고친 것은 변경 알림을 건너뛰므로, 잘 끝났는데 보낼 것이 남아 있으면 8초 뒤 한 번 더 돈다. 표 하나가 실패해도 나머지 표는 계속 주고받고 끝에 오류로 알린다.
+- 다른 계정으로 로그인하면(kv `sync-account`가 다름) 기기의 모든 행을 dirty로 만들고 커서를 지워 새 계정에 전부 올리고 처음부터 받는다(게스트 기록이 계정으로 들어가는 것과 같은 규칙). 로그아웃 전에는 한 번 동기화하고, 기기 기록은 남긴다. 기기에 다른 계정의 기록이 남아 있으면 먼저 묻는다(`components/account-switch-dialog.tsx`: 지우고 계속 / 로그아웃) — 지울 때 기록 · 사진 · 스톱워치 · 내보내기 파일을 치우고, 프로필 · 식단 목표 · 설정은 기기 것이라 남긴다.
 - 운동 사진: `workout_photos` 행은 일반 동기화, 파일은 `src/sync/photos.ts`가 Storage 비공개 버킷 `workout-photos`(`<user>/<photoId>.jpg`, RLS로 본인 폴더만, 2MB·jpeg 제한)와 맞춘다. 올릴 때 긴 쪽 1280px·JPEG 80%로 줄인 사본(expo-image-manipulator), 기기 원본은 그대로. 기기에 파일이 없으면 내려받고, 서버에 아직 없으면 다음 동기화에 다시 시도. 지운 사진은 기기·서버 파일 삭제 후 `uploaded_at = -1`. `uploaded_at`은 기기 전용 컬럼(엔진 LOCAL_ONLY). 계정이 바뀌면 다시 올린다. 계정 삭제 Edge Function이 사진 폴더도 지운다.
 - 눈바디(체성분) 사진은 M2에서 건강 데이터 동의와 함께.
 - 한계: 동시에 커밋되는 트랜잭션이 rev 순서와 다르게 보일 수 있어(여러 기기가 같은 순간에 쓸 때) 드물게 한 번 놓칠 수 있다. 필요하면 커서를 조금 겹쳐 받는 방식으로 보완.
 
 ## 데이터 내보내기
 - 내 정보 '데이터 › 데이터 내보내기' 또는 계정 삭제 화면 '먼저 내 데이터 내보내기' → 시트(`components/export-sheet.tsx`)에서 형식 선택 → 캐시 폴더에 파일을 만들고 공유 시트(expo-sharing).
-- CSV(`dailift-workouts-YYYYMMDD.csv`): 완료한 운동의 완료한 세트 한 줄씩(date, workout, exercise, set, kind, weight, unit, reps, duration_sec, rpe). 엑셀 한글용 BOM, CRLF, 수식 주입 방지. 내용은 `domain/export.ts`, 조회는 `db/export.ts`.
-- JSON(`dailift-backup-YYYYMMDD.json`): 설정·프로필 + 지우지 않은 사용자 행 전부(기본 종목·버린 운동·기기 전용 컬럼 제외). 사진 파일은 포함하지 않는다(경로만).
+- CSV(`dailift-workouts-YYYYMMDD.csv`): 완료한 운동의 완료한 세트 한 줄씩(date, workout, exercise, set, kind, weight, unit, reps, duration_sec, rpe, distance, distance_unit, speed, incline_pct). 엑셀 한글용 BOM, CRLF, 수식 주입 방지. 내용은 `domain/export.ts`, 조회는 `db/export.ts`.
+- JSON(`dailift-backup-YYYYMMDD.json`): 설정·프로필(몸무게 단위 포함)·식단 목표 + 지우지 않은 사용자 행 전부(기본 종목·버린 운동·기기 전용 컬럼 제외). 사진 파일은 포함하지 않는다(경로만).
 
 ## 스토어 준비
 - 앱 아이콘·스플래시: `assets/images/` (icon 1024px 배경 #0F1012, 안드로이드 적응형 전경·모노크롬·배경, 스플래시 라이트/다크). 바꾼 뒤에는 `npx expo prebuild`로 네이티브 리소스를 다시 만든다.

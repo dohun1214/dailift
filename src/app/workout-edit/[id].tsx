@@ -141,12 +141,14 @@ export default function WorkoutEditScreen() {
   }, [isNew, workoutId]);
 
   // 추가 화면의 '모든 세트 체크': 한 번에 다 체크해 두고 안 한 세트만 푼다. 다 체크돼 있으면 모두 푼다.
-  const totalSets = doneCount + undoneCount;
-  const allChecked = totalSets > 0 && undoneCount === 0;
+  // 유산소는 시간을 적어야 기록이라 한꺼번에 체크하지 않는다 — 다 체크됐는지도 유산소를 빼고 본다.
+  const checkable = exercises
+    .filter((e) => catalog.byId.get(e.exerciseId)?.type !== 'cardio')
+    .flatMap((e) => e.sets);
+  const allChecked = checkable.length > 0 && checkable.every((s) => s.completedAt !== null);
   const toggleAll = () => {
     for (const we of exercises) {
       const type = catalog.byId.get(we.exerciseId)?.type ?? 'weight_reps';
-      // 유산소는 시간을 적어야 기록이라 한꺼번에 체크하지 않는다.
       if (type === 'cardio') continue;
       for (const s of we.sets) {
         if (allChecked) setCompleted(db, s.id, false);
@@ -169,6 +171,8 @@ export default function WorkoutEditScreen() {
 
   const addExercises = () =>
     openExercisePicker((ids) => {
+      // 같은 종목이 이미 들어 있을 수 있다: 새로 넣은 종목의 세트만 완료로 둔다.
+      const before = new Set(exercises.map((e) => e.id));
       // 그날 전에 한 마지막 기록 값으로 채운다(그 뒤에 늘린 무게나 증량 제안을 쓰지 않는다).
       addExercisesToWorkout(db, workoutId, ids, unit, undefined, {
         ...workoutDefaults(),
@@ -185,7 +189,7 @@ export default function WorkoutEditScreen() {
           ),
         )
         .all()) {
-        if (!ids.includes(we.exerciseId)) continue;
+        if (before.has(we.id) || !ids.includes(we.exerciseId)) continue;
         for (const s of db
           .select()
           .from(schema.sets)
@@ -266,7 +270,7 @@ export default function WorkoutEditScreen() {
         {isNew && exercises.length > 0 && workout?.routineId ? (
           <Text style={styles.hint}>{t('history.edit.addHint')}</Text>
         ) : null}
-        {isNew && totalSets > 0 ? (
+        {isNew && checkable.length > 0 ? (
           <Pressable
             accessibilityRole="button"
             onPress={toggleAll}

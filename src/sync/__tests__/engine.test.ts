@@ -212,6 +212,60 @@ describe('syncOnce', () => {
     expect((await syncOnce(a, other)).pushed).toBe(total);
   });
 
+  it('서버가 지운 행의 내용을 비워도, 지운 기기는 내용을 지키고(되돌리기) 다른 기기는 지운 것으로만 받는다', async () => {
+    // 실제 서버 트리거(scrub_tombstones)처럼 지운 시각이 적힌 행은 이름을 비운다.
+    class ScrubRemote extends FakeRemote {
+      async push(table: SyncedTableName, rows: RemoteRow[]) {
+        await super.push(
+          table,
+          rows.map((r) => (r.deleted_at != null && 'name' in r ? { ...r, name: '' } : r)),
+        );
+      }
+    }
+    const remote = new ScrubRemote();
+    const a = createDevice();
+    const b = createDevice();
+    copyTemplate(a, 'full_body', { lang: 'ko', weightUnit: 'kg' }, makeId);
+    await syncOnce(a, remote);
+    await syncOnce(b, remote);
+    const r = a.select().from(schema.routines).get();
+    if (!r) throw new Error('no routine');
+    const routine = (db: Db) =>
+      db.select().from(schema.routines).where(eq(schema.routines.id, r.id)).get();
+
+    a.update(schema.routines).set({ deletedAt: FUTURE }).where(eq(schema.routines.id, r.id)).run();
+    await syncOnce(a, remote);
+    expect(remote.table('routines').get(r.id)?.name).toBe('');
+    // 지운 기기: 같은 버전은 다시 받지 않으므로 이름이 그대로다.
+    expect(routine(a)).toMatchObject({ name: r.name, deletedAt: FUTURE });
+    await syncOnce(b, remote);
+    expect(routine(b)?.deletedAt).toBe(FUTURE);
+
+    // 되돌리면 내용이 든 채로 다시 올라가 다른 기기에도 돌아온다.
+    a.update(schema.routines).set({ deletedAt: null }).where(eq(schema.routines.id, r.id)).run();
+    await syncOnce(a, remote);
+    await syncOnce(b, remote);
+    expect(routine(b)).toMatchObject({ name: r.name, deletedAt: null });
+  });
+
+  it('표 하나를 못 보내도 다른 표는 주고받고, 끝에 오류를 알린다', async () => {
+    class FlakyRemote extends FakeRemote {
+      async push(table: SyncedTableName, rows: RemoteRow[]) {
+        if (table === 'routines') throw new Error('boom');
+        await super.push(table, rows);
+      }
+    }
+    const remote = new FlakyRemote();
+    const a = createDevice();
+    copyTemplate(a, 'full_body', { lang: 'ko', weightUnit: 'kg' }, makeId);
+    doWorkout(a, 1_000_000);
+    await expect(syncOnce(a, remote)).rejects.toThrow('boom');
+    expect(remote.table('workouts').size).toBe(1);
+    expect(remote.table('routines').size).toBe(0);
+    // 못 보낸 표의 행은 그대로 남아 다음에 다시 간다.
+    expect(pendingCount(a)).toBe(a.select().from(schema.routines).all().length);
+  });
+
   it('영양제와 복용 체크가 다른 기기로 가고, 체크를 풀면 그것도 간다', async () => {
     const a = createDevice();
     const b = createDevice();

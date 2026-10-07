@@ -20,7 +20,7 @@ export default function AccountLinkScreen() {
 
   return (
     <Screen
-      header={<TopBar title={t('auth.link.title')} />}
+      header={<TopBar title={t('auth.link.title')} leading="close" />}
       footer={
         <View style={styles.buttons}>
           {Platform.OS === 'ios' ? (

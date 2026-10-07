@@ -201,6 +201,22 @@ describe('알림 계획', () => {
     expect(out.filter((n) => n.trigger.type === 'weekly')).toHaveLength(28);
   });
 
+  it('한도를 넘어도 오늘 먹은 묶음은 오늘 몫을 뺄 수 있게 남긴다', () => {
+    const list = [540, 720, 1080].map((timeMin, i) => supp({ id: `s${i}`, timeMin }));
+    // 18시 것을 미리 먹었다: 늦은 시각이지만 오늘 몫을 빼야 하므로 요일 알림으로 남고, 9시 · 12시 것이 줄어든다.
+    const out = plan(list, ['s2'], at(8), null, 30);
+    expect(out.length).toBeLessThanOrEqual(30);
+    const daily = out.filter((n) => n.trigger.type === 'daily').map((n) => n.trigger);
+    expect(daily).not.toContainEqual({ type: 'daily', hour: 18, minute: 0 });
+    expect(daily).not.toContainEqual({ type: 'daily', hour: 19, minute: 0 });
+    const today = at(8).getDay() + 1;
+    expect(
+      out.some(
+        (n) => n.trigger.type === 'weekly' && n.trigger.hour === 18 && n.trigger.weekday === today,
+      ),
+    ).toBe(false);
+  });
+
   describe('운동 후', () => {
     const creatine = supp({ id: 'c', name: '크레아틴', timing: 'after_workout', afterMin: 30 });
     const end = at(19, 12).getTime();

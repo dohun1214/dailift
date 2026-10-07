@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { ChevronDown, ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
@@ -37,6 +37,13 @@ export function DietView({ onDeleted }: Props) {
   // 따로 고르지 않으면 오늘을 따라간다(자정이 지나면 새 날로 넘어간다).
   const [picked, setPicked] = useState<string | null>(null);
   const date = picked !== null && picked < today ? picked : today;
+  // 날이 바뀌면 보던 지난 날짜를 놓고 오늘로 돌아온다(어제 화면에 그대로 담지 않게).
+  const lastToday = useRef(today);
+  useEffect(() => {
+    if (lastToday.current === today) return;
+    lastToday.current = today;
+    setPicked(null);
+  }, [today]);
   const isToday = date === today;
   const { meals, total } = useDietDay(date);
   const targets = useDietTargets();

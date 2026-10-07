@@ -1,6 +1,6 @@
 import { Check, Ellipsis, Pause, Play } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { Pressable, Text, View } from 'react-native';
+import { Linking, Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { Button, Segmented, TextButton } from '@/components/ui';
@@ -57,6 +57,8 @@ type Props = {
   manual?: boolean;
   /** 지난 기록에서 이 유산소를 뺀다(manual일 때만 보인다) */
   onRemove?: () => void;
+  /** 알림 권한이 없어 타이머가 끝나도 알릴 수 없다(재는 동안 한 줄로 알린다) */
+  blocked?: boolean;
 };
 
 /**
@@ -87,6 +89,7 @@ export function CardioCard({
   onMenuPress,
   manual = false,
   onRemove,
+  blocked = false,
 }: Props) {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
@@ -201,6 +204,15 @@ export function CardioCard({
           />
         </View>
       ) : null}
+      {counting && blocked ? (
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => void Linking.openSettings().catch(() => {})}
+          hitSlop={8}
+        >
+          <Text style={styles.blocked}>{t('workout.rest.blocked')}</Text>
+        </Pressable>
+      ) : null}
 
       {state === 'idle' ? (
         manual ? (
@@ -277,6 +289,15 @@ export function CardioCard({
 }
 
 const styles = StyleSheet.create((theme) => ({
+  blocked: {
+    alignSelf: 'center',
+    fontSize: 12,
+    lineHeight: 16,
+    includeFontPadding: false,
+    fontFamily: theme.fonts.regular,
+    color: theme.colors.text2,
+    textDecorationLine: 'underline',
+  },
   card: {
     gap: 10,
     paddingTop: 18,
