@@ -7,12 +7,15 @@
  * - 영양값은 100 g(ml)당으로 맞춘다. 식품중량 · 1회 섭취참고량은 숫자 하나로 읽히는 것만 쓴다.
  * - 칸: 식품코드, 이름, 보일 회사(유통사가 있으면 유통사, 없으면 제조사 · 수입사 — 법인 표시와 공장 이름은 뗀다), 분류, 기준(g|ml), kcal, 단백질, 탄수화물, 지방, 식품중량, 1회 섭취참고량
  *
+ * 포장지 표기정보(.expo/fooddata/haccp.json — scripts/fetch-haccp-labels.mjs)가 있으면 품목보고번호로 이어 판매원을 쓴다.
+ *
  * 실행(저장소 루트에서): node scripts/build-processed-foods.mjs
  *   → .expo/fooddata/process.tsv (서버에 올리기: scripts/load-processed-foods.mjs)
+ *   → .expo/fooddata/process-changed.tsv (앞서 만든 TSV와 달라진 줄만 — 다시 올릴 때 이것만 올린다)
  *   → .expo/proc-report.txt (개수 · 분류 · 유통사 · 낱말별 개수)
  * 원본과 결과는 저장소에 넣지 않는다(.expo는 git 제외).
  */
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const dir = '.expo/fooddata';
@@ -85,12 +88,41 @@ function companyName(raw) {
   return s.length >= 2 ? s : first;
 }
 
-/** 화면에 보일 회사: 유통사가 적혀 있으면 유통사(브랜드 주인 · 판매원), 없으면 제조사 */
-function shownCompany(mfr, dist) {
-  if (dist) {
-    for (const [re, name] of KNOWN) if (re.test(dist)) return name;
-    return companyName(dist);
-  }
+/** 주소가 시작되는 곳 ("… 서울특별시 …", "… 충북 음성군 …") */
+const ADDRESS =
+  /(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충청|충북|충남|전라|전북|전남|경상|경북|경남|제주)(특별시|광역시|특별자치|도|시)?[\s]/;
+
+/**
+ * 포장지의 '판매원' 칸에서 회사 이름만 꺼낸다. 이 칸은 사람이 옮겨 적은 것이라 주소 · 누리집이 붙어 있거나
+ * "알수없음"인 것이 많다("풀무원식품㈜/충북 음성군 …", "주식회사 오뚜기 경기도 안양시 … www.ottogi.co.kr").
+ * 이름으로 볼 수 없으면 빈 글자.
+ */
+function sellerName(raw) {
+  let s = clean(raw);
+  if (!s || /알\s*수\s*없음|해당\s*없음|^[\s_\-.]*$/.test(s)) return '';
+  // 구분 글자 · 누리집 · '본사' 앞까지만
+  s = s.split(/[/_:·]|\(?(?:https?|www)|\s본사|본사\s*[:-]|\s본조합/i)[0];
+  const at = s.search(ADDRESS);
+  if (at === 0) return '';
+  if (at > 0) s = s.slice(0, at);
+  s = companyName(s.replace(/[\s(,.-]+$/, ''));
+  if (s.length < 2 || s.length > 20 || !/[가-힣A-Za-z]/.test(s) || /\d{2,}/.test(s)) return '';
+  return s;
+}
+
+/** 유통사 이름을 사람들이 아는 이름으로(편의점), 아니면 다듬은 이름으로 */
+function brandName(company) {
+  for (const [re, name] of KNOWN) if (re.test(company)) return name;
+  return companyName(company);
+}
+
+/**
+ * 화면에 보일 회사: ① 원본의 유통업체 ② 포장지 표기의 판매원(HACCP 자료와 품목보고번호가 같을 때) ③ 제조사.
+ * ① · ②가 브랜드 주인 · 판매원이다. 둘 다 없는 것이 대부분(약 97%)이라 그때는 제조사를 다듬어 보여 준다.
+ */
+function shownCompany(mfr, dist, seller = '') {
+  if (dist) return brandName(dist);
+  if (seller) return brandName(seller);
   return companyName(mfr);
 }
 
@@ -101,6 +133,16 @@ const top = (map, n) =>
     .slice(0, n)
     .map(([k, v]) => `   ${v}\t${k}`)
     .join('\n');
+
+// 포장지 표기정보(scripts/fetch-haccp-labels.mjs가 받은 것): 품목보고번호 → 판매원. 없으면 건너뛴다.
+const haccpFile = join(dir, 'haccp.json');
+const sellerByNo = new Map();
+if (existsSync(haccpFile)) {
+  for (const h of JSON.parse(readFileSync(haccpFile, 'utf8'))) {
+    const name = sellerName(h.seller);
+    if (h.no && name) sellerByNo.set(h.no, name);
+  }
+}
 
 let total = 0;
 let noKcal = 0;
@@ -160,6 +202,7 @@ for (const f of files) {
       name,
       mfr,
       dist,
+      seller: sellerByNo.get(clean(r.itemMnftrRptNo)) ?? '',
       cat: clean(r.foodLv3Nm),
       basis: liquid ? 'ml' : 'g',
       kcal: +(kcal * k).toFixed(1),
@@ -258,7 +301,7 @@ const tsv = rows
     [
       r.sid,
       r.name,
-      shownCompany(r.mfr, r.dist),
+      shownCompany(r.mfr, r.dist, r.seller),
       r.cat,
       r.basis,
       r.kcal,
@@ -270,12 +313,20 @@ const tsv = rows
     ].join('\t'),
   )
   .join('\n');
-writeFileSync(join(dir, 'process.tsv'), `${tsv}\n`, 'utf8');
+// 앞서 만든 TSV가 있으면 달라진 줄만 따로 적는다(서버에는 그것만 다시 올리면 된다).
+const tsvFile = join(dir, 'process.tsv');
+let changedLines = null;
+if (existsSync(tsvFile)) {
+  const before = new Set(readFileSync(tsvFile, 'utf8').split('\n'));
+  changedLines = tsv.split('\n').filter((line) => !before.has(line));
+  writeFileSync(join(dir, 'process-changed.tsv'), `${changedLines.join('\n')}\n`, 'utf8');
+}
+writeFileSync(tsvFile, `${tsv}\n`, 'utf8');
 
 const byShown = new Map();
 const changed = [];
 for (const r of rows) {
-  const shown = shownCompany(r.mfr, r.dist);
+  const shown = shownCompany(r.mfr, r.dist, r.seller);
   count(byShown, shown || '(없음)');
   if (
     shown !== r.mfr &&
@@ -285,6 +336,18 @@ for (const r of rows) {
     changed.push(`   ${r.mfr}${r.dist ? ` / 유통 ${r.dist}` : ''}  →  ${shown}`);
   }
 }
+
+const usedDist = rows.filter((r) => r.dist).length;
+const usedSeller = rows.filter((r) => !r.dist && r.seller).length;
+const sellerSample = rows
+  .filter((r) => !r.dist && r.seller && r.seller !== companyName(r.mfr))
+  .filter(() => Math.random() < 0.03)
+  .slice(0, 40)
+  .map((r) => `   ${r.name} | 제조 ${r.mfr}  →  ${shownCompany(r.mfr, r.dist, r.seller)}`)
+  .join('\n');
+const sellerNew = rows.filter(
+  (r) => !r.dist && r.seller && brandName(r.seller) !== companyName(r.mfr),
+).length;
 
 const report = `files=${files.length} badFiles=${badFiles}
 total=${total}
@@ -297,6 +360,10 @@ withFoodSize=${withSize} withServSize=${withServ}
 date ${minDate} ~ ${maxDate}
 name length avg=${avgName.toFixed(1)} max=${longest}
 tsvBytes=${Buffer.byteLength(tsv)}
+changedLines=${changedLines === null ? '(앞의 TSV 없음)' : changedLines.length}
+보일 회사: 유통업체 ${usedDist} / 판매원(HACCP) ${usedSeller} (그중 제조사와 다른 이름 ${sellerNew}) / 제조사 ${rows.length - usedDist - usedSeller}
+-- 판매원으로 바뀐 예
+${sellerSample}
 -- 영양성분 기준량
 ${top(byBase, 8)}
 -- 분류(상위 25)
