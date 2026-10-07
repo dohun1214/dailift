@@ -168,6 +168,7 @@ npm test
 - **가공식품(편의점 · 마트 제품)은 서버에서 찾는다(#111)**: 식약처 가공식품 314,327개는 앱에 넣으면 64MB라 서버 표 `processed_foods`(약 104MB)에 두었다. 한국 지역에서만, 인터넷이 있을 때, 검색어가 두 글자 이상일 때 기본 음식 아래에 "가공식품" 묶음으로 이어 붙인다.
   - 서버(`supabase/migrations/20261007000004_processed_foods.sql`): 누구나 읽기만(게스트 포함), 찾기는 함수 `search_processed_foods(q, lim, off)` — 이름 · 제조사에서 띄어쓰기 · 쉼표를 뺀 `skey`(생성 칸, trigram GIN 색인)에 낱말이 모두 들어 있는 것, 순서는 같은 이름 → 검색어로 시작 → 짧은 이름. 초성 검색은 없다.
   - 자료 만들기 · 올리기: PC에서 `.\.expo\mfds-fetch.ps1 -api process`(원본 340MB) → `node scripts/build-processed-foods.mjs`(TSV) → 넣기 정책 "temp load"를 잠깐 열고 `LOAD_TOKEN=… node scripts/load-processed-foods.mjs` → 정책을 `with check (false)`로 닫는다(스크립트 머리말).
+  - 가공식품을 찾는 검색어에서는 **기본 음식을 5개만 먼저 보여 주고 "음식 N개 더 보기"로 편다**(`BASE_PREVIEW`). 흔한 낱말은 기본 음식만 50개라 가공식품이 한참 아래로 밀리기 때문이다. 검색어가 바뀌면 다시 접힌다.
   - **이름 아래에 보이는 회사(`maker` 칸)**: 원본의 유통업체명이 있으면 그것(브랜드 주인 · 판매원 — 전체의 약 2%뿐이다), 없으면 제조사. 둘 다 법인 표시((주) · 주식회사 · 농업회사법인 …)와 법인 표시 뒤의 공장 이름을 뗀다(`build-processed-foods.mjs`의 `companyName` · `shownCompany`). 편의점 유통사는 아는 이름으로 바꾼다("GS리테일(GS25)" 등). 원본에 브랜드 칸은 없다.
   - 다시 올릴 때(값 고치기): 넣기 · 고치기 정책을 둘 다 열고 `BATCH=400`쯤으로 올린다(익명 요청은 3초 제한이라 2,000줄씩 고치면 뒤쪽에서 시간 초과가 난다). 전부 고치면 표가 두 배로 불어나니 끝나고 `vacuum`(공간 재사용) — 줄이려면 `vacuum full`.
   - 앱: `src/domain/processed-food.ts`(음식 모양으로 바꾸기 — 단위는 1개 = 식품중량, 1회 = 섭취참고량. 처음 양은 1개, 포장 무게가 없으면 100 g), `src/food/processed-remote.ts`(서버 부르기), `src/food/use-processed-search.ts`(350ms 기다렸다 찾기 · 30개씩 더 보기 · 늦게 온 응답 버리기). 출처 값은 `mfdsp`.

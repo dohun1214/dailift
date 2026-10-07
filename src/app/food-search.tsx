@@ -56,6 +56,8 @@ const TABS: readonly Tab[] = ['recent', 'favorites', 'mine', 'sets'];
 /** '추가했어요' 한 줄이 떠 있는 시간 */
 const ADDED_MS = 4000;
 const RESULT_LIMIT = 50;
+/** 가공식품이 아래에 이어질 때 기본 음식은 처음에 이만큼만 보인다(나머지는 '더 보기') */
+const BASE_PREVIEW = 5;
 
 type Row = { item: FoodItem; amount: Amount; recent?: boolean };
 
@@ -86,6 +88,8 @@ export default function FoodSearchScreen() {
   const cache = useProcessedCache();
   const [query, setQuery] = useState(params.q ?? '');
   const [tab, setTab] = useState<Tab>('recent');
+  // 기본 음식을 모두 펼쳐 둔 검색어. 검색어가 바뀌면 다시 접힌다.
+  const [expandedFor, setExpandedFor] = useState<string | null>(null);
   const [picked, setPicked] = useState<Row | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   // 방금 한 일을 알리는 한 줄. `key`가 바뀌면 새로 떠오른다.
@@ -182,6 +186,15 @@ export default function FoodSearchScreen() {
         : tab === 'mine'
           ? mine.map((item) => ({ item, amount: defaultAmount(item) }))
           : [];
+
+  // 가공식품을 찾는 검색어에서는 기본 음식을 몇 개만 먼저 보여 준다 — 흔한 낱말("두부")은 기본 음식만 50개라
+  // 가공식품이 한참 아래로 밀린다. 하나 더 보이려고 접지는 않는다.
+  const collapsed =
+    searching &&
+    processed.status !== 'idle' &&
+    rows.length > BASE_PREVIEW + 1 &&
+    expandedFor !== query.trim();
+  const shownRows = collapsed ? rows.slice(0, BASE_PREVIEW) : rows;
 
   const say = (message: string, undo: () => void) => {
     addedKey.current += 1;
@@ -462,9 +475,22 @@ export default function FoodSearchScreen() {
           </View>
         )
       ) : rows.length > 0 ? (
-        <View style={styles.list}>
-          {rows.map((row, i) => renderRow(row, i === rows.length - 1))}
-        </View>
+        <>
+          <View style={styles.list}>
+            {shownRows.map((row, i) => renderRow(row, i === shownRows.length - 1))}
+          </View>
+          {collapsed ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setExpandedFor(query.trim())}
+              style={({ pressed }) => [styles.more, pressed && styles.pressed]}
+            >
+              <Text style={styles.moreText}>
+                {t('diet.search.moreBase', { count: rows.length - shownRows.length })}
+              </Text>
+            </Pressable>
+          ) : null}
+        </>
       ) : searching ? (
         loading ||
         (failed && mine.length === 0) ||
