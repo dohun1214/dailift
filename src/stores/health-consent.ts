@@ -10,18 +10,18 @@ type HealthConsentState = {
    * 동의는 계정에 적혀 있고(서버 `health_consents`), 여기는 그것을 받아 둔 사본이다.
    */
   dietAcceptedAt: number | null;
-  /**
-   * 체성분 기록을 서버에 보관하는 데 동의한 시각. 동의 화면이 아직 없어 늘 null이다
-   * (체성분 표는 기기에만 둔다).
-   */
+  /** 체성분 기록을 서버에 보관하는 데 동의한 시각. null이면 체성분은 이 기기에만 둔다 */
   bodyAcceptedAt: number | null;
   /** 지금 계정의 동의 여부를 서버에서 확인했다. 확인하기 전에는 안내 카드를 띄우지 않는다 */
   known: boolean;
   /** 안내 카드를 접었다('기기에만 둘게요'를 골랐거나 백업을 그만했다) */
   dietAskDismissed: boolean;
+  bodyAskDismissed: boolean;
   /** 서버에서 확인한 값을 적는다 */
   setDiet: (acceptedAt: number | null) => void;
+  setBody: (acceptedAt: number | null) => void;
   dismissDietAsk: () => void;
+  dismissBodyAsk: () => void;
   /** 모든 데이터 삭제 · 계정이 바뀌었을 때 처음 상태로 */
   reset: () => void;
 };
@@ -31,9 +31,10 @@ const INITIAL = {
   bodyAcceptedAt: null,
   known: false,
   dietAskDismissed: false,
+  bodyAskDismissed: false,
 };
 
-/** 건강 데이터 동의. 기본은 동의 없음 — 식단 표는 서버로 올리지도 받지도 않는다. */
+/** 건강 데이터 동의. 기본은 동의 없음 — 식단 · 체성분 표는 서버로 올리지도 받지도 않는다. */
 export const useHealthConsent = create<HealthConsentState>()(
   persist(
     (set) => ({
@@ -46,7 +47,15 @@ export const useHealthConsent = create<HealthConsentState>()(
           dietAskDismissed:
             s.dietAskDismissed || (acceptedAt === null && s.dietAcceptedAt !== null),
         })),
+      setBody: (acceptedAt) =>
+        set((s) => ({
+          bodyAcceptedAt: acceptedAt,
+          known: true,
+          bodyAskDismissed:
+            s.bodyAskDismissed || (acceptedAt === null && s.bodyAcceptedAt !== null),
+        })),
       dismissDietAsk: () => set({ dietAskDismissed: true }),
+      dismissBodyAsk: () => set({ bodyAskDismissed: true }),
       reset: () => set(INITIAL),
     }),
     { name: 'health-consent', version: 1, storage: createJSONStorage(() => kvStorage) },
@@ -59,6 +68,14 @@ export function shouldAskDietBackup(
   s: Pick<HealthConsentState, 'dietAcceptedAt' | 'known' | 'dietAskDismissed'>,
 ): boolean {
   return signedIn && s.known && s.dietAcceptedAt === null && !s.dietAskDismissed;
+}
+
+/** 체성분 화면에 '백업할까요?' 카드를 보일지(식단과 같은 규칙) */
+export function shouldAskBodyBackup(
+  signedIn: boolean,
+  s: Pick<HealthConsentState, 'bodyAcceptedAt' | 'known' | 'bodyAskDismissed'>,
+): boolean {
+  return signedIn && s.known && s.bodyAcceptedAt === null && !s.bodyAskDismissed;
 }
 
 /** 지금 동기화에서 건너뛸 표 */

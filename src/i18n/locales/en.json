@@ -1352,6 +1352,39 @@
     "failedTitle": "Couldn't change it",
     "failedBody": "Check your internet connection and try again."
   },
+  "bodyBackup": {
+    "title": "Body composition backup",
+    "rowOn": "On",
+    "rowOff": "Off",
+    "askTitle": "Back up your body composition log to your account?",
+    "askBody": "Right now it's stored only on this device. With backup, you can pick up where you left off on a new device.",
+    "more": "Learn more",
+    "keepOnDevice": "Keep on device",
+    "heading": "Back up your body\ncomposition log?",
+    "sub": "Your body composition log is health-related information, so we ask for consent separately from your workout records.",
+    "info": {
+      "whatLabel": "What we store",
+      "what": "Body composition entries (date, weight, skeletal muscle mass, body fat percentage and any extra fields you fill in)",
+      "whyLabel": "What it's for",
+      "why": "Backing up your log and syncing it across devices",
+      "untilLabel": "How long",
+      "until": "Until you withdraw consent or delete your account",
+      "whereLabel": "Where",
+      "where": "Supabase servers (Seoul, South Korea)"
+    },
+    "noteOff": "You can use every body composition feature without agreeing. Your log will then stay only on this device. You can withdraw consent anytime in Me.",
+    "noteOn": "If you stop the backup, your body composition log is deleted from the server. The log on this device stays.",
+    "privacy": "View Privacy Policy",
+    "accept": "Agree and back up",
+    "onTitle": "Backup is on",
+    "onSince": "Agreed on {{date}}",
+    "stop": "Stop backup",
+    "stopTitle": "Stop backing up your body composition log?",
+    "stopBody": "Your body composition log is deleted from the server. The log on this device stays.",
+    "stopConfirm": "Stop",
+    "failedTitle": "Couldn't change it",
+    "failedBody": "Check your internet connection and try again."
+  },
   "body": {
     "title": "Body",
     "metric": {

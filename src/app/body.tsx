@@ -6,6 +6,7 @@ import { Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
 import { useBodyFormat } from '@/components/body/use-body-format';
+import { BackupAskCard } from '@/components/consent/backup-ask-card';
 import { ProgressChart } from '@/components/stats/progress-chart';
 import { Button, ConfirmDialog, Screen, TopBar } from '@/components/ui';
 import { useBodyEntries } from '@/db/use-body';
@@ -24,7 +25,9 @@ import {
   progressAxis,
   timePositions,
 } from '@/domain/exercise-progress';
+import { useAuth } from '@/stores/auth';
 import { type ProteinAsk, useBodyAsk } from '@/stores/body-ask';
+import { shouldAskBodyBackup, useHealthConsent } from '@/stores/health-consent';
 import { useProfile } from '@/stores/profile';
 import { useSettings } from '@/stores/settings';
 
@@ -38,6 +41,8 @@ export default function BodyScreen() {
   const unit = useSettings((s) => s.weightUnit);
   const fmt = useBodyFormat(unit);
   const entries = useBodyEntries();
+  const signedIn = useAuth((a) => a.session !== null);
+  const askBackup = useHealthConsent((c) => shouldAskBodyBackup(signedIn, c));
   const [metric, setMetric] = useState<BodyMetric>('weight');
   const [pickedPeriod, setPeriod] = useState<ProgressPeriod | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -224,6 +229,14 @@ export default function BodyScreen() {
           </View>
         )}
       </View>
+
+      {askBackup ? (
+        <BackupAskCard
+          ns="bodyBackup"
+          onDismiss={() => useHealthConsent.getState().dismissBodyAsk()}
+          onMore={() => router.push('/body-backup')}
+        />
+      ) : null}
 
       <View style={styles.section}>
         <Text style={styles.sectionLabel} accessibilityRole="header">

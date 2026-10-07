@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
-
+import { BackupAskCard } from '@/components/consent/backup-ask-card';
 import { Card, SwipeDelete } from '@/components/ui';
 import { db } from '@/db/client';
 import { deleteFoodLog, updateFoodLogAmount } from '@/db/diet';
@@ -218,36 +218,11 @@ export function DietView({ onDeleted }: Props) {
       </Card>
 
       {askBackup ? (
-        <Card style={styles.ask}>
-          <View style={styles.hint}>
-            <Text style={styles.hintTitle}>{t('dietBackup.askTitle')}</Text>
-            <Text style={styles.hintBody}>{t('dietBackup.askBody')}</Text>
-          </View>
-          <View style={styles.askButtons}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => useHealthConsent.getState().dismissDietAsk()}
-              style={({ pressed }) => [
-                styles.askButton,
-                styles.askLater,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.askLaterText} numberOfLines={1}>
-                {t('dietBackup.keepOnDevice')}
-              </Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push('/diet-backup')}
-              style={({ pressed }) => [styles.askButton, styles.askMore, pressed && styles.pressed]}
-            >
-              <Text style={styles.askMoreText} numberOfLines={1}>
-                {t('dietBackup.more')}
-              </Text>
-            </Pressable>
-          </View>
-        </Card>
+        <BackupAskCard
+          ns="dietBackup"
+          onDismiss={() => useHealthConsent.getState().dismissDietAsk()}
+          onMore={() => router.push('/diet-backup')}
+        />
       ) : null}
 
       {hasLogs ? null : (
@@ -389,33 +364,6 @@ const styles = StyleSheet.create((theme) => ({
     borderTopColor: theme.colors.line,
   },
   hint: { gap: 4 },
-  ask: { gap: 14 },
-  askButtons: { flexDirection: 'row', gap: 8 },
-  askButton: {
-    flex: 1,
-    minWidth: 0,
-    height: theme.hitSize,
-    paddingHorizontal: 8,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  askLater: { backgroundColor: theme.colors.surface2 },
-  askMore: { backgroundColor: theme.colors.accent },
-  askLaterText: {
-    fontSize: 14,
-    lineHeight: 19,
-    includeFontPadding: false,
-    fontFamily: theme.fonts.bold,
-    color: theme.colors.text,
-  },
-  askMoreText: {
-    fontSize: 14,
-    lineHeight: 19,
-    includeFontPadding: false,
-    fontFamily: theme.fonts.bold,
-    color: theme.colors.onAccent,
-  },
   hintTitle: {
     fontSize: 15,
     lineHeight: 20,
