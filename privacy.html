@@ -9,7 +9,7 @@
 <body>
 <main>
 <h1>Dailift 개인정보 처리방침</h1>
-<p class="meta">시행일: 2026년 10월 7일 · 운영자: 박도훈</p>
+<p class="meta">시행일: 2026년 10월 9일 · 운영자: 박도훈</p>
 <div class="lang"><a href="#en">English</a><a href="index.html">목록</a></div>
 
 <p>박도훈(이하 "운영자")은 운동 기록 앱 Dailift(이하 "앱")를 운영하면서 이용자의 개인정보를 「개인정보 보호법」 등 관련 법령에 따라 처리합니다. 앱은 광고를 싣지 않고, 이용자 정보를 판매하거나 마케팅에 쓰지 않습니다.</p>
@@ -23,10 +23,12 @@
 <tr><td>식단 기록 백업(계정 연결 후 <b>따로 동의한 경우에만</b>)</td><td>식단 기록(날짜·끼니·음식·양·영양값), 직접 만든 음식, 즐겨찾기, 세트, 동의한 시각</td><td>기록 백업, 여러 기기 간 동기화</td></tr>
 <tr><td>체성분 기록 백업(계정 연결 후 <b>따로 동의한 경우에만</b>)</td><td>체성분 기록(날짜·체중·골격근량·체지방률, 이용자가 더 적은 항목), 동의한 시각</td><td>기록 백업, 여러 기기 간 동기화</td></tr>
 <tr><td>앱 업데이트 확인(모든 이용자)</td><td>앱을 설치할 때 무작위로 만들어지는 설치 식별자(이름·계정·운동 기록과 연결되지 않음), IP 주소, 앱 버전·운영체제 종류</td><td>앱을 켤 때 수정본이 있는지 확인하고 내려받기</td></tr>
+<tr><td>결과지 글자 읽기(Android에서 이 기능을 쓸 때)</td><td>기기 정보(제조사·모델·운영체제 버전), 앱 정보(패키지 이름·버전), 설치별 식별자, 성능 정보(처리 시간·오류 코드 등). <b>사진과 읽은 글자는 보내지 않습니다.</b></td><td>Android의 글자 인식 도구(Google ML Kit)의 오류 분석·이용 통계(Google이 받음)</td></tr>
 <tr><td>자동 생성</td><td>서비스 이용 과정의 접속 기록(서버 로그)</td><td>보안, 오류 대응</td></tr>
 </table>
 <p>식단 기록과 체성분 기록은 건강과 관련된 정보로 보아, 앱에서 각각 따로 동의한 경우에만 서버에 보관합니다. 동의하지 않아도 식단·체성분 기능을 쓸 수 있으며 이때 기록은 기기에만 저장됩니다. 동의는 앱의 '내 정보 › 식단 기록 백업 · 체성분 기록 백업'에서 언제든 철회할 수 있고, 철회하면 서버의 해당 기록을 지체 없이 삭제합니다(기기의 기록은 남습니다).</p>
 <p>음식을 찾을 때 가공식품(포장 제품)을 검색하기 위해 입력한 검색어가 서버로 전송됩니다. 검색어는 검색 결과를 보여 주는 데만 쓰고 따로 저장하지 않으며, 로그인하지 않아도 전송됩니다(서비스 제공업체의 접속 기록에는 일정 기간 남을 수 있습니다).</p>
+<p>체성분 검사 결과지 사진의 글자는 기기 안에서 읽으며, 사진은 저장하거나 서버로 보내지 않습니다. Android에서는 이 글자 읽기에 Google의 ML Kit를 쓰는데, ML Kit은 위 표의 기기·앱·성능 정보를 Google에 보냅니다(Google 안내 기준). iPhone에서는 Apple의 기기 내 기능을 쓰며 이 정보가 전송되지 않습니다.</p>
 <p>온보딩 답변과 앱 설정(식단 목표 포함)은 기기에만 저장되며 서버로 보내지 않습니다. 앱은 위치 정보, 연락처, 광고 식별자를 수집하지 않습니다. 설치 식별자는 앱을 삭제하면 사라지고, 광고나 이용자 추적에 쓰지 않습니다.</p>
 
 <h2>2. 보유 및 이용 기간</h2>
@@ -41,8 +43,9 @@
 <tr><td>Supabase, Inc.</td><td>회원 인증, 데이터베이스·파일 저장(백업·동기화)</td><td>회사 소재지 미국. 데이터는 대한민국 서울 리전(AWS ap-northeast-2) 서버에 저장</td></tr>
 <tr><td>Google LLC / Apple Inc.</td><td>소셜 로그인 인증</td><td>미국 등 각 사 서버</td></tr>
 <tr><td>650 Industries, Inc. (Expo)</td><td>앱 업데이트(수정본) 전달</td><td>미국 등 해당 사 서버</td></tr>
+<tr><td>Google LLC (ML Kit, Android만)</td><td>결과지 글자 읽기 도구의 오류 분석·이용 통계</td><td>미국 등 해당 사 서버</td></tr>
 </table>
-<p>국외 이전 항목: 1항의 계정 연결·백업 정보와 앱 업데이트 확인 정보. 이전 시기·방법: 서비스 이용 시 네트워크를 통해 전송. 보유 기간: 2항과 같음. 이용자는 계정을 연결하지 않고 게스트로 사용하여 계정 연결·백업 정보의 국외 이전을 거부할 수 있으며, 이 경우 백업·동기화 기능을 쓸 수 없습니다. 앱 업데이트 확인 정보는 계정 연결 여부와 관계없이 앱을 켤 때 전송됩니다.</p>
+<p>국외 이전 항목: 1항의 계정 연결·백업 정보, 앱 업데이트 확인 정보, (Android에서 결과지 글자 읽기를 쓸 때) ML Kit 정보. 이전 시기·방법: 서비스 이용 시 네트워크를 통해 전송. 보유 기간: 2항과 같음. 이용자는 계정을 연결하지 않고 게스트로 사용하여 계정 연결·백업 정보의 국외 이전을 거부할 수 있으며, 이 경우 백업·동기화 기능을 쓸 수 없습니다. 앱 업데이트 확인 정보는 계정 연결 여부와 관계없이 앱을 켤 때 전송됩니다.</p>
 
 <h2>5. 개인정보의 파기</h2>
 <p>앱의 '내 정보 › 계정 삭제'를 누르면 서버의 계정, 운동 기록, 영양제·식단·체성분 기록, 사진 파일이 즉시 삭제되고 기기의 기록도 함께 지워집니다. 전자적 파일은 복구할 수 없는 방법으로 삭제합니다. 자세한 절차는 <a href="delete-account.html">계정 및 데이터 삭제 안내</a>를 참고하세요.</p>
@@ -66,7 +69,7 @@
 <hr>
 
 <h1 id="en">Dailift Privacy Policy</h1>
-<p class="meta">Effective: October 7, 2026 · Operator: Dohun Park</p>
+<p class="meta">Effective: October 9, 2026 · Operator: Dohun Park</p>
 
 <p>Dohun Park ("we") operates the workout log app Dailift ("the app"). The app shows no ads, and we never sell your data or use it for marketing.</p>
 
@@ -78,10 +81,12 @@
 <li><b>Diet backup (linked accounts, only with your separate consent):</b> diet log (date, meal, food, amount, nutrition), foods you created, favorites, sets and the time you gave consent, to back up your log and sync it across devices.</li>
 <li><b>Body composition backup (linked accounts, only with your separate consent):</b> body composition log (date, weight, skeletal muscle mass, body fat percentage and any extra fields you fill in) and the time you gave consent, to back up your log and sync it across devices.</li>
 <li><b>App update checks (all users):</b> a random installation ID created when the app is installed (not linked to your name, account or workout data), your IP address, and the app version and operating system, so the app can check for and download fixes when it starts.</li>
+<li><b>Reading a result sheet (Android, when you use this feature):</b> device information (manufacturer, model, OS version), app information (package name, version), a per-installation identifier and performance information (such as processing time and error codes) are sent to Google by its ML Kit text recognition tool for diagnostics and usage statistics. <b>The photo and the text read from it are not sent.</b></li>
 <li><b>Automatically:</b> server access logs, for security and troubleshooting.</li>
 </ul>
 <p>We treat your diet log and your body composition log as health-related information and store each on our server only if you give separate consent for it in the app. You can use every diet and body composition feature without consenting; your log then stays only on your device. You can withdraw consent at any time under <b>Me › Diet backup</b> or <b>Me › Body composition backup</b>, and when you do we delete that log from the server without delay (the log on your device stays).</p>
 <p>When you search for food, the text you type is sent to our server to search packaged foods. It is used only to return results and is not stored by us; it is sent whether or not you are signed in (it may remain in our provider's access logs for a limited period).</p>
+<p>Text on a body composition result sheet is read on your device; the photo is not saved or uploaded. On Android this uses Google ML Kit, which sends the device, app and performance information listed above to Google (according to Google). On iPhone it uses Apple's on-device feature and this information is not sent.</p>
 <p>Onboarding answers and settings (including diet goals) stay on your device. We do not collect location, contacts or advertising IDs. The installation ID is removed when you delete the app and is never used for advertising or tracking.</p>
 
 <h2>2. Retention</h2>
@@ -91,7 +96,7 @@
 <p>We do not share your personal data with third parties, except where required by law.</p>
 
 <h2>4. Processors and international transfer</h2>
-<p>Supabase, Inc. (USA) provides authentication, database and file storage; data is stored in the Seoul, South Korea region (AWS ap-northeast-2). Google LLC and Apple Inc. provide sign-in. 650 Industries, Inc. (Expo, USA) delivers app updates. You can avoid the transfer of account and backup data by using the app as a guest without backup and sync; app update checks are sent whenever the app starts, with or without an account.</p>
+<p>Supabase, Inc. (USA) provides authentication, database and file storage; data is stored in the Seoul, South Korea region (AWS ap-northeast-2). Google LLC and Apple Inc. provide sign-in. 650 Industries, Inc. (Expo, USA) delivers app updates. On Android, Google LLC (USA) receives ML Kit diagnostics and usage statistics when you read a result sheet. You can avoid the transfer of account and backup data by using the app as a guest without backup and sync; app update checks are sent whenever the app starts, with or without an account.</p>
 
 <h2>5. Deleting your data</h2>
 <p>In the app, go to <b>Me › Delete account</b>. Your account, workout records, supplement, diet and body composition logs and photo files on the server are deleted immediately, together with the data on your device. See <a href="delete-account.html">how to delete your account</a>.</p>
