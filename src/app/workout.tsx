@@ -631,7 +631,11 @@ export default function WorkoutScreen() {
     // 루틴과 다르게 했는지는 끝내기 전에 본다(끝내면 안 한 세트 · 종목이 지워진다).
     useRoutineUpdate.getState().set(pendingRoutineUpdate(db, currentWorkout.id, unit));
     finishWorkout(db, currentWorkout.id, at, last > 0 && isStaleWorkout(last, at) ? last : at);
-    router.replace({ pathname: '/workout-summary/[id]', params: { id: currentWorkout.id } });
+    // fresh: 방금 끝낸 운동이라는 표시(요약을 닫을 때 별점 요청창을 띄울지 본다)
+    router.replace({
+      pathname: '/workout-summary/[id]',
+      params: { id: currentWorkout.id, fresh: '1' },
+    });
   };
   const discard = () => ask({ kind: 'discard' });
   const finish = () => {
