@@ -44,6 +44,7 @@ import {
 } from '@/domain/session-summary';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { type PhotoSource, photoUri, pickPhoto, removePhotoFile } from '@/lib/photos';
+import { maybeAskForReview } from '@/lib/review-prompt';
 import { revealFocusedInput } from '@/lib/use-keyboard-reveal';
 import { useProfile } from '@/stores/profile';
 import { useSettings } from '@/stores/settings';
@@ -55,7 +56,7 @@ export default function WorkoutSummaryScreen() {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
   const lang = useAppLanguage();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, fresh } = useLocalSearchParams<{ id: string; fresh?: string }>();
   const unit = useSettings((s) => s.weightUnit);
   const bodyType = useProfile((s) => s.bodyType);
   const exercisesOpen = useSettings((s) => s.summaryExercisesOpen);
@@ -121,6 +122,11 @@ export default function WorkoutSummaryScreen() {
   }, [lost]);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  // 방금 끝낸 운동의 요약을 '완료'로 닫을 때만 별점 요청창을 띄울지 본다(화면이 닫힌 뒤에).
+  const done = () => {
+    close();
+    if (fresh === '1') setTimeout(() => void maybeAskForReview(), 600);
+  };
 
   // 지운 직후에는 닫히는 동안 빈 화면만 둔다.
   if (gone || lost) return <View style={styles.gone} />;
@@ -286,7 +292,7 @@ export default function WorkoutSummaryScreen() {
   ];
 
   return (
-    <Screen avoidKeyboard footer={<Button label={t('summary.done')} onPress={close} />}>
+    <Screen avoidKeyboard footer={<Button label={t('summary.done')} onPress={done} />}>
       <View style={styles.head}>
         <View style={styles.headText}>
           <Text style={styles.date}>
