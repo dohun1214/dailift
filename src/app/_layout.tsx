@@ -13,6 +13,7 @@ import { startAuth } from '@/lib/auth';
 import { configureNotifications } from '@/lib/notifications';
 import { useSupplementNotifications } from '@/lib/use-supplement-notifications';
 import { useRestTimerAlarm } from '@/stores/use-rest-timer-alarm';
+import { useWorkoutTimerAlarm } from '@/stores/use-workout-timer-alarm';
 import { startSync } from '@/sync/manager';
 import { useAppFonts } from '@/theme/use-app-fonts';
 import { useApplyTheme } from '@/theme/use-apply-theme';
@@ -32,6 +33,7 @@ function SupplementNotifications() {
 export default function RootLayout() {
   useApplyTheme();
   useRestTimerAlarm();
+  useWorkoutTimerAlarm();
   const { theme } = useUnistyles();
   const fontsReady = useAppFonts();
 

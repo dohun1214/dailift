@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import {
+  CARDIO_LIMITS,
   type CardioPlan,
   type CardioTimer,
   DEFAULT_LIMIT_SEC,
@@ -24,6 +25,12 @@ import {
 } from '@/lib/notifications';
 
 import { useSettings } from './settings';
+
+/**
+ * 운동 중 화면 위쪽 타이머 버튼으로 돌리는 타이머 · 스톱워치의 자리(세트 id 대신).
+ * 유산소와 같은 장치(저장 · 끝 알림 · 잠금 화면)를 쓰고, 기록에는 남기지 않는다. 한 번에 하나만 돈다.
+ */
+export const FREE_TIMER_ID = 'workout-timer';
 
 type StartOptions = {
   /** 이미 쌓인 시간. 안 주면 지금 스톱워치에 쌓인 만큼(없으면 0) */
@@ -50,6 +57,8 @@ type CardioTimerState = {
   /** 재기 시작(또는 이어서) */
   start: (setId: string, options?: StartOptions) => void;
   pause: (setId: string, now?: number) => void;
+  /** 타이머의 정한 시간을 늘리거나 줄인다(돌고 있는 타이머만). 남은 시간은 1초 아래로 내려가지 않는다 */
+  adjust: (setId: string, deltaSec: number, now?: number) => void;
   /** 스톱워치를 지우고 그때까지 쌓인 초를 돌려준다(없었으면 null) */
   take: (setId: string, now?: number) => number | null;
   /** 운동을 끝내거나 버릴 때 */
@@ -85,7 +94,10 @@ export const useCardioTimer = create<CardioTimerState>()(
         const countdown = timer.limitSec !== undefined;
         const paused = timer.startedAt === null;
         const limit = timer.limitSec ?? 0;
-        const name = timer.name ?? i18n.t('exercises.cardio');
+        const free = live.setId === FREE_TIMER_ID;
+        const name = free
+          ? i18n.t(countdown ? 'workout.timer.tabTimer' : 'workout.timer.tabStopwatch')
+          : (timer.name ?? i18n.t('exercises.cardio'));
         showCardioLive({
           countdown,
           startsAt: (timer.startedAt ?? now) - timer.baseSec * 1000,
@@ -93,13 +105,19 @@ export const useCardioTimer = create<CardioTimerState>()(
           frozen: paused ? formatClock(countdown ? limit - elapsed : elapsed) : '',
           frozenProgress: countdown && limit > 0 ? (limit - elapsed) / limit : 0,
           title: i18n.t(
-            paused
-              ? 'cardio.live.paused'
-              : countdown
-                ? 'cardio.live.timer'
-                : 'cardio.live.stopwatch',
+            free
+              ? paused
+                ? 'workout.timer.live.paused'
+                : countdown
+                  ? 'workout.timer.live.timer'
+                  : 'workout.timer.live.stopwatch'
+              : paused
+                ? 'cardio.live.paused'
+                : countdown
+                  ? 'cardio.live.timer'
+                  : 'cardio.live.stopwatch',
           ),
-          doneTitle: i18n.t('cardio.live.done'),
+          doneTitle: i18n.t(free ? 'workout.timer.live.done' : 'cardio.live.done'),
           name: countdown
             ? i18n.t('cardio.live.nameWithLimit', { name, total: limitLabel(limit) })
             : name,
@@ -117,11 +135,14 @@ export const useCardioTimer = create<CardioTimerState>()(
       const schedule = (setId: string, timer: CardioTimer, now: number) => {
         const endsAt = timerEndsAt(timer);
         if (endsAt === null) return;
-        const name = timer.name ?? i18n.t('exercises.cardio');
+        const free = setId === FREE_TIMER_ID;
+        const name = free
+          ? i18n.t('workout.timer.tabTimer')
+          : (timer.name ?? i18n.t('exercises.cardio'));
         void scheduleCardioEnd((endsAt - now) / 1000, {
           channel: i18n.t('cardio.notify.channel'),
           title: i18n.t('cardio.notify.title', { name, total: limitLabel(timer.limitSec ?? 0) }),
-          body: i18n.t('cardio.notify.body'),
+          body: i18n.t(free ? 'workout.timer.notifyBody' : 'cardio.notify.body'),
         }).then((id) => {
           // 알림을 못 걸었으면 권한 때문인지 본다(카드에 '알림이 꺼져 있어요'를 보여 준다).
           if (id === null) {
@@ -156,10 +177,23 @@ export const useCardioTimer = create<CardioTimerState>()(
           void dismissCardioNotifications();
           set((s) => ({
             timers: { ...s.timers, [setId]: timer },
-            lastLimitSec: timer.limitSec ?? s.lastLimitSec,
+            // 운동 중 타이머는 유산소 타이머의 '마지막에 쓴 시간'을 바꾸지 않는다.
+            lastLimitSec:
+              setId === FREE_TIMER_ID ? s.lastLimitSec : (timer.limitSec ?? s.lastLimitSec),
           }));
           schedule(setId, timer, now);
           syncLive(now);
+        },
+        adjust: (setId, deltaSec, now = Date.now()) => {
+          const cur = get().timers[setId];
+          if (!cur || cur.startedAt === null || cur.limitSec === undefined) return;
+          const elapsed = timerElapsed(cur, now);
+          if (elapsed >= cur.limitSec) return;
+          const limit = Math.min(
+            CARDIO_LIMITS.durationSec,
+            Math.max(elapsed + 1, cur.limitSec + deltaSec),
+          );
+          get().start(setId, { baseSec: elapsed, limitSec: limit, now });
         },
         pause: (setId, now = Date.now()) => {
           const cur = get().timers[setId];

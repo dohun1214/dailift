@@ -48,6 +48,8 @@ type Data = {
   setTargets: Partial<SetTargets>;
   /** 부위별 주간 세트를 셀 때 협응근만 쓰는 부위에도 0.5세트를 더할지. 끄면 주동근 부위만 센다 */
   countSecondarySets: boolean;
+  /** 운동 중 타이머에서 마지막으로 고른 시간(초) */
+  timerLastSec: number;
   /** 스토어 별점 요청창을 마지막으로 띄운 시각 */
   reviewAskedAt: number | null;
   /** 별점 요청창을 띄운 횟수 */
@@ -72,6 +74,7 @@ type SettingsState = Data & {
   setSetTarget: (group: TargetGroup, value: number) => void;
   setCountSecondarySets: (value: boolean) => void;
   markReviewAsked: (at: number) => void;
+  setTimerLastSec: (value: number) => void;
   /** 모든 부위를 추천값으로 */
   resetSetTargets: () => void;
   /** 모든 데이터 삭제 때 처음 상태로 */
@@ -96,6 +99,7 @@ function defaults(): Data {
     summaryExercisesOpen: false,
     setTargets: {},
     countSecondarySets: false,
+    timerLastSec: 120,
     reviewAskedAt: null,
     reviewAskCount: 0,
   };
@@ -125,6 +129,7 @@ export const useSettings = create<SettingsState>()(
         set((s) => ({ setTargets: { ...s.setTargets, [group]: clampSetTarget(value) } })),
       resetSetTargets: () => set({ setTargets: {} }),
       setCountSecondarySets: (countSecondarySets) => set({ countSecondarySets }),
+      setTimerLastSec: (timerLastSec) => set({ timerLastSec }),
       markReviewAsked: (at) =>
         set((s) => ({ reviewAskedAt: at, reviewAskCount: s.reviewAskCount + 1 })),
       // 별점 요청 기록은 남겨 둔다(데이터를 지웠다고 다시 묻지 않게).

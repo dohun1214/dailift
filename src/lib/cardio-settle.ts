@@ -1,7 +1,7 @@
 import type { AppDatabase } from '@/db/seed';
 import { recordCardio } from '@/db/workout';
 import { timerElapsed, timerEndsAt, timerExpired } from '@/domain/cardio';
-import { useCardioTimer } from '@/stores/cardio-timer';
+import { FREE_TIMER_ID, useCardioTimer } from '@/stores/cardio-timer';
 
 /**
  * 운동 화면 밖에서 운동을 끝낼 때(오래 둔 운동을 '마지막 기록 시각에 마치기') 유산소 스톱워치 · 타이머를 정리한다.
@@ -13,6 +13,8 @@ import { useCardioTimer } from '@/stores/cardio-timer';
 export function settleCardioTimers(db: AppDatabase, at: number, now = Date.now()) {
   const store = useCardioTimer.getState();
   for (const [setId, timer] of Object.entries(store.timers)) {
+    // 운동 중 타이머 · 스톱워치는 기록할 세트가 없다(지우기만 한다).
+    if (setId === FREE_TIMER_ID) continue;
     if (timerExpired(timer, now)) {
       recordCardio(db, setId, timer.limitSec ?? 0, Math.min(timerEndsAt(timer) ?? at, now));
     } else if (timer.startedAt === null) {

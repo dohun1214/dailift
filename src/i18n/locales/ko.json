@@ -411,7 +411,39 @@
     "eraseBodyEmpty": "{{name}} 운동이 지워져요. 되돌릴 수 없어요.",
     "eraseCancel": "취소",
     "addCardio": "유산소 추가",
-    "setHint": "세트 번호를 누르면 워밍업 · 드롭 · 실패 세트로 바꾸거나 RPE를 적을 수 있어요."
+    "setHint": "세트 번호를 누르면 워밍업 · 드롭 · 실패 세트로 바꾸거나 RPE를 적을 수 있어요.",
+    "current": "하는 중",
+    "timer": {
+      "title": "타이머 · 스톱워치",
+      "tabTimer": "타이머",
+      "tabStopwatch": "스톱워치",
+      "custom": "직접 정하기",
+      "customTitle": "타이머 시간",
+      "customSubtitle": "분과 초를 넣으면 바로 시작해요.",
+      "customStart": "타이머 시작",
+      "timerNote": "시간이 다 되면 진동과 알림으로 알려 드려요. 앱을 나가도 계속 돌아요.",
+      "stopwatchNote": "운동 중 아무 때나 시간을 재요. 앱을 나가도 계속 재요.",
+      "stopwatchHint": "시작을 누르면 재기 시작해요",
+      "startTimer": "{{time}} 타이머 시작",
+      "startStopwatch": "스톱워치 시작",
+      "pausedCaption": "스톱워치 멈춤",
+      "end": "끝내기",
+      "pause": "스톱워치 멈추기",
+      "resume": "스톱워치 이어서 재기",
+      "minusA11y": "타이머 15초 줄이기",
+      "plusA11y": "타이머 15초 늘리기",
+      "leftA11y": "타이머 {{time}} 남음",
+      "elapsedA11y": "스톱워치 {{time}}",
+      "doneTitle": "타이머 끝",
+      "doneBody": "{{time}} 지났어요",
+      "notifyBody": "정한 시간이 다 됐어요.",
+      "live": {
+        "timer": "타이머 남은 시간",
+        "stopwatch": "스톱워치 재는 중",
+        "paused": "스톱워치 멈춤",
+        "done": "타이머 끝"
+      }
+    }
   },
   "cardio": {
     "distance": "거리",

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 
+import { Badge } from '@/components/ui/badge';
 import { IconButton } from '@/components/ui/icon-button';
 import type { ExerciseType } from '@/db/schema';
 
@@ -20,8 +21,10 @@ type CardProps = {
   onPlatesPress?: () => void;
   /** 무게 컬럼 제목을 바꿀 때 (덤벨 한 손/합계) */
   weightColumn?: string;
-  /** 지금 하는 종목이 아닌데 펼쳐 둔 카드면 접기 버튼 */
+  /** 접기 버튼 */
   onCollapse?: () => void;
+  /** 지금 하는 종목이면 위치 줄에 '하는 중' */
+  current?: boolean;
   /** 종목별 휴식 시간 칩 (예: "휴식 1분 30초"). 누르면 시간을 고른다 */
   restLabel?: string;
   onRestPress?: () => void;
@@ -43,6 +46,7 @@ export function ActiveExerciseCard({
   onPlatesPress,
   weightColumn,
   onCollapse,
+  current = false,
   restLabel,
   onRestPress,
   onLongPress,
@@ -67,9 +71,14 @@ export function ActiveExerciseCard({
           onLongPress={onLongPress}
           delayLongPress={350}
           accessibilityRole={onNamePress ? 'link' : 'header'}
-          accessibilityLabel={`${position}, ${name}`}
+          accessibilityLabel={
+            current ? `${position}, ${t('workout.current')}, ${name}` : `${position}, ${name}`
+          }
         >
-          <Text style={styles.position}>{position}</Text>
+          <View style={styles.positionRow}>
+            <Text style={styles.position}>{position}</Text>
+            {current ? <Badge label={t('workout.current')} kind="solid" /> : null}
+          </View>
           <Text style={styles.name}>{name}</Text>
         </Pressable>
         {onPlatesPress ? (
@@ -144,6 +153,8 @@ export function ActiveExerciseCard({
 type CollapsedProps = {
   name: string;
   meta: string;
+  /** 지금 하는 종목이면 이름 옆에 '하는 중' */
+  current?: boolean;
   onPress: () => void;
   onLongPress?: () => void;
   onMenuPress?: () => void;
@@ -153,6 +164,7 @@ type CollapsedProps = {
 export function CollapsedExerciseCard({
   name,
   meta,
+  current = false,
   onPress,
   onLongPress,
   onMenuPress,
@@ -173,13 +185,18 @@ export function CollapsedExerciseCard({
         style={styles.collapsedBody}
         accessible
         accessibilityRole="button"
-        accessibilityLabel={`${name}, ${meta}`}
+        accessibilityLabel={
+          current ? `${name}, ${t('workout.current')}, ${meta}` : `${name}, ${meta}`
+        }
         accessibilityHint={t('workout.expandA11y', { name })}
         onAccessibilityTap={onPress}
       >
-        <Text style={styles.collapsedName} numberOfLines={1}>
-          {name}
-        </Text>
+        <View style={styles.collapsedNameRow}>
+          <Text style={styles.collapsedName} numberOfLines={1}>
+            {name}
+          </Text>
+          {current ? <Badge label={t('workout.current')} kind="solid" /> : null}
+        </View>
         <Text style={styles.collapsedMeta} numberOfLines={1}>
           {meta}
         </Text>
@@ -212,6 +229,7 @@ const styles = StyleSheet.create((theme) => ({
   },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 4 },
   headText: { flex: 1, gap: 2 },
+  positionRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   position: {
     fontSize: 12,
     lineHeight: 16,
@@ -282,6 +300,7 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: theme.colors.surface,
   },
   collapsedBody: { flex: 1, gap: 2 },
+  collapsedNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   // 카드 높이를 늘리지 않게 위아래로 조금 넘친다(누르는 면적 44).
   collapsedMenu: {
     width: 44,
@@ -292,6 +311,7 @@ const styles = StyleSheet.create((theme) => ({
     justifyContent: 'center',
   },
   collapsedName: {
+    flexShrink: 1,
     fontSize: 15,
     lineHeight: 20,
     includeFontPadding: false,
