@@ -1,4 +1,4 @@
-import { Camera, FileText, Image as ImageIcon } from 'lucide-react-native';
+import { Camera, FileText, Image as ImageIcon, ScanText } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
@@ -13,6 +13,8 @@ export type SheetScanState =
   | { kind: 'done'; uri: string; count: number };
 
 type Props = {
+  /** sheet: 체성분 결과지(기본) · label: 음식의 영양성분표 */
+  kind?: 'sheet' | 'label';
   state: SheetScanState;
   onPick: (source: SheetSource) => void;
   /** '다시 고르기' */
@@ -21,21 +23,26 @@ type Props = {
   onShareRaw?: () => void;
 };
 
-/** 체성분 기록 화면 맨 위: 인바디 결과지 사진을 찍거나 골라 값을 채운다. */
-export function SheetScanCard({ state, onPick, onAgain, onShareRaw }: Props) {
+/**
+ * 사진을 찍거나 골라 값을 채우는 카드.
+ * 체성분 기록 화면(인바디 결과지)과 음식 만들기 화면(영양성분표) 맨 위에 쓴다.
+ */
+export function SheetScanCard({ kind = 'sheet', state, onPick, onAgain, onShareRaw }: Props) {
   const { t } = useTranslation();
   const { theme } = useUnistyles();
+  const label = kind === 'label';
+  const Icon = label ? ScanText : FileText;
 
   if (state.kind === 'idle') {
     return (
       <Card padding="md" style={styles.card}>
         <View style={styles.row}>
           <View style={styles.icon}>
-            <FileText size={20} color={theme.colors.text} strokeWidth={1.8} />
+            <Icon size={20} color={theme.colors.text} strokeWidth={1.8} />
           </View>
           <View style={styles.text}>
-            <Text style={styles.title}>{t('body.scan.title')}</Text>
-            <Text style={styles.sub}>{t('body.scan.sub')}</Text>
+            <Text style={styles.title}>{t(label ? 'diet.scan.title' : 'body.scan.title')}</Text>
+            <Text style={styles.sub}>{t(label ? 'diet.scan.sub' : 'body.scan.sub')}</Text>
           </View>
         </View>
         <View style={styles.buttons}>
@@ -74,7 +81,7 @@ export function SheetScanCard({ state, onPick, onAgain, onShareRaw }: Props) {
         <View style={styles.row} accessible accessibilityLiveRegion="polite">
           {thumb}
           <View style={styles.text}>
-            <Text style={styles.title}>{t('body.scan.reading')}</Text>
+            <Text style={styles.title}>{t(label ? 'diet.scan.reading' : 'body.scan.reading')}</Text>
             <Text style={styles.sub}>{t('body.scan.readingSub')}</Text>
           </View>
           <ActivityIndicator color={theme.colors.text} />
@@ -87,7 +94,7 @@ export function SheetScanCard({ state, onPick, onAgain, onShareRaw }: Props) {
     <Card padding="md" style={styles.card}>
       <View style={styles.row}>
         <Pressable
-          accessibilityLabel={t('body.scan.photoA11y')}
+          accessibilityLabel={t(label ? 'diet.scan.photoA11y' : 'body.scan.photoA11y')}
           onLongPress={onShareRaw}
           delayLongPress={800}
         >
@@ -95,7 +102,7 @@ export function SheetScanCard({ state, onPick, onAgain, onShareRaw }: Props) {
         </Pressable>
         <View style={styles.text} accessible accessibilityLiveRegion="polite">
           <Text style={styles.title}>{t('body.scan.done', { count: state.count })}</Text>
-          <Text style={styles.sub}>{t('body.scan.doneSub')}</Text>
+          <Text style={styles.sub}>{t(label ? 'diet.scan.doneSub' : 'body.scan.doneSub')}</Text>
         </View>
         <Pressable
           accessibilityRole="button"
@@ -107,7 +114,7 @@ export function SheetScanCard({ state, onPick, onAgain, onShareRaw }: Props) {
       </View>
       <View style={styles.legend}>
         <View style={styles.dot} />
-        <Text style={styles.sub}>{t('body.scan.legend')}</Text>
+        <Text style={styles.sub}>{t(label ? 'diet.scan.legend' : 'body.scan.legend')}</Text>
       </View>
     </Card>
   );

@@ -1261,6 +1261,26 @@
       "deleteBody": "It disappears from My foods. Entries you already logged stay.",
       "deleteConfirm": "Delete"
     },
+    "scan": {
+      "title": "Fill in from a nutrition label",
+      "sub": "Take or choose a photo of the nutrition label and we'll read the values",
+      "reading": "Reading the label",
+      "doneSub": "Check them against the label before you save",
+      "legend": "Marked fields were read from the label",
+      "mark": "Read from the label",
+      "photoA11y": "Nutrition label photo",
+      "oneUnit": "1 pack",
+      "note": {
+        "serving": "Filled in per serving ({{g}} g), as on the label.",
+        "total": "The label covers the whole package ({{g}} g), so the serving is set to {{g}} g · \"{{name}}\".",
+        "per100": "The label is per 100 g, so the values are per 100 g.",
+        "noBasis": "We couldn't tell what amount the label is based on. Please check it.",
+        "ml": "mL is entered as g.",
+        "name": "Add the name yourself."
+      },
+      "failTitle": "Couldn't read the label",
+      "failBody": "Take the photo in good light, straight on, with the whole nutrition label in view. You can also type the values in."
+    },
     "sets": {
       "count_one": "{{count}} food",
       "count_other": "{{count}} foods",
