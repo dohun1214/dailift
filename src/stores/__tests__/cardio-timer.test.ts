@@ -1,7 +1,7 @@
 import { hideCardioLive, showCardioLive } from '@/lib/cardio-live';
 import { cancelScheduled, scheduleCardioEnd } from '@/lib/notifications';
 
-import { useCardioTimer } from '../cardio-timer';
+import { FREE_TIMER_ID, useCardioTimer } from '../cardio-timer';
 import { useSettings } from '../settings';
 
 jest.mock('@/lib/cardio-live', () => ({ showCardioLive: jest.fn(), hideCardioLive: jest.fn() }));
@@ -148,5 +148,34 @@ describe('종목 빼기 되돌리기', () => {
     expect(useCardioTimer.getState().plans).toEqual(plans);
     await flush();
     expect(schedule).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('운동 중 타이머 · 스톱워치', () => {
+  it('유산소 타이머의 마지막 시간을 바꾸지 않고, 잠금 화면에는 타이머로 보인다', () => {
+    const store = useCardioTimer.getState();
+    store.start(FREE_TIMER_ID, { baseSec: 0, limitSec: 120, now: 0 });
+    expect(useCardioTimer.getState().lastLimitSec).toBe(1200);
+    expect(show).toHaveBeenLastCalledWith(
+      expect.objectContaining({ countdown: true, endsAt: 120_000 }),
+    );
+    expect(show.mock.calls.at(-1)?.[0].name).not.toBe('유산소');
+  });
+
+  it('±15초: 남은 시간은 1초 아래로 내려가지 않는다', () => {
+    const store = useCardioTimer.getState();
+    store.start(FREE_TIMER_ID, { baseSec: 0, limitSec: 120, now: 0 });
+    store.adjust(FREE_TIMER_ID, 15, 10_000);
+    expect(useCardioTimer.getState().timers[FREE_TIMER_ID]?.limitSec).toBe(135);
+    store.adjust(FREE_TIMER_ID, -15, 130_000);
+    expect(useCardioTimer.getState().timers[FREE_TIMER_ID]?.limitSec).toBe(131);
+  });
+
+  it('스톱워치는 멈춤에서 이어 잰다', () => {
+    const store = useCardioTimer.getState();
+    store.start(FREE_TIMER_ID, { baseSec: 0, now: 0 });
+    store.pause(FREE_TIMER_ID, 42_000);
+    store.start(FREE_TIMER_ID, { now: 100_000 });
+    expect(useCardioTimer.getState().take(FREE_TIMER_ID, 110_000)).toBe(52);
   });
 });

@@ -43,10 +43,12 @@ import {
   type SetKindTarget,
   SetRow,
   setFieldKeys,
+  TimerSheet,
   useFieldNav,
   useKeyboardVisible,
   WorkoutEditList,
   WorkoutMenuSheet,
+  WorkoutTimerBar,
 } from '@/components/workout';
 import { db } from '@/db/client';
 import { pendingRoutineUpdate, routinePlans } from '@/db/routine-update';
@@ -99,13 +101,14 @@ import {
   contiguousRange,
   type FillField,
   isStaleWorkout,
+  workoutProgress,
 } from '@/domain/workout-session';
 import { useAppLanguage } from '@/i18n/use-app-language';
 import { object as objectJosa } from '@/lib/josa';
 import { markRecoveryAsked } from '@/lib/recovery-flag';
 import { useKeyboardReveal } from '@/lib/use-keyboard-reveal';
 import { useNow } from '@/lib/use-now';
-import { useCardioTimer } from '@/stores/cardio-timer';
+import { FREE_TIMER_ID, useCardioTimer } from '@/stores/cardio-timer';
 import { openExercisePicker } from '@/stores/exercise-picker';
 import { useRestTimer } from '@/stores/rest-timer';
 import { useRoutineUpdate } from '@/stores/routine-update';
@@ -159,9 +162,17 @@ export default function WorkoutScreen() {
   const startRest = useRestTimer((s) => s.start);
   const stopRest = useRestTimer((s) => s.stop);
   const now = useNow(1000, !!workout);
+  // 지금 종목을 잠깐 정해 둔 것(다른 종목으로 바꾸기 등). 없으면 마지막으로 체크한 종목을 따른다
   const [activeId, setActiveId] = useState<string | null>(null);
   // 지금 하는 종목과 별개로 사용자가 펼쳐 둔 종목(완료한 종목 다시 보기 등)
   const [openIds, setOpenIds] = useState<string[]>([]);
+  // 지금 종목인데 사용자가 접어 둔 것
+  const [closedIds, setClosedIds] = useState<string[]>([]);
+  // 위쪽 타이머 버튼: 타이머 · 스톱워치 창, '직접 정하기' 창
+  const [timerSheet, setTimerSheet] = useState(false);
+  const [customTimer, setCustomTimer] = useState(false);
+  const timerLastSec = useSettings((s) => s.timerLastSec);
+  const setTimerLastSec = useSettings((s) => s.setTimerLastSec);
   const [menuOpen, setMenuOpen] = useState(false);
   const [finished, setFinished] = useState(false);
   // 종목 편집(순서 · 삭제) 모드. highlightId는 꾹 눌러 들어온 종목
@@ -202,6 +213,8 @@ export default function WorkoutScreen() {
   // 타이머가 다 되면 정한 시간으로 스스로 기록한다(앱 밖에 있었다면 돌아왔을 때, 끝난 그 시각으로).
   useEffect(() => {
     for (const [setId, timer] of Object.entries(timers)) {
+      // 운동 중 타이머는 기록할 세트가 없다('타이머 끝'은 아래 바가 보여 준다).
+      if (setId === FREE_TIMER_ID) continue;
       if (!timerExpired(timer, now)) continue;
       const endsAt = timerEndsAt(timer) ?? now;
       const sec = useCardioTimer.getState().take(setId, now);
@@ -264,21 +277,36 @@ export default function WorkoutScreen() {
   // 유산소는 세트가 아니라서 '남은 세트'로 치지 않는다(카드가 늘 펼쳐져 있고, 안 잰 것은 끝낼 때 조용히 빠진다).
   const pendingOf = (we: WorkoutExerciseWithSets) =>
     isCardio(we) ? 0 : we.sets.filter((s) => s.completedAt === null).length;
+  // 지금 종목 = 마지막으로 세트를 체크한 종목(세트가 남아 있을 때), 아니면 세트가 남은 첫 종목(홈 카드와 같다).
   // 남은 세트가 하나도 없으면 펼쳐 둘 '지금 종목'이 없다: 모두 접힌다(눌러서 다시 펼 수 있다).
   const active =
-    exercises.find((e) => e.id === activeId) ?? exercises.find((e) => pendingOf(e) > 0);
+    exercises.find((e) => e.id === activeId && pendingOf(e) > 0) ??
+    workoutProgress(exercises.filter((e) => !isCardio(e))).current?.exercise;
+  /** 펼쳐 보일 카드: 지금 종목(접어 두지 않았으면) + 사용자가 펼친 카드 */
+  const isOpen = (id: string) =>
+    (id === active?.id && !closedIds.includes(id)) || openIds.includes(id);
 
   useEffect(() => {
     if (activeId && !exercises.some((e) => e.id === activeId)) setActiveId(null);
     if (openIds.some((id) => !exercises.some((e) => e.id === id))) {
       setOpenIds((ids) => ids.filter((id) => exercises.some((e) => e.id === id)));
     }
-  }, [activeId, openIds, exercises]);
-  const collapse = (id: string) => setOpenIds((ids) => ids.filter((x) => x !== id));
+    if (closedIds.some((id) => !exercises.some((e) => e.id === id))) {
+      setClosedIds((ids) => ids.filter((id) => exercises.some((e) => e.id === id)));
+    }
+  }, [activeId, openIds, closedIds, exercises]);
+  const collapse = (id: string) => {
+    setOpenIds((ids) => ids.filter((x) => x !== id));
+    if (id === active?.id) setClosedIds((ids) => (ids.includes(id) ? ids : [...ids, id]));
+  };
+  const expand = (id: string) => {
+    setOpenIds((ids) => (ids.includes(id) ? ids : [...ids, id]));
+    setClosedIds((ids) => ids.filter((x) => x !== id));
+  };
 
   // 화면에 펼쳐진 세트 입력칸을 위에서 아래 순으로 (키보드 위 '다음' 이동 순서)
   const fieldOrder = exercises
-    .filter((we) => we.id === active?.id || openIds.includes(we.id))
+    .filter((we) => isOpen(we.id))
     .flatMap((we) => {
       const type = catalog.byId.get(we.exerciseId)?.type ?? 'weight_reps';
       return we.sets.flatMap((s) => setFieldKeys(s.id, type));
@@ -373,10 +401,20 @@ export default function WorkoutScreen() {
       // 남은 세트가 없으면 쉴 일도 없다: 앞 세트에서 돌던 타이머를 멈춘다.
       stopRest();
     }
+    // 지금 종목은 마지막으로 체크한 종목을 따른다(정해 둔 것은 푼다).
+    setActiveId(null);
     if (leftHere === 0) {
-      // 다 끝낸 종목은 접고, 남은 종목이 있으면 그걸 지금 종목으로. 마지막 종목까지 끝냈으면 그것도 접는다.
-      setActiveId(next ? next.id : null);
+      // 다 끝낸 종목은 접고, 남은 종목이 있으면 그걸 지금 종목으로(접어 뒀어도 펼친다).
+      // 마지막 종목까지 끝냈으면 그것도 접는다.
       setOpenIds((ids) => ids.filter((id) => id !== we.id && id !== next?.id));
+      if (next) setClosedIds((ids) => ids.filter((id) => id !== next.id));
+    } else {
+      // 다른 종목을 체크해 지금 종목이 바뀌어도 펼쳐 있던 카드는 그대로 둔다(번갈아 해도 안 접힌다).
+      const prev = active;
+      if (prev && prev.id !== we.id && isOpen(prev.id)) {
+        setOpenIds((ids) => (ids.includes(prev.id) ? ids : [...ids, prev.id]));
+      }
+      setClosedIds((ids) => ids.filter((id) => id !== we.id));
     }
   };
 
@@ -600,6 +638,14 @@ export default function WorkoutScreen() {
     );
   };
 
+  /** 위쪽 타이머 버튼의 타이머를 시작한다(돌던 타이머 · 스톱워치는 끝난다 — 한 번에 하나). */
+  const startFreeTimer = (sec: number) => {
+    const store = useCardioTimer.getState();
+    store.take(FREE_TIMER_ID);
+    store.start(FREE_TIMER_ID, { baseSec: 0, limitSec: sec });
+    setTimerLastSec(sec);
+  };
+
   // 알림 · 잠금 화면에서 바로 열렸으면 돌아갈 화면이 없다 → 홈으로.
   const leave = () => {
     if (router.canGoBack()) router.back();
@@ -754,6 +800,7 @@ export default function WorkoutScreen() {
       pointerEvents={typing ? 'none' : 'auto'}
     >
       {undoBar}
+      <WorkoutTimerBar />
       <RestTimerBar />
       <Button label={t('workout.finish')} onPress={finish} />
     </View>
@@ -764,12 +811,22 @@ export default function WorkoutScreen() {
       {keepAwake ? <KeepScreenOn /> : null}
       <View style={styles.header}>
         <IconButton icon={ChevronDown} label={t('workout.collapse')} onPress={leave} />
+        {/* 오른쪽 버튼이 둘이라 제목이 가운데에 오도록 왼쪽에 같은 폭을 비워 둔다 */}
+        <View style={styles.headerSpacer} />
         <View style={styles.titleWrap} accessible accessibilityRole="header">
           <Text style={styles.title} numberOfLines={1}>
             {currentWorkout.name}
           </Text>
           <Text style={styles.elapsed}>{formatClock((now - currentWorkout.startedAt) / 1000)}</Text>
         </View>
+        <IconButton
+          icon={Timer}
+          label={t('workout.timer.title')}
+          onPress={() => {
+            Keyboard.dismiss();
+            setTimerSheet(true);
+          }}
+        />
         <IconButton icon={Ellipsis} label={t('workout.more')} onPress={() => setMenuOpen(true)} />
       </View>
 
@@ -853,14 +910,15 @@ export default function WorkoutScreen() {
                   />
                 );
               }
-              const extra = we.id !== active?.id;
-              if (extra && !openIds.includes(we.id)) {
+              const current = we.id === active?.id;
+              if (!isOpen(we.id)) {
                 return (
                   <CollapsedExerciseCard
                     key={we.id}
                     name={info?.name ?? ''}
                     meta={metaOf(we)}
-                    onPress={() => setOpenIds((ids) => [...ids, we.id])}
+                    current={current}
+                    onPress={() => expand(we.id)}
                     onLongPress={() => enterEdit(we.id)}
                     onMenuPress={() => setExerciseMenu({ id: we.id, name: info?.name ?? '' })}
                   />
@@ -886,7 +944,8 @@ export default function WorkoutScreen() {
                   }
                   name={info?.name ?? ''}
                   type={type}
-                  onCollapse={extra ? () => collapse(we.id) : undefined}
+                  current={current}
+                  onCollapse={() => collapse(we.id)}
                   restLabel={t('workout.restChip', { time: formatDuration(we.restSec) })}
                   onRestPress={() => setRestFor(we.id)}
                   onLongPress={() => enterEdit(we.id)}
@@ -1092,6 +1151,34 @@ export default function WorkoutScreen() {
             useCardioTimer.getState().setPlan(timeFor.setId, { mode: 'timer', limitSec: sec });
           } else saveCardioTime(timeFor.setId, sec);
         }}
+      />
+
+      <TimerSheet
+        visible={timerSheet}
+        lastSec={timerLastSec}
+        onClose={() => setTimerSheet(false)}
+        onStartTimer={startFreeTimer}
+        onStartStopwatch={() => {
+          const store = useCardioTimer.getState();
+          store.take(FREE_TIMER_ID);
+          store.start(FREE_TIMER_ID, { baseSec: 0 });
+        }}
+        onCustom={() => {
+          setTimerSheet(false);
+          // 창이 닫힌 뒤에 다음 창을 연다(두 창이 겹치면 iOS에서 두 번째가 안 뜰 수 있다).
+          setTimeout(() => setCustomTimer(true), 320);
+        }}
+      />
+      <CardioTimeSheet
+        visible={customTimer}
+        name=""
+        value={timerLastSec}
+        kind="limit"
+        title={t('workout.timer.customTitle')}
+        subtitle={t('workout.timer.customSubtitle')}
+        saveLabel={t('workout.timer.customStart')}
+        onClose={() => setCustomTimer(false)}
+        onSave={startFreeTimer}
       />
 
       <SetKindMenu

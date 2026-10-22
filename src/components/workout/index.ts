@@ -14,6 +14,8 @@ export { RestTimerBar } from './rest-timer-bar';
 export { SetKindMenu, type SetKindTarget } from './set-kind-menu';
 export { SetRow, type SetRowValue, setFieldKeys } from './set-row';
 export { StaleWorkoutSheet } from './stale-workout-sheet';
+export { TIMER_OPTIONS, TimerSheet } from './timer-sheet';
 export { WorkoutEditList, type WorkoutEditRow } from './workout-edit-list';
 export { WorkoutMenuSheet } from './workout-menu-sheet';
 export { WorkoutMiniBar } from './workout-mini-bar';
+export { WorkoutTimerBar } from './workout-timer-bar';

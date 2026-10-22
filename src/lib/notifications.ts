@@ -145,6 +145,27 @@ export async function scheduleCardioEnd(
   }
 }
 
+/**
+ * 유산소(또는 운동 중) 타이머 끝 알림을 지금 바로 띄운다(안드로이드, 앱을 보고 있을 때).
+ * 휴식 타이머와 같은 까닭: 예약 알림이 십여 초 늦게 울릴 수 있다.
+ */
+export async function presentCardioEnd(
+  scheduledId: string | null,
+  text: { channel: string; title: string; body: string },
+) {
+  try {
+    await cancelScheduled(scheduledId);
+    if (!(await notificationsAllowed())) return;
+    await ensureChannel(CARDIO_CHANNEL, text.channel);
+    await Notifications.scheduleNotificationAsync({
+      content: { title: text.title, body: text.body, data: { kind: 'cardio' }, sound: true },
+      trigger: { channelId: CARDIO_CHANNEL },
+    });
+  } catch {
+    // 알림을 못 띄워도 화면의 '타이머 끝'과 진동은 동작한다.
+  }
+}
+
 /** 알림 센터에 남아 있는 유산소 타이머 알림을 치운다 (운동을 끝내거나 다시 잴 때). */
 export async function dismissCardioNotifications() {
   try {

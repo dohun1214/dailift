@@ -428,7 +428,39 @@
     "eraseBodyEmpty": "{{name}} will be erased. This can't be undone.",
     "eraseCancel": "Cancel",
     "addCardio": "Add cardio",
-    "setHint": "Tap a set number to mark it as a warm-up, drop or failure set, or to log RPE."
+    "setHint": "Tap a set number to mark it as a warm-up, drop or failure set, or to log RPE.",
+    "current": "Now",
+    "timer": {
+      "title": "Timer · Stopwatch",
+      "tabTimer": "Timer",
+      "tabStopwatch": "Stopwatch",
+      "custom": "Custom",
+      "customTitle": "Timer length",
+      "customSubtitle": "Enter minutes and seconds to start right away.",
+      "customStart": "Start timer",
+      "timerNote": "We'll buzz and notify you when time's up, even if you leave the app.",
+      "stopwatchNote": "Time anything during your workout. Keeps running if you leave the app.",
+      "stopwatchHint": "Tap Start to begin",
+      "startTimer": "Start {{time}} timer",
+      "startStopwatch": "Start stopwatch",
+      "pausedCaption": "Paused",
+      "end": "Stop",
+      "pause": "Pause stopwatch",
+      "resume": "Resume stopwatch",
+      "minusA11y": "Timer minus 15 seconds",
+      "plusA11y": "Timer plus 15 seconds",
+      "leftA11y": "Timer {{time}} left",
+      "elapsedA11y": "Stopwatch {{time}}",
+      "doneTitle": "Time's up",
+      "doneBody": "{{time}} passed",
+      "notifyBody": "Your timer is done.",
+      "live": {
+        "timer": "Timer",
+        "stopwatch": "Stopwatch",
+        "paused": "Stopwatch paused",
+        "done": "Time's up"
+      }
+    }
   },
   "cardio": {
     "distance": "Distance",
