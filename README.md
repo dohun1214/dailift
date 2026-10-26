@@ -9,7 +9,7 @@
 
 | | |
 |---|---|
-| **상태** | App Store 출시 (1.0, 2026-10-19) · 실제 사용자 있음 · 1.1.0 심사 중 · Google Play 준비 중 |
+| **상태** | App Store 출시 (1.0, 2026-10-19) · 1.1.0 업데이트 출시 · 실제 사용자 있음 · Google Play 준비 중 |
 | **기간** | 2026-09-22 첫 커밋 → 2026-10-19 출시 (약 4주) |
 | **인원** | 1인 (기획 · 디자인 · 개발 · 테스트 · 출시 · 운영) |
 | **플랫폼** | iOS · Android (React Native) / 한국어 · English / 라이트 · 다크 |
@@ -26,6 +26,11 @@
   <img src="docs/images/06-body.jpg" width="24%" alt="체성분 — 체중 · 근육 · 체지방 변화" />
   <img src="docs/images/07-routines.jpg" width="24%" alt="루틴 — 추천 루틴으로 바로 시작" />
   <img src="docs/images/08-plates.jpg" width="24%" alt="원판 계산기" />
+</p>
+
+<p align="center">
+  <img src="docs/images/demo.gif" width="300" alt="Dailift 시연: 운동 기록부터 식단, 통계까지" /><br/>
+  <sub>시연 (실기기 iPhone, 25초) — 운동 시작 → 세트 기록 · 휴식 타이머 → 요약 · 근육맵 → 식단 추가 → 통계</sub>
 </p>
 
 ---
